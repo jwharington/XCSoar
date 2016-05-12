@@ -31,6 +31,7 @@ class Font;
 
 struct DialLook {
   const Font *font;
+  Brush brush_value;
   void Initialise(const Font& _font);
 };
 

@@ -97,4 +97,6 @@ InfoBoxLook::ReinitialiseLayout(unsigned width)
 #ifdef HAVE_TEXT_CACHE
   TextCache::Flush();
 #endif
+
+  dial.Initialise(medium_value_font);
 }

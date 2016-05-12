@@ -28,6 +28,7 @@ Copyright_License {
 #include "Screen/Brush.hpp"
 #include "Screen/Font.hpp"
 #include "Util/Macros.hpp"
+#include "DialLook.hpp"
 
 class Font;
 
@@ -60,6 +61,8 @@ struct InfoBoxLook {
   Font title_font;
 
   Color colors[6];
+
+  DialLook dial;
 
   void Initialise(bool inverse, bool use_colors,
                   unsigned width);
