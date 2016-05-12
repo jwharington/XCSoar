@@ -30,4 +30,5 @@ void
 DialLook::Initialise(const Font& _font)
 {
   font = &_font;
+  brush_value.Create(COLOR_GRAY);
 }
