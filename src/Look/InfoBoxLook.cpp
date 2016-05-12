@@ -96,6 +96,10 @@ InfoBoxLook::ReinitialiseLayout(unsigned width)
   AutoSizeFont(small_value_font_d, width, _T("12345m"));
   small_value_font.Load(small_value_font_d);
 
+  FontDescription medium_value_font_d(10, true);
+  AutoSizeFont(medium_value_font_d, width/2, _T("23456"));
+  medium_value_font.Load(medium_value_font_d);
+
   unsigned unit_font_height = std::max(value_font_d.GetHeight() * 2u / 5u, 7u);
   unit_font.Load(FontDescription(unit_font_height));
 
