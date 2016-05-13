@@ -93,6 +93,11 @@ class InfoBoxWindow : public LazyPaintWindow
    */
   void PaintComment(Canvas &canvas);
   /**
+   * Paints the InfoBox value to the given canvas (dial style)
+   * @param canvas The canvas to paint on
+   */
+  void PaintValueDial(Canvas &canvas, Color background_color);
+  /**
    * Paints the InfoBox with borders, title, comment and value
    */
   void Paint(Canvas &canvas);

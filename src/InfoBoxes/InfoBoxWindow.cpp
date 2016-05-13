@@ -150,6 +150,74 @@ InfoBoxWindow::PaintValue(Canvas &canvas, Color background_color)
   }
 }
 
+
+struct DialValueLayout {
+  int x0, x1;
+  int y0, y1;
+};
+
+static constexpr DialValueLayout dial_layout[] =
+{
+  {2, 2, 2, 2},
+  {2, 2, 3, 1},
+  {1, 3, 3, 1},
+  {1, 3, 2, 2},
+  {1, 3, 1, 3},
+  {2, 2, 1, 3},
+  {3, 1, 1, 3},
+  {3, 1, 2, 2},
+  {3, 1, 3, 1},
+  {2, 2, 2, 2},
+};
+
+static_assert(ARRAY_SIZE(dial_layout) == DialStyle::COUNT,
+              "Wrong dial value layout size");
+
+void
+InfoBoxWindow::PaintValueDial(Canvas &canvas, Color background_color)
+{
+  if (data.value.empty())
+    return;
+
+  // draw value
+  {
+    canvas.SetTextColor(look.GetValueColor(data.value_color));
+    canvas.Select(look.medium_value_font);
+
+    PixelSize value_size = canvas.CalcTextSize(data.value);
+    if (unsigned(value_size.cx) > value_rect.GetWidth()) {
+      canvas.Select(look.small_value_font);
+      value_size = canvas.CalcTextSize(data.value);
+    }
+
+    const PixelRect& rc = value_and_comment_rect;
+    const DialValueLayout& layout = dial_layout[data.dial_style];
+
+    const int x = (layout.x0 * rc.left + layout.x1 * rc.right - value_size.cx*2)/4;
+    const int y = (layout.y0 * rc.top + layout.y1 * rc.bottom - value_size.cy*2)/4;
+
+    canvas.TextAutoClipped(x, y, data.value);
+  }
+
+  // draw unit always lower right
+  {
+    canvas.Select(look.unit_font);
+    int unit_width =
+        UnitSymbolRenderer::GetSize(canvas, data.value_unit).cx;
+    if (unit_width != 0) {
+
+      const int unit_height =
+          UnitSymbolRenderer::GetAscentHeight(look.unit_font, data.value_unit);
+
+      canvas.Select(look.unit_font);
+      UnitSymbolRenderer::Draw(canvas,
+                               { value_and_comment_rect.right - unit_width - Layout::GetTextPadding()*2,
+                                     value_and_comment_rect.bottom - unit_height },
+                               data.value_unit, look.unit_fraction_pen);
+    }
+  }
+}
+
 void
 InfoBoxWindow::PaintComment(Canvas &canvas)
 {
@@ -196,7 +264,10 @@ InfoBoxWindow::Paint(Canvas &canvas)
 
   PaintTitle(canvas);
   PaintComment(canvas);
-  PaintValue(canvas, background_color);
+  if (data.dial_style == DialStyle::NONE)
+    PaintValue(canvas, background_color);
+  else
+    PaintValueDial(canvas, background_color);
 
   if (border_kind != 0) {
     canvas.Select(look.border_pen);
