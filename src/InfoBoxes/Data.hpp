@@ -26,6 +26,7 @@ Copyright_License {
 
 #include "util/StaticString.hxx"
 #include "Units/Unit.hpp"
+#include "DialStyle.hpp"
 
 #include <tchar.h>
 
@@ -41,6 +42,11 @@ struct InfoBoxData {
   Unit value_unit;
 
   uint8_t title_color, value_color, comment_color;
+
+  /**
+   * Determines whether to draw value in normal mode (PaintValue) or dial style (PaintValueDial)
+   */
+  DialStyle dial_style;
 
   void Clear();
 
