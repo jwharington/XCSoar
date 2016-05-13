@@ -33,6 +33,7 @@ InfoBoxData::Clear()
 void
 InfoBoxData::SetInvalid()
 {
+  dial_style = DialStyle::NONE;
   SetAllColors(0);
   SetValueInvalid();
   SetValueUnit(Unit::UNDEFINED);
