@@ -154,7 +154,7 @@ static constexpr MetaData meta_data[] = {
     N_("Thermal climb, last 30 s"),
     N_("TC 30s"),
     N_("A 30 second rolling average climb rate based of the reported GPS altitude, or vario if available."),
-    UpdateInfoBoxThermal30s,
+    IBFHelperInt<InfoBoxContentVario, 2>::Create,
   },
 
   // e_Bearing
@@ -195,7 +195,7 @@ static constexpr MetaData meta_data[] = {
     N_("Last thermal average"),
     N_("TL Avg"),
     N_("Total altitude gain/loss in the last thermal divided by the time spent circling."),
-    UpdateInfoBoxThermalLastAvg,
+    IBFHelperInt<InfoBoxContentVario, 5>::Create,
   },
 
   // e_TL_Gain
@@ -310,7 +310,7 @@ static constexpr MetaData meta_data[] = {
     N_("Thermal average"),
     N_("TC Avg"),
     N_("Altitude gained/lost in the current thermal, divided by time spent thermalling."),
-    UpdateInfoBoxThermalAvg,
+    IBFHelperInt<InfoBoxContentVario, 4>::Create,
   },
 
   // e_Thermal_Gain
@@ -334,7 +334,7 @@ static constexpr MetaData meta_data[] = {
     N_("Vario"),
     N_("Vario"),
     N_("Instantaneous vertical speed, as reported by the GPS, or the intelligent vario total energy vario value if connected to one."),
-    UpdateInfoBoxVario,
+    IBFHelperInt<InfoBoxContentVario, 0>::Create,
   },
 
   // e_WindSpeed_Est
@@ -499,7 +499,7 @@ static constexpr MetaData meta_data[] = {
     N_("Netto vario"),
     N_("Netto"),
     N_("Instantaneous vertical speed of air-mass, equal to vario value less the glider's estimated sink rate. Best used if airspeed, accelerometers and vario are connected, otherwise calculations are based on GPS measurements and wind estimates."),
-    UpdateInfoBoxVarioNetto,
+    IBFHelperInt<InfoBoxContentVario, 1>::Create,
   },
 
   // e_Fin_TimeLocal
@@ -652,7 +652,7 @@ static constexpr MetaData meta_data[] = {
     N_("Thermal average over all"),
     N_("T Avg"),
     N_("Time-average climb rate in all thermals."),
-    UpdateInfoBoxThermalAllAvg,
+    IBFHelperInt<InfoBoxContentVario, 6>::Create,
   },
 
   // e_RH_Trend
@@ -660,7 +660,7 @@ static constexpr MetaData meta_data[] = {
     N_("Task req. total height trend"),
     N_("RH Trend"),
     N_("Trend (or neg. of the variation) of the total required height to complete the task."),
-    UpdateInfoBoxVarioDistance,
+    IBFHelperInt<InfoBoxContentVario, 3>::Create,
   },
 
   // e_Battery

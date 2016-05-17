@@ -26,30 +26,26 @@ Copyright_License {
 
 #include "InfoBoxes/Content/Base.hpp"
 #include "Gauge/ThermalAssistantRenderer.hpp"
+#include "Renderer/DialRenderer.hpp"
 
-void
-UpdateInfoBoxVario(InfoBoxData &data);
+class InfoBoxContentVario : public InfoBoxContent
+{
+  DialStyle style;
+  DialRenderer dial;
+  const int var;
+  double value;
+ public:
+  InfoBoxContentVario(const int _var);
 
-void
-UpdateInfoBoxVarioNetto(InfoBoxData &data);
-
-void
-UpdateInfoBoxThermal30s(InfoBoxData &data);
-
-void
-UpdateInfoBoxThermalLastAvg(InfoBoxData &data);
+  virtual void Update(InfoBoxData &data) override;
+  virtual void OnCustomPaint(Canvas &canvas, const PixelRect &rc) override;
+};
 
 void
 UpdateInfoBoxThermalLastGain(InfoBoxData &data);
 
 void
 UpdateInfoBoxThermalLastTime(InfoBoxData &data);
-
-void
-UpdateInfoBoxThermalAllAvg(InfoBoxData &data);
-
-void
-UpdateInfoBoxThermalAvg(InfoBoxData &data);
 
 void
 UpdateInfoBoxThermalGain(InfoBoxData &data);
