@@ -152,28 +152,58 @@ UpdateInfoBoxNextLegEqThermal(InfoBoxData &data)
 // Altitude gain, relative to working band
 // TOP_RIGHT
 
-void
-UpdateInfoBoxThermalLastGain(InfoBoxData &data)
+InfoBoxContentHeightGain::InfoBoxContentHeightGain(const int _var):
+    style(DialStyle::TOP_RIGHT),
+    dial(UIGlobals::GetLook().info_box.dial,
+         UIGlobals::GetLook().info_box.inverse,
+         style),
+    var(_var)
 {
-  const OneClimbInfo &thermal = CommonInterface::Calculated().last_thermal;
-  if (!thermal.IsDefined()) {
-    data.SetInvalid();
-    return;
-  }
-
-  data.SetValueFromAltitude(thermal.gain);
+  dial.zero = 0;
+  dial.min = 0;
 }
 
 void
-UpdateInfoBoxThermalGain(InfoBoxData &data)
+InfoBoxContentHeightGain::OnCustomPaint(Canvas &canvas, const PixelRect &rc)
 {
-  const OneClimbInfo &thermal = CommonInterface::Calculated().current_thermal;
-  if (!thermal.IsDefined()) {
-    data.SetInvalid();
-    return;
-  }
+  dial.Draw(value, canvas, rc);
+}
 
-  data.SetValueFromAltitude(thermal.gain);
+void
+InfoBoxContentHeightGain::Update(InfoBoxData &data)
+{
+  const OneClimbInfo &last_thermal = CommonInterface::Calculated().last_thermal;
+  const OneClimbInfo &current_thermal = CommonInterface::Calculated().current_thermal;
+
+  const auto range = std::max(0.0, CommonInterface::Calculated().common_stats.height_max_working
+                              -CommonInterface::Calculated().common_stats.height_min_working);
+  dial.max = range;
+  switch (var) {
+    case 0: // current gain
+      if (!current_thermal.IsDefined()) {
+        data.SetInvalid();
+        return;
+      }
+      value = current_thermal.gain;
+      break;
+    case 1: // last gain
+      if (!last_thermal.IsDefined()) {
+        data.SetInvalid();
+        return;
+      }
+      value = last_thermal.gain;
+      break;
+    default:
+      assert(0);
+      break;
+  }
+  if (range>0) {
+    data.SetCustom();
+    data.dial_style = style;
+    data.SetValueFromAltitude(value);
+  } else {
+    data.SetInvalid();
+  }
 }
 
 //////////////////////////////////////////////////////////
