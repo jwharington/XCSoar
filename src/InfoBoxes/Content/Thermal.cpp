@@ -42,102 +42,168 @@ SetVSpeed(InfoBoxData &data, double value)
   data.SetValueUnit(Units::current.vertical_speed_unit);
 }
 
-void
-UpdateInfoBoxVario(InfoBoxData &data)
+//////////////////////////////////////////////////////////
+// Vario-like, able to be positive or negative; hence should be centered
+// BOTTOM_RIGHT
+
+InfoBoxContentVario::InfoBoxContentVario(const int _var):
+    style(_var< 5? DialStyle::BOTTOM_RIGHT: DialStyle::BOTTOM),
+    dial(UIGlobals::GetLook().info_box.dial,
+         UIGlobals::GetLook().info_box.inverse,
+         style),
+    var(_var)
 {
-  SetVSpeed(data, CommonInterface::Basic().brutto_vario);
+  dial.zero = 0;
 }
 
 void
-UpdateInfoBoxVarioNetto(InfoBoxData &data)
+InfoBoxContentVario::OnCustomPaint(Canvas &canvas, const PixelRect &rc)
 {
-  SetVSpeed(data, CommonInterface::Basic().netto_vario);
+  dial.Draw(value, canvas, rc);
 }
 
 void
-UpdateInfoBoxThermal30s(InfoBoxData &data)
+InfoBoxContentVario::Update(InfoBoxData &data)
 {
-  SetVSpeed(data, CommonInterface::Calculated().average);
+  const OneClimbInfo &last_thermal = CommonInterface::Calculated().last_thermal;
+  const OneClimbInfo &current_thermal = CommonInterface::Calculated().current_thermal;
 
-  // Set Color (red/black)
-  data.SetValueColor(2 * CommonInterface::Calculated().average <
-      CommonInterface::Calculated().common_stats.current_risk_mc ? 1 : 0);
+  const double range = std::max(fabs(CommonInterface::Calculated().common_stats.vario_scale_negative*2),
+                                fabs(CommonInterface::Calculated().common_stats.vario_scale_positive));
+  dial.min = var< 5? -range/2: 0;
+  dial.max = range;
+  switch (var) {
+    case 0: // brutto
+      value = CommonInterface::Basic().brutto_vario;
+      break;
+    case 1: // netto
+      value = CommonInterface::Basic().netto_vario;
+      break;
+    case 2: // average 30s
+      value = CommonInterface::Calculated().average;
+      // Set Color (red/black)
+      data.SetValueColor(2 * value <
+                         CommonInterface::Calculated().common_stats.current_risk_mc ? 1 : 0);
+      break;
+    case 3: // RH trend
+      if (!CommonInterface::Calculated().task_stats.task_valid) {
+        data.SetInvalid();
+        return;
+      }
+      value = CommonInterface::Calculated().task_stats.total.vario.get_value();
+      // Set Color (red/black)
+      data.SetValueColor(value < 0 ? 1 : 0);
+      break;
+    case 4: // ThermalAvg
+      if (!current_thermal.IsDefined()) {
+        data.SetInvalid();
+        return;
+      }
+      value = current_thermal.lift_rate;
+      // Set Color (red/black)
+      data.SetValueColor(value * 1.5 <
+                         CommonInterface::Calculated().common_stats.current_risk_mc ? 1 : 0);
+      break;
+    case 5: // ThermalLastAvg
+      if (!last_thermal.IsDefined()) {
+        data.SetInvalid();
+        return;
+      }
+      value = last_thermal.lift_rate;
+      break;
+    case 6: // ThermalAllAvg
+      if (CommonInterface::Calculated().time_circling <= 0) {
+        data.SetInvalid();
+        return;
+      }
+      value = CommonInterface::Calculated().total_height_gain /
+          CommonInterface::Calculated().time_circling;
+      break;
+    default:
+      assert(0);
+      break;
+  }
+  if (range) {
+    data.SetCustom();
+    data.dial_style = style;
+    SetVSpeed(data, value);
+  } else {
+    data.SetInvalid();
+  }
 }
 
+//////////////////////////////////////////////////////////
+// Vario-like, positive only
+// BOTTOM
+
 void
-UpdateInfoBoxThermalLastAvg(InfoBoxData &data)
+UpdateInfoBoxNextLegEqThermal(InfoBoxData &data)
 {
-  const OneClimbInfo &thermal = CommonInterface::Calculated().last_thermal;
-  if (!thermal.IsDefined()) {
+  const auto next_leg_eq_thermal = CommonInterface::Calculated().next_leg_eq_thermal;
+  if (next_leg_eq_thermal < 0) {
     data.SetInvalid();
     return;
   }
 
-  SetVSpeed(data, thermal.lift_rate);
+  SetVSpeed(data, next_leg_eq_thermal);
+}
+
+//////////////////////////////////////////////////////////
+// Altitude gain, relative to working band
+// TOP_RIGHT
+
+InfoBoxContentHeightGain::InfoBoxContentHeightGain(const int _var):
+    style(DialStyle::TOP_RIGHT),
+    dial(UIGlobals::GetLook().info_box.dial,
+         UIGlobals::GetLook().info_box.inverse,
+         style),
+    var(_var)
+{
+  dial.zero = 0;
+  dial.min = 0;
 }
 
 void
-UpdateInfoBoxThermalLastGain(InfoBoxData &data)
+InfoBoxContentHeightGain::OnCustomPaint(Canvas &canvas, const PixelRect &rc)
 {
-  const OneClimbInfo &thermal = CommonInterface::Calculated().last_thermal;
-  if (!thermal.IsDefined()) {
-    data.SetInvalid();
-    return;
-  }
-
-  data.SetValueFromAltitude(thermal.gain);
+  dial.Draw(value, canvas, rc);
 }
 
 void
-UpdateInfoBoxThermalLastTime(InfoBoxData &data)
+InfoBoxContentHeightGain::Update(InfoBoxData &data)
 {
-  const OneClimbInfo &thermal = CommonInterface::Calculated().last_thermal;
-  if (!thermal.IsDefined()) {
-    data.SetInvalid();
-    return;
+  const OneClimbInfo &last_thermal = CommonInterface::Calculated().last_thermal;
+  const OneClimbInfo &current_thermal = CommonInterface::Calculated().current_thermal;
+
+  const auto range = std::max(0.0, CommonInterface::Calculated().common_stats.height_max_working
+                              -CommonInterface::Calculated().common_stats.height_min_working);
+  dial.max = range;
+  switch (var) {
+    case 0: // current gain
+      if (!current_thermal.IsDefined()) {
+        data.SetInvalid();
+        return;
+      }
+      value = current_thermal.gain;
+      break;
+    case 1: // last gain
+      if (!last_thermal.IsDefined()) {
+        data.SetInvalid();
+        return;
+      }
+      value = last_thermal.gain;
+      break;
+    default:
+      assert(0);
+      break;
   }
-
-  data.SetValueFromTimeTwoLines((int)thermal.duration);
-}
-
-void
-UpdateInfoBoxThermalAllAvg(InfoBoxData &data)
-{
-  if (CommonInterface::Calculated().time_circling <= 0) {
+  if (range>0) {
+    data.SetCustom();
+    data.dial_style = style;
+    data.SetValueFromAltitude(value);
+  } else {
     data.SetInvalid();
-    return;
   }
-
-  SetVSpeed(data, CommonInterface::Calculated().total_height_gain /
-            CommonInterface::Calculated().time_circling);
-}
-
-void
-UpdateInfoBoxThermalAvg(InfoBoxData &data)
-{
-  const OneClimbInfo &thermal = CommonInterface::Calculated().current_thermal;
-  if (!thermal.IsDefined()) {
-    data.SetInvalid();
-    return;
-  }
-
-  SetVSpeed(data, thermal.lift_rate);
-
-  // Set Color (red/black)
-  data.SetValueColor(thermal.lift_rate * 1.5 <
-      CommonInterface::Calculated().common_stats.current_risk_mc ? 1 : 0);
-}
-
-void
-UpdateInfoBoxThermalGain(InfoBoxData &data)
-{
-  const OneClimbInfo &thermal = CommonInterface::Calculated().current_thermal;
-  if (!thermal.IsDefined()) {
-    data.SetInvalid();
-    return;
-  }
-
-  data.SetValueFromAltitude(thermal.gain);
 }
 
 void
@@ -153,55 +219,15 @@ UpdateInfoBoxThermalTime(InfoBoxData& data)
 
 
 void
-UpdateInfoBoxThermalRatio(InfoBoxData &data)
+UpdateInfoBoxThermalLastTime(InfoBoxData &data)
 {
-  // Set Value
-
-  if (CommonInterface::Calculated().circling_percentage < 0)
-    data.SetInvalid();
-  else {
-    data.SetValueFromPercent(CommonInterface::Calculated().circling_percentage);
-    data.SetCommentFromPercent(CommonInterface::Calculated().circling_climb_percentage);
-  }
-}
-
-void
-UpdateInfoBoxNonCirclingClimbRatio(InfoBoxData &data)
-{
-  // Set Value
-
-  if (CommonInterface::Calculated().noncircling_climb_percentage < 0)
-    data.SetInvalid();
-  else
-    data.SetValueFromPercent(CommonInterface::Calculated().noncircling_climb_percentage);
-}
-
-void
-UpdateInfoBoxVarioDistance(InfoBoxData &data)
-{
-  if (!CommonInterface::Calculated().task_stats.task_valid) {
+  const OneClimbInfo &thermal = CommonInterface::Calculated().last_thermal;
+  if (!thermal.IsDefined()) {
     data.SetInvalid();
     return;
   }
 
-  SetVSpeed(data,
-            CommonInterface::Calculated().task_stats.total.vario.get_value());
-
-  // Set Color (red/black)
-  data.SetValueColor(CommonInterface::Calculated().task_stats.total.vario.get_value() < 0 ? 1 : 0);
-}
-
-
-void
-UpdateInfoBoxNextLegEqThermal(InfoBoxData &data)
-{
-  const auto next_leg_eq_thermal = CommonInterface::Calculated().next_leg_eq_thermal;
-  if (next_leg_eq_thermal < 0) {
-    data.SetInvalid();
-    return;
-  }
-
-  SetVSpeed(data, next_leg_eq_thermal);
+  data.SetValueFromTimeTwoLines((int)thermal.duration);
 }
 
 void
@@ -268,6 +294,33 @@ InfoBoxContentThermalAssistant::OnCustomPaint(Canvas &canvas,
 {
   renderer.UpdateLayout(rc);
   renderer.Paint(canvas);
+}
+
+//////////////////////////////////////////////////////////
+// Ratio of time spent doing different things
+
+void
+UpdateInfoBoxThermalRatio(InfoBoxData &data)
+{
+  // Set Value
+
+  if (CommonInterface::Calculated().circling_percentage < 0)
+    data.SetInvalid();
+  else {
+    data.SetValueFromPercent(CommonInterface::Calculated().circling_percentage);
+    data.SetCommentFromPercent(CommonInterface::Calculated().circling_climb_percentage);
+  }
+}
+
+void
+UpdateInfoBoxNonCirclingClimbRatio(InfoBoxData &data)
+{
+  // Set Value
+
+  if (CommonInterface::Calculated().noncircling_climb_percentage < 0)
+    data.SetInvalid();
+  else
+    data.SetValueFromPercent(CommonInterface::Calculated().noncircling_climb_percentage);
 }
 
 void
