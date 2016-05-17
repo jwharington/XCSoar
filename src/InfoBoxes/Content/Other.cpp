@@ -129,17 +129,6 @@ UpdateInfoBoxExperimental2(InfoBoxData &data)
 }
 
 void
-UpdateInfoBoxCPULoad(InfoBoxData &data)
-{
-  unsigned percent_load = SystemLoadCPU();
-  if (percent_load <= 100) {
-    data.SetValueFromPercent(percent_load);
-  } else {
-    data.SetInvalid();
-  }
-}
-
-void
 UpdateInfoBoxFreeRAM(InfoBoxData &data)
 {
   // used to be implemented on WinCE
@@ -200,4 +189,34 @@ UpdateInfoBoxNbrSat(InfoBoxData &data)
         // valid but unknown number of sats
         data.SetValueInvalid();
     }
+}
+
+InfoBoxContentCPULoad::InfoBoxContentCPULoad():
+    style(DialStyle::BOTTOM),
+    dial(UIGlobals::GetLook().info_box.dial,
+         UIGlobals::GetLook().info_box.inverse,
+         style)
+{
+  dial.min = 0;
+  dial.max = 100;
+  dial.zero = 0;
+}
+
+void
+InfoBoxContentCPULoad::OnCustomPaint(Canvas &canvas, const PixelRect &rc)
+{
+  dial.Draw(SystemLoadCPU(), canvas, rc);
+}
+
+void
+InfoBoxContentCPULoad::Update(InfoBoxData &data)
+{
+  unsigned percent_load = SystemLoadCPU();
+  if (percent_load <= 100) {
+    data.SetCustom();
+    data.SetValueFromPercent(percent_load);
+    data.dial_style = style;
+  } else {
+    data.SetInvalid();
+  }
 }
