@@ -203,7 +203,7 @@ static constexpr MetaData meta_data[] = {
     N_("Last thermal gain"),
     N_("TL Gain"),
     N_("Total altitude gain/loss in the last thermal."),
-    UpdateInfoBoxThermalLastGain,
+    IBFHelperInt<InfoBoxContentHeightGain, 1>::Create,
   },
 
   // e_TL_Time
@@ -318,7 +318,7 @@ static constexpr MetaData meta_data[] = {
     N_("Thermal gain"),
     N_("TC Gain"),
     N_("The altitude gained/lost in the current thermal."),
-    UpdateInfoBoxThermalGain,
+    IBFHelperInt<InfoBoxContentHeightGain, 0>::Create,
   },
 
   // e_Track_GPS

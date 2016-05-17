@@ -41,6 +41,19 @@ class InfoBoxContentVario : public InfoBoxContent
   virtual void OnCustomPaint(Canvas &canvas, const PixelRect &rc) override;
 };
 
+class InfoBoxContentHeightGain : public InfoBoxContent
+{
+  DialStyle style;
+  DialRenderer dial;
+  const int var;
+  double value;
+ public:
+  InfoBoxContentHeightGain(const int _var);
+
+  virtual void Update(InfoBoxData &data) override;
+  virtual void OnCustomPaint(Canvas &canvas, const PixelRect &rc) override;
+};
+
 void
 UpdateInfoBoxThermalLastGain(InfoBoxData &data);
 
