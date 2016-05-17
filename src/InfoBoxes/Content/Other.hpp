@@ -25,6 +25,7 @@ Copyright_License {
 #define XCSOAR_INFOBOX_CONTENT_OTHER_HPP
 
 #include "InfoBoxes/Content/Base.hpp"
+#include "Renderer/DialRenderer.hpp"
 
 void
 UpdateInfoBoxGLoad(InfoBoxData &data);
@@ -39,9 +40,6 @@ void
 UpdateInfoBoxExperimental2(InfoBoxData &data);
 
 void
-UpdateInfoBoxCPULoad(InfoBoxData &data);
-
-void
 UpdateInfoBoxFreeRAM(InfoBoxData &data);
 
 void
@@ -50,6 +48,17 @@ UpdateInfoBoxNbrSat(InfoBoxData &data);
 class InfoBoxContentHorizon : public InfoBoxContent
 {
 public:
+  virtual void Update(InfoBoxData &data) override;
+  virtual void OnCustomPaint(Canvas &canvas, const PixelRect &rc) override;
+};
+
+class InfoBoxContentCPULoad : public InfoBoxContent
+{
+  DialStyle style;
+  DialRenderer dial;
+ public:
+  InfoBoxContentCPULoad();
+
   virtual void Update(InfoBoxData &data) override;
   virtual void OnCustomPaint(Canvas &canvas, const PixelRect &rc) override;
 };

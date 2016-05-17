@@ -749,7 +749,7 @@ static constexpr MetaData meta_data[] = {
     N_("CPU load"),
     N_("CPU"),
     N_("CPU load consumed by XCSoar averaged over 5 seconds."),
-    UpdateInfoBoxCPULoad,
+    IBFHelper<InfoBoxContentCPULoad>::Create,
   },
 
   // e_WP_H
