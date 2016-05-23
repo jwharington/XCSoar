@@ -1633,6 +1633,8 @@ RUN_TASK_SOURCES = \
 	$(SRC)/XML/DataNode.cpp \
 	$(SRC)/XML/DataNodeXML.cpp \
 	$(SRC)/Engine/Util/Gradient.cpp \
+	$(SRC)/Computer/CirclingComputer.cpp \
+	$(TEST_SRC_DIR)/FlightPhaseDetector.cpp \
 	$(DEBUG_REPLAY_SOURCES) \
 	$(TEST_SRC_DIR)/FakeTerrain.cpp \
 	$(TEST_SRC_DIR)/RunTask.cpp
