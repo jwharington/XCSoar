@@ -32,9 +32,33 @@ Copyright_License {
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "FlightPhaseDetector.hpp"
+#include "Computer/CirclingComputer.hpp"
+#include "Computer/Settings.hpp"
+static CirclingComputer circling_computer;
+#include "Math/Histogram.hpp"
+static FlightPhaseDetector flight_phase_detector;
+
+static void
+ComputeCircling(DebugReplay &replay, const CirclingSettings &circling_settings)
+{
+  circling_computer.TurnRate(replay.SetCalculated(),
+                             replay.Basic(),
+                             replay.Calculated().flight);
+  circling_computer.Turning(replay.SetCalculated(),
+                            replay.Basic(),
+                            replay.Calculated().flight,
+                            circling_settings);
+}
+
 static void
 Run(DebugReplay &replay, OrderedTask &task, const GlidePolar &glide_polar)
 {
+  CirclingSettings circling_settings;
+  circling_settings.SetDefaults();
+  Histogram off_track;
+  off_track.Reset(-M_PI,M_PI);
+
   Validity last_location_available;
   last_location_available.Clear();
 
@@ -47,8 +71,11 @@ Run(DebugReplay &replay, OrderedTask &task, const GlidePolar &glide_polar)
   char time_buffer[32];
 
   while (replay.Next()) {
+    ComputeCircling(replay, circling_settings);
+
     const MoreData &basic = replay.Basic();
     const DerivedInfo &calculated = replay.Calculated();
+    flight_phase_detector.Update(replay.Basic(), replay.Calculated());
 
     if (!basic.location_available) {
       last_location_available.Clear();
@@ -93,6 +120,20 @@ Run(DebugReplay &replay, OrderedTask &task, const GlidePolar &glide_polar)
       printf("%s task finished\n", time_buffer);
     }
 
+    if (!task_finished && replay.Calculated().flight.flying) {
+      const GlideResult &solution =
+          task_stats.current_leg.solution_remaining;
+      if (solution.IsOk()) {
+        const Angle a(basic.track);
+        const Angle b(solution.cruise_track_bearing);
+        const Angle c((b-a).AsDelta());
+        if (!calculated.circling) {
+          off_track.UpdateHistogram(c.Radians());
+          printf("a111 %g\n", c.Radians());
+        }
+      }
+    }
+
     last_as = current_as;
     last_as_valid = true;
   }
@@ -114,6 +155,13 @@ Run(DebugReplay &replay, OrderedTask &task, const GlidePolar &glide_polar)
     printf("scored speed %1.2f kph\n",
            double(task_stats.distance_scored
                   / task_stats.total.time_elapsed * 3.6));
+
+  printf("histogram\n");
+  double acc = off_track.GetAccumulator();
+  for (unsigned i=0; i< off_track.GetCount(); ++i) {
+    const auto &s = off_track.GetSlots()[i];
+    printf("a000 %g %g\n", s.x, s.y/acc);
+  }
 }
 
 int main(int argc, char **argv)
