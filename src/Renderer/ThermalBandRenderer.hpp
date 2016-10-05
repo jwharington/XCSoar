@@ -94,12 +94,12 @@ protected:
                                         ChartRenderer &chart,
                                         const double hoffset);
 
-  static void DrawRiskMC(const DerivedInfo& calculated,
-                         const ComputerSettings &settings_computer,
-                         ChartRenderer &chart,
-                         const double hoffset,
-                         const bool is_infobox,
-                         const bool is_map);
+  void DrawRiskMC(const DerivedInfo& calculated,
+                  const ComputerSettings &settings_computer,
+                  ChartRenderer &chart,
+                  const double hoffset,
+                  const bool is_infobox,
+                  const bool is_map) const;
 };
 
 #endif

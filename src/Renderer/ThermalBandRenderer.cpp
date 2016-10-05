@@ -122,7 +122,7 @@ ThermalBandRenderer::DrawRiskMC(const DerivedInfo& calculated,
                                 ChartRenderer &chart,
                                 const double hoffset,
                                 const bool is_infobox,
-                                const bool is_map)
+                                const bool is_map) const
 {
   if (settings_computer.polar.glide_polar_task.GetMC()<= 0)
     return;
@@ -148,7 +148,16 @@ ThermalBandRenderer::DrawRiskMC(const DerivedInfo& calculated,
   if (tmp.IsEmpty())
     return;
 
-  chart.DrawLineGraph(tmp, (is_map || is_infobox)? ChartLook::STYLE_WHITE: ChartLook::STYLE_REDTHICKDASH);
+  ChartLook::Style clook;
+  if (is_map) {
+    clook = ChartLook::STYLE_BLACK;
+  } else if (is_infobox) {
+    clook = look.inverse? ChartLook::STYLE_WHITE: ChartLook::STYLE_BLACK;
+  } else {
+    clook = ChartLook::STYLE_REDTHICKDASH;
+  }
+
+  chart.DrawLineGraph(tmp, clook);
   if (!is_map && !is_infobox) {
     chart.DrawLabel(_T("MC"), rmc, h_m);
   }
