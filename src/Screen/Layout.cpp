@@ -24,6 +24,7 @@ Copyright_License {
 #include "Screen/Layout.hpp"
 #include "Hardware/DisplayDPI.hpp"
 #include "Hardware/DisplaySize.hpp"
+#include "Asset.hpp"
 
 #include <algorithm>
 
@@ -90,7 +91,7 @@ Layout::Initialize(PixelSize new_size, unsigned ui_scale, unsigned custom_dpi)
   const unsigned x_dpi = Display::GetXDPI(custom_dpi);
   const unsigned y_dpi = Display::GetYDPI(custom_dpi);
   const bool is_small_screen = IsSmallScreen(Display::GetSize(new_size),
-                                             x_dpi, y_dpi);
+                                             x_dpi, y_dpi) && !IsDithered();
 
   // always start w/ shortest dimension
   // square should be shrunk
@@ -132,3 +133,4 @@ Layout::Initialize(PixelSize new_size, unsigned ui_scale, unsigned custom_dpi)
 
   hit_radius = PtScale(HasTouchScreen() ? 24 : 6);
 }
+
