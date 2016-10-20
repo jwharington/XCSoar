@@ -25,6 +25,7 @@ Copyright_License {
 #include "Screen/Layout.hpp"
 #include "Resources.hpp"
 #include "Colors.hpp"
+#include "Asset.hpp"
 
 void
 TaskLook::Initialise()
@@ -58,9 +59,16 @@ TaskLook::Initialise()
 
   target_icon.LoadResource(IDB_TARGET, IDB_TARGET_HD);
 
-  hbGray.Create(COLOR_GRAY);
-  hbGreen.Create(COLOR_GREEN);
-  hbOrange.Create(COLOR_ORANGE);
+  if (IsDithered()) {
+    hbGray.Create(COLOR_GRAY);
+    hbGreen.Create(COLOR_GRAY);
+    hbOrange.Create(COLOR_BLACK);
+  } else {
+    hbGray.Create(COLOR_GRAY);
+    hbGreen.Create(COLOR_GREEN);
+    hbOrange.Create(COLOR_ORANGE);
+  }
+
   hbLightGray.Create(COLOR_LIGHT_GRAY);
   hbNotReachableTerrain.Create(LightColor(COLOR_RED));
 }
