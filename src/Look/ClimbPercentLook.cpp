@@ -25,11 +25,18 @@ Copyright_License {
 #include "Screen/Layout.hpp"
 #include "Resources.hpp"
 #include "Colors.hpp"
+#include "Asset.hpp"
 
 void
 ClimbPercentLook::Initialise()
 {
-  brush_circling_climb.Create(COLOR_GRAY);
-  brush_noncircling_climb.Create(COLOR_GREEN);
-  brush_circling_descent.Create(COLOR_ORANGE);
+  if (IsDithered()) {
+    brush_circling_climb.Create(COLOR_BLACK);
+    brush_noncircling_climb.Create(COLOR_YELLOW);
+    brush_circling_descent.Create(COLOR_GRAY);
+  } else {
+    brush_circling_climb.Create(COLOR_GRAY);
+    brush_noncircling_climb.Create(COLOR_GREEN);
+    brush_circling_descent.Create(COLOR_ORANGE);
+  }
 }
