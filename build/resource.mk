@@ -41,8 +41,13 @@ $(SVG_NOALIAS_ICONS): $(DATA)/icons/%.svg: build/svg_preprocess.xsl Data/icons/%
 # Default 100PPI (eg 320x240 4" display)
 $(eval $(call rsvg-convert,$(PNG_ICONS),$(DATA)/icons/%.png,$(DATA)/icons/%.svg,--x-zoom=1.0 --y-zoom=1.0))
 
+ZOOMLARGE:=1.6316
+ifeq ($(TARGET_IS_KOBO),y)
+  ZOOMLARGE:=2.1
+endif
+
 #160PPI (eg 640x480 5" display)
-$(eval $(call rsvg-convert,$(PNG_ICONS_160),$(DATA)/icons/%_160.png,$(DATA)/icons/%.svg,--x-zoom=1.6316 --y-zoom=1.6316))
+$(eval $(call rsvg-convert,$(PNG_ICONS_160),$(DATA)/icons/%_160.png,$(DATA)/icons/%.svg,--x-zoom=$(ZOOMLARGE) --y-zoom=$(ZOOMLARGE)))
 
 # convert to uncompressed 8-bit BMP
 $(eval $(call convert-to-bmp,$(BMP_ICONS) $(BMP_ICONS_160),%.bmp,%_tile.png))
