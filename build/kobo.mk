@@ -85,6 +85,7 @@ KOBO_KERNEL_DIR = /opt/kobo/kernel
 $(TARGET_OUTPUT_DIR)/KoboRoot.tgz: $(XCSOAR_BIN) \
 	$(KOBO_MENU_BIN) $(KOBO_POWER_OFF_BIN) \
 	$(BITSTREAM_VERA_FILES) \
+	$(B612_FILES) \
 	$(topdir)/kobo/inittab $(topdir)/kobo/rcS $(topdir)/kobo/udev.rules
 	@$(NQ)echo "  TAR     $@"
 	$(Q)rm -rf $(@D)/KoboRoot
@@ -100,6 +101,7 @@ $(TARGET_OUTPUT_DIR)/KoboRoot.tgz: $(XCSOAR_BIN) \
 	$(Q)install -m 0644 $(topdir)/kobo/inittab $(@D)/KoboRoot/etc
 	$(Q)install -m 0644 $(topdir)/kobo/udev.rules $(@D)/KoboRoot/etc/udev/rules.d/99-xcsoar.rules
 	$(Q)install -m 0644 $(BITSTREAM_VERA_FILES) $(@D)/KoboRoot/opt/xcsoar/share/fonts
+	$(Q)install -m 0644 $(B612_FILES) $(@D)/KoboRoot/opt/xcsoar/share/fonts
 	$(Q)fakeroot tar czfC $@ $(@D)/KoboRoot .
 
 endif

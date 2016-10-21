@@ -245,3 +245,9 @@ $(eval $(call link-library,resources,RESOURCES))
 RESOURCE_BINARY = $(RESOURCES_BIN)
 
 endif
+
+# fonts
+
+B612_DIR = Data/fonts
+B612_NAMES = b612regular b612bold b612italic b612bolditalic b612monoregular b612monobold b612monoitalic b612monobolditalic
+B612_FILES = $(patsubst %,$(B612_DIR)/%.ttf,$(B612_NAMES))

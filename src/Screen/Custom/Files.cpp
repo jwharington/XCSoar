@@ -75,6 +75,7 @@ static const char *const all_font_paths[] = {
   "arial.ttf",
 #else
 
+  "B612-Regular.ttf",
 #ifndef KOBO
   "ttf-dejavu/DejaVuSansCondensed.ttf",
   "dejavu/DejaVuSansCondensed.ttf",
@@ -125,6 +126,7 @@ static const char *const all_bold_font_paths[] = {
 #endif
 #else
 
+  "B612-Bold.ttf",
 #ifndef KOBO
   "ttf-dejavu/DejaVuSansCondensed-Bold.ttf",
   "dejavu/DejaVuSansCondensed-Bold.ttf",
@@ -171,6 +173,7 @@ static const char *const all_italic_font_paths[] = {
 #endif
 #else
 
+  "B612-Italic.ttf",
 #ifndef KOBO
   "ttf-dejavu/DejaVuSansCondensed-Oblique.ttf",
   "dejavu/DejaVuSansCondensed-Oblique.ttf",
@@ -211,6 +214,7 @@ static const char *const all_bold_italic_font_paths[] = {
 #endif
 #else
 
+  "B612-BoldItalic.ttf",
 #ifndef KOBO
   "ttf-dejavu/DejaVuSansCondensed-BoldOblique.ttf",
   "dejavu/DejaVuSansCondensed-BoldOblique.ttf",
@@ -247,6 +251,7 @@ static const char *const all_monospace_font_paths[] = {
 #endif
 #else
 
+  "B612Mono-Regular.ttf",
 #ifndef KOBO
   "ttf-dejavu/DejaVuSansMono.ttf",
   "dejavu/DejaVuSansMono.ttf",
