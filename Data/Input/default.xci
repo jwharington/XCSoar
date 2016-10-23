@@ -673,7 +673,7 @@ location=6
 
 mode=Config3
 type=key
-data=7
+data=8
 event=RunLuaFile
 event=Mode default
 label=Lua
