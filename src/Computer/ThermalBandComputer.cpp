@@ -37,8 +37,7 @@ void
 ThermalBandComputer::Compute(const MoreData &basic,
                              const DerivedInfo &calculated,
                              ThermalEncounterBand &teb,
-                             ThermalEncounterCollection &tec,
-                             const ComputerSettings &settings)
+                             ThermalEncounterCollection &tec)
 {
   if (!basic.NavAltitudeAvailable())
     return;
