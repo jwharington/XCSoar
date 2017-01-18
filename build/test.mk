@@ -787,7 +787,8 @@ DEBUG_PROGRAM_NAMES = \
 	IGC2NMEA \
 	NearestWaypoints \
 	RunKalmanFilter1d \
-	ArcApprox
+	ArcApprox \
+	RunMultiAircraft \
 
 ifeq ($(TARGET),UNIX)
 DEBUG_PROGRAM_NAMES += \
@@ -1605,6 +1606,22 @@ RUN_WIND_COMPUTER_SOURCES = \
 RUN_WIND_COMPUTER_LDADD = $(DEBUG_REPLAY_LDADD)
 RUN_WIND_COMPUTER_DEPENDS = GEO MATH UTIL TIME
 $(eval $(call link-program,RunWindComputer,RUN_WIND_COMPUTER))
+
+RUN_MULTI_AIRCRAFT_SOURCES = \
+	$(DEBUG_REPLAY_SOURCES) \
+	$(SRC)/Computer/CirclingComputer.cpp \
+	$(SRC)/Computer/Wind/Settings.cpp \
+	$(SRC)/Computer/Wind/WindEKF.cpp \
+	$(SRC)/Computer/Wind/WindEKFGlue.cpp \
+	$(SRC)/Computer/Wind/CirclingWind.cpp \
+	$(SRC)/Computer/Wind/Computer.cpp \
+	$(SRC)/Computer/Wind/MeasurementList.cpp \
+	$(SRC)/Computer/Wind/Store.cpp \
+	$(SRC)/Formatter/TimeFormatter.cpp \
+	$(TEST_SRC_DIR)/RunMultiAircraft.cpp
+RUN_MULTI_AIRCRAFT_LDADD = $(RUN_WIND_COMPUTER_LDADD)
+RUN_MULTI_AIRCRAFT_DEPENDS = $(RUN_WIND_COMPUTER_DEPENDS)
+$(eval $(call link-program,RunMultiAircraft,RUN_MULTI_AIRCRAFT))
 
 RUN_EXTERNAL_WIND_SOURCES = \
 	$(DEBUG_REPLAY_SOURCES) \
