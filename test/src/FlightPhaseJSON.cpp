@@ -56,6 +56,25 @@ FormatCirclingDirection(Phase::CirclingDirection circling_direction)
   }
 }
 
+static void report(BufferedOutputStream &writer, const ThermalBand& band)
+{
+  const unsigned s = band.size();
+  if (!s) return;
+  static int j=0;
+  writer.Write(",\"thermal_band\": [");
+  char buf[256];
+  sprintf(buf, "[%g,0], ", band.GetFloor());
+  writer.Write(buf);
+  for (unsigned i=0; i<s; ++i) {
+    const ThermalSlice& s = band.GetSlice(i);
+    sprintf(buf, "[%g,%g],", band.GetSliceCenter(i), s.w_n);
+    writer.Write(buf);
+  }
+  sprintf(buf, "[%g,0]] ", band.GetCeiling());
+  writer.Write(buf);
+  j++;
+}
+
 static void
 WritePhase(BufferedOutputStream &writer, Phase &phase)
 {
@@ -80,6 +99,9 @@ WritePhase(BufferedOutputStream &writer, Phase &phase)
   object.WriteElement("speed", JSON::WriteDouble, phase.GetSpeed());
   object.WriteElement("vario", JSON::WriteDouble, phase.GetVario());
   object.WriteElement("glide_rate", JSON::WriteDouble, phase.GetGlideRate());
+
+  if (phase.phase_type == Phase::Type::CIRCLING)
+    report(writer, phase.thermal_collection);
 }
 
 static void

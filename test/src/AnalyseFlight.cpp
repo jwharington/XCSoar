@@ -24,6 +24,7 @@
 #include "Contest/ContestManager.hpp"
 #include "system/Args.hpp"
 #include "Computer/CirclingComputer.hpp"
+#include "Computer/ThermalBandComputer.hpp"
 #include "DebugReplay.hpp"
 #include "util/Macros.hpp"
 #include "io/StdioOutputStream.hxx"
@@ -53,6 +54,7 @@ struct Result {
 
 static CirclingComputer circling_computer;
 static FlightPhaseDetector flight_phase_detector;
+static ThermalBandComputer thermal_band_computer;
 
 static void
 Update(const MoreData &basic, const FlyingState &state,
@@ -131,6 +133,11 @@ Run(DebugReplay &replay, Result &result,
     const MoreData &basic = replay.Basic();
 
     Update(basic, replay.Calculated(), result);
+
+    thermal_band_computer.Compute(replay.Basic(), replay.Calculated(),
+                                  replay.SetCalculated().thermal_encounter_band,
+                                  replay.SetCalculated().thermal_encounter_collection);
+
     flight_phase_detector.Update(replay.Basic(), replay.Calculated());
 
     if (!basic.time_available || !basic.location_available ||
