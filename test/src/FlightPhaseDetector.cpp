@@ -59,6 +59,7 @@ static void
 CombinePhases(Phase &base, const Phase &addition)
 {
   UpdateCirclingDirection(base, addition.circling_direction);
+  base.thermal_collection.Merge(addition.thermal_collection);
   base.end_datetime = addition.end_datetime;
   base.end_time = addition.end_time;
   base.end_alt = addition.end_alt;
@@ -125,7 +126,7 @@ Phase::GetGlideRate() const {
   return distance / -alt_diff;
 }
 
-FlightPhaseDetector::FlightPhaseDetector() 
+FlightPhaseDetector::FlightPhaseDetector()
 {
   previous_phase.Clear();
   current_phase.Clear();
@@ -172,6 +173,8 @@ FlightPhaseDetector::Update(const MoreData &basic, const DerivedInfo &calculated
     }
   }
   // Update the current phase with additional data
+  if (current_phase.phase_type == Phase::Type::CIRCLING)
+    current_phase.thermal_band = calculated.thermal_encounter_band;
   current_phase.duration = basic.time - current_phase.start_time;
   current_phase.alt_diff = basic.nav_altitude - current_phase.start_alt;
   current_phase.distance += current_phase.end_loc.Distance(basic.location);
@@ -255,6 +258,8 @@ void
 FlightPhaseDetector::PushPhase()
 {
   assert(current_phase.phase_type != Phase::Type::NO_PHASE);
+  current_phase.thermal_collection.Merge(current_phase.thermal_band);
+  current_phase.thermal_band.Reset();
 
   if (phase_count == 0) {
     previous_phase = current_phase;
