@@ -30,6 +30,8 @@ Copyright_License {
 #include "Screen/Init.hpp"
 #include "Screen/Layout.hpp"
 #include "Event/KeyCode.hpp"
+#include "Event/Timer.hpp"
+#include "Event/Notify.hpp"
 #include "../test/src/Fonts.hpp"
 #include "Language/Language.hpp"
 #include "Form/ActionListener.hpp"
@@ -48,6 +50,15 @@ enum Buttons {
   SYSTEM,
   POWEROFF
 };
+
+enum TimeoutMode {
+  TIMEOUT_LAUNCH_XCSOAR,
+  TIMEOUT_POWEROFF
+};
+
+TimeoutMode timeout_mode = TIMEOUT_LAUNCH_XCSOAR;
+
+#define POWEROFF_TIME_S 10
 
 static DialogSettings dialog_settings;
 static SingleWindow *global_main_window;
@@ -75,7 +86,7 @@ UIGlobals::GetDialogLook()
   return *global_dialog_look;
 }
 
-class KoboMenuWidget final : public WindowWidget, ActionListener {
+class KoboMenuWidget final : public WindowWidget, ActionListener, Timer, Notify {
   ActionListener &dialog;
   SimulatorPromptWindow w;
 
@@ -91,10 +102,20 @@ public:
   virtual void Prepare(ContainerWindow &parent,
                        const PixelRect &rc) override;
 
+  virtual void Unprepare() override {
+    Timer::Cancel();
+  }
+
   virtual bool KeyPress(unsigned key_code) override;
 
   /* virtual methods from class ActionListener */
   void OnAction(int id) noexcept override;
+
+  /* virtual methods from class Timer */
+  virtual void OnTimer() override;
+
+  /* virtual methods from class Notify */
+  virtual void OnNotification() override;
 };
 
 void
@@ -106,6 +127,7 @@ KoboMenuWidget::CreateButtons(WidgetDialog &buttons)
   buttons.AddButton(_("Network"), *this, NETWORK);
   buttons.AddButton("System", *this, SYSTEM);
   buttons.AddButton(("Poweroff"), dialog, POWEROFF);
+  Timer::Schedule(std::chrono::seconds(POWEROFF_TIME_S));
 }
 
 void
@@ -136,8 +158,30 @@ KoboMenuWidget::KeyPress(unsigned key_code)
 }
 
 void
+KoboMenuWidget::OnNotification()
+{
+  switch (timeout_mode) {
+    case TIMEOUT_LAUNCH_XCSOAR:
+      dialog.OnAction(SimulatorPromptWindow::FLY);
+      return;
+
+    default:
+      dialog.OnAction(POWEROFF);
+      return;
+  };
+}
+
+void
+KoboMenuWidget::OnTimer()
+{
+  Timer::Cancel();
+  Notify::SendNotification();
+}
+
+void
 KoboMenuWidget::OnAction(int id) noexcept
 {
+  Timer::Cancel();
   switch (id) {
   case TOOLS:
     ShowToolsDialog();
@@ -151,6 +195,7 @@ KoboMenuWidget::OnAction(int id) noexcept
     ShowSystemDialog();
     break;
   }
+  Timer::Schedule(std::chrono::seconds(POWEROFF_TIME_S));
 }
 
 static int
@@ -163,6 +208,7 @@ Main(SingleWindow &main_window, const DialogLook &dialog_look)
 
   const int result = dialog.ShowModal();
   dialog.StealWidget();
+
   return result;
 }
 
@@ -208,6 +254,7 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
 
     case SimulatorPromptWindow::FLY:
+      timeout_mode = TIMEOUT_POWEROFF;
       KoboRunXCSoar("-fly");
       /* return to menu after XCSoar quits */
       break;
