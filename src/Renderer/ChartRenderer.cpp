@@ -294,7 +294,7 @@ ChartRenderer::DrawLine(const double xmin, const double ymin,
   canvas.DrawLine(ToScreen(xmin, ymin), ToScreen(xmax, ymax));
 }
 
-void 
+void
 ChartRenderer::DrawFilledLine(const double xmin, const double ymin,
                               const double xmax, const double ymax,
                               const Brush &brush)
@@ -328,16 +328,13 @@ ChartRenderer::DrawBarChart(const XYDataStore &lsdata)
   if (x.unscaled || y.unscaled)
     return;
 
-  canvas.Select(look.bar_brush);
-  canvas.SelectNullPen();
-
   const auto &slots = lsdata.GetSlots();
   for (unsigned i = 0, n = slots.size(); i != n; i++) {
     int xmin((i + 1.2) * x.scale + rc_chart.left);
     int ymin = ScreenY(y.min);
     int xmax((i + 1.8) * x.scale + rc_chart.left);
     int ymax = ScreenY(slots[i].y);
-    canvas.Rectangle(xmin, ymin, xmax, ymax);
+    canvas.Rectangle(xmin, ymax, xmax, ymin);
   }
 }
 
@@ -618,11 +615,9 @@ ChartRenderer::DrawWeightBarGraph(const XYDataStore &lsdata)
 {
   const auto &slots = lsdata.GetSlots();
 
-  canvas.SelectNullPen();
-
   for (const auto &i : slots) {
     auto pt_base = ToScreen(i.x, y.min);
     auto pt_top = ToScreen(i.x+i.weight, i.y);
-    canvas.Rectangle(pt_base.x, pt_base.y, pt_top.x, pt_top.y);
+    canvas.Rectangle(pt_base.x, pt_top.y, pt_top.x, pt_base.y);
   }
 }
