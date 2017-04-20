@@ -101,7 +101,9 @@ RenderClimbChart(Canvas &canvas, const PixelRect rc,
 
   RenderTaskLegs(chart, task, nmea_info, derived_info, 0.8);
 
-  canvas.Select(chart_look.black_brush);
+  canvas.SelectNullPen();
+  canvas.Select(chart_look.bar_brush);
+
   chart.DrawWeightBarGraph(fs.thermal_average);
 
   chart.DrawXGrid(0.25, 0.25, ChartRenderer::UnitFormat::TIME);
