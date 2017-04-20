@@ -3,7 +3,6 @@
 xcsoar.input_event.new("gesture_U",
                                 function(e)
                                    xcsoar.fire_legacy_event("Zoom","in");
-                                   e:cancel();
                                 end
 )
 
