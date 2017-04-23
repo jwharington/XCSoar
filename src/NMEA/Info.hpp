@@ -38,6 +38,7 @@ Copyright_License {
 #include "FLARM/Data.hpp"
 #include "Geo/SpeedVector.hpp"
 #include "NMEA/Propulsion.hpp"
+#include "NMEA/ElectricPropulsion.hpp"
 
 #include <type_traits>
 
@@ -362,6 +363,10 @@ struct NMEAInfo {
 
   PropulsionInfo propulsion;
   Validity propulsion_available;
+
+  ElectricPropulsionInfo electric_propulsion;
+  Validity electric_propulsion_available;
+
   void UpdateClock();
 
   /**
