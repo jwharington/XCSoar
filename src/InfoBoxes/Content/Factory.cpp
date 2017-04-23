@@ -43,6 +43,7 @@ Copyright_License {
 #include "InfoBoxes/Content/Airspace.hpp"
 #include "InfoBoxes/Content/Radio.hpp"
 #include "InfoBoxes/Content/Propulsion.hpp"
+#include "InfoBoxes/Content/ElectricPropulsion.hpp"
 
 #include "util/Macros.hpp"
 #include "Language/Language.hpp"
@@ -1068,8 +1069,23 @@ static constexpr MetaData meta_data[] = {
     N_("The number of actually used (seen) satellites by GPS module. If this information is unavailable, the displayed value is '---'."),
     UpdateInfoBoxNbrSat,
   },
-  // Propulsion
 
+  // Radio
+  {
+    N_("Active Radio Frequency"),
+    N_("Act Freq"),
+    N_("The currently active Radio Frequency"),
+    IBFHelper<InfoBoxContentActiveRadioFrequency>::Create,
+  },
+
+  {
+    N_("Standby Radio Frequency"),
+    N_("Stby Freq"),
+    N_("The currently standby Radio Frequency"),
+    IBFHelper<InfoBoxContentStandbyRadioFrequency>::Create,
+  },
+
+  // Propulsion
   // e_prop_turn_rate
   {
     N_("Prop turn rate"),
@@ -1085,19 +1101,48 @@ static constexpr MetaData meta_data[] = {
     UpdateInfoBoxPropulsionThrottle,
   },
 
-  // Radio
+  // Electric propulsion
+  // e_eprop_battery_voltage
   {
-    N_("Active Radio Frequency"),
-    N_("Act Freq"),
-    N_("The currently active Radio Frequency"),
-    IBFHelper<InfoBoxContentActiveRadioFrequency>::Create,
+    N_("E prop battery voltage"),
+    N_("E bat V"),
+    N_("Electric propulsion battery voltage."),
+    UpdateInfoBoxElectricPropulsionVoltage,
   },
-
+  // e_eprop_current
   {
-    N_("Standby Radio Frequency"),
-    N_("Stby Freq"),
-    N_("The currently standby Radio Frequency"),
-    IBFHelper<InfoBoxContentStandbyRadioFrequency>::Create,
+    N_("E prop current"),
+    N_("E bat I"),
+    N_("Electric propulsion current draw."),
+    UpdateInfoBoxElectricPropulsionCurrent,
+  },
+  // e_eprop_temperature_battery
+  {
+    N_("E prop battery temperature"),
+    N_("E temp bat"),
+    N_("Electric propulsion battery temperature."),
+    UpdateInfoBoxElectricPropulsionTemperatureBattery,
+  },
+  // e_eprop_temperature_motor
+  {
+    N_("E prop motor temperature"),
+    N_("E temp motor"),
+    N_("Electric propulsion motor temperature."),
+    UpdateInfoBoxElectricPropulsionTemperatureMotor,
+  },
+  // e_eprop_temperature_controller
+  {
+    N_("E prop controller temperature"),
+    N_("E temp control"),
+    N_("Electric propulsion controller temperature"),
+    UpdateInfoBoxElectricPropulsionTemperatureController,
+  },
+  // e_eprop_capacity
+  {
+    N_("E prop capacity"),
+    N_("E capacity"),
+    N_("Electric propulsion remaining battery capacity."),
+    UpdateInfoBoxElectricPropulsionCapacity,
   },
 
   // e_Thermal_Time

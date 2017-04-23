@@ -176,6 +176,13 @@ namespace InfoBoxFactory
     e_prop_throttle,
 
     // electric propulsion
+    e_eprop_battery_voltage,
+    e_eprop_current,
+    e_eprop_temperature_battery,
+    e_eprop_temperature_motor,
+    e_eprop_temperature_controller,
+    e_eprop_capacity,
+
     e_NUM_TYPES /* Last item */
   };
 
