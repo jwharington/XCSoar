@@ -261,8 +261,8 @@ NMEAInfo::Expire()
   flarm.Expire(clock);
   gps.Expire(clock);
   attitude.Expire(clock);
-  propulsion_available.Expire(clock, 30);
-  electric_propulsion_available.Expire(clock, 30);
+  propulsion_available.Expire(clock, 5);
+  electric_propulsion_available.Expire(clock, 5);
 }
 
 void
@@ -377,10 +377,10 @@ NMEAInfo::Complement(const NMEAInfo &add)
 
   flarm.Complement(add.flarm);
 
-  if (!propulsion_available && add.propulsion_available)
+  if (propulsion_available.Complement(add.propulsion_available))
     propulsion = add.propulsion;
 
-  if (!electric_propulsion_available && add.electric_propulsion_available)
+  if (electric_propulsion_available.Complement(add.electric_propulsion_available))
     electric_propulsion = add.electric_propulsion;
 
 }
