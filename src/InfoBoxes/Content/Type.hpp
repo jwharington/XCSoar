@@ -171,6 +171,11 @@ namespace InfoBoxFactory
 
     e_AirspaceRadio,
 
+    // generic propulsion
+    e_prop_turn_rate,
+    e_prop_throttle,
+
+    // electric propulsion
     e_NUM_TYPES /* Last item */
   };
 

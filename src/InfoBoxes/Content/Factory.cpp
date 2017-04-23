@@ -42,6 +42,7 @@ Copyright_License {
 #include "InfoBoxes/Content/Weather.hpp"
 #include "InfoBoxes/Content/Airspace.hpp"
 #include "InfoBoxes/Content/Radio.hpp"
+#include "InfoBoxes/Content/Propulsion.hpp"
 
 #include "util/Macros.hpp"
 #include "Language/Language.hpp"
@@ -1066,6 +1067,22 @@ static constexpr MetaData meta_data[] = {
     N_("Satellites"),
     N_("The number of actually used (seen) satellites by GPS module. If this information is unavailable, the displayed value is '---'."),
     UpdateInfoBoxNbrSat,
+  },
+  // Propulsion
+
+  // e_prop_turn_rate
+  {
+    N_("Prop turn rate"),
+    N_("Prop rpm"),
+    N_("Propulsion motor turn rate."),
+    UpdateInfoBoxPropulsionTurnRate,
+  },
+  // e_prop_throttle
+  {
+    N_("Throttle"),
+    N_("Throttle"),
+    N_("Propulsion throttle setting."),
+    UpdateInfoBoxPropulsionThrottle,
   },
 
   // Radio
