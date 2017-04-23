@@ -63,6 +63,8 @@ static constexpr UnitSymbolStrings symbol_strings[] = {
   { _T("%"), _T(" "), false },
   { nullptr, _T(":1"), false },
   { nullptr, _T("V"), false },
+  { nullptr, _T("A"), false },
+  { nullptr, _T("Ah"), false },
   { nullptr, _T("rpm"), false },
 };
 

@@ -58,6 +58,8 @@ const UnitDescriptor Units::unit_descriptors[] = {
   { _T("%"), 1, 0 },
   { _T(":1"), 1, 0 },
   { _T("V"), 1, 0 },
+  { _T("A"), 1, 0 },
+  { _T("Ah"), 1, 0 },
   { _T("rpm"), 1, 0 },
 };
 
