@@ -205,6 +205,7 @@ NMEAInfo::Reset()
   device.Clear();
   secondary_device.Clear();
   flarm.Clear();
+  propulsion_available.Clear();
 }
 
 void
@@ -259,6 +260,7 @@ NMEAInfo::Expire()
   flarm.Expire(clock);
   gps.Expire(clock);
   attitude.Expire(clock);
+  propulsion_available.Expire(clock, 30);
 }
 
 void
@@ -372,4 +374,8 @@ NMEAInfo::Complement(const NMEAInfo &add)
     stall_ratio = add.stall_ratio;
 
   flarm.Complement(add.flarm);
+
+  if (!propulsion_available && add.propulsion_available)
+    propulsion = add.propulsion;
+
 }
