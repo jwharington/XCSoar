@@ -180,6 +180,8 @@ NMEAInfo::Reset()
   device.Clear();
   secondary_device.Clear();
   flarm.Clear();
+  propulsion_available.Clear();
+  electric_propulsion_available.Clear();
 }
 
 void
@@ -243,6 +245,8 @@ NMEAInfo::Expire()
   glink_data.Expire(clock);
 #endif
   attitude.Expire(clock);
+  propulsion_available.Expire(clock, std::chrono::seconds(30));
+  electric_propulsion_available.Expire(clock, std::chrono::seconds(30));
 }
 
 void
@@ -354,6 +358,12 @@ NMEAInfo::Complement(const NMEAInfo &add)
 
   if (!stall_ratio_available && add.stall_ratio_available)
     stall_ratio = add.stall_ratio;
+
+  if (propulsion_available.Complement(add.propulsion_available))
+    propulsion = add.propulsion;
+
+  if (electric_propulsion_available.Complement(add.electric_propulsion_available))
+    electric_propulsion = add.electric_propulsion;
 
   flarm.Complement(add.flarm);
 
