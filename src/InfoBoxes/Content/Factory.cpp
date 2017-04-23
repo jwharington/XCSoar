@@ -42,6 +42,7 @@ Copyright_License {
 #include "InfoBoxes/Content/Weather.hpp"
 #include "InfoBoxes/Content/Airspace.hpp"
 #include "InfoBoxes/Content/Propulsion.hpp"
+#include "InfoBoxes/Content/ElectricPropulsion.hpp"
 
 #include "Util/Macros.hpp"
 #include "Language/Language.hpp"
@@ -1082,6 +1083,51 @@ static constexpr MetaData meta_data[] = {
     N_("Throttle"),
     N_("Propulsion throttle setting."),
     UpdateInfoBoxPropulsionThrottle,
+  },
+
+  // Electric propulsion
+
+  // e_eprop_battery_voltage
+  {
+    N_("E prop battery voltage"),
+    N_("E bat V"),
+    N_("Electric propulsion battery voltage."),
+    UpdateInfoBoxElectricPropulsionVoltage,
+  },
+  // e_eprop_current
+  {
+    N_("E prop current"),
+    N_("E bat I"),
+    N_("Electric propulsion current draw."),
+    UpdateInfoBoxElectricPropulsionCurrent,
+  },
+  // e_eprop_temperature_battery
+  {
+    N_("E prop battery temperature"),
+    N_("E temp bat"),
+    N_("Electric propulsion battery temperature."),
+    UpdateInfoBoxElectricPropulsionTemperatureBattery,
+  },
+  // e_eprop_temperature_motor
+  {
+    N_("E prop motor temperature"),
+    N_("E temp motor"),
+    N_("Electric propulsion motor temperature."),
+    UpdateInfoBoxElectricPropulsionTemperatureMotor,
+  },
+  // e_eprop_temperature_controller
+  {
+    N_("E prop controller temperature"),
+    N_("E temp control"),
+    N_("Electric propulsion controller temperature"),
+    UpdateInfoBoxElectricPropulsionTemperatureController,
+  },
+  // e_eprop_capacity
+  {
+    N_("E prop capacity"),
+    N_("E capacity"),
+    N_("Electric propulsion remaining battery capacity."),
+    UpdateInfoBoxElectricPropulsionCapacity,
   },
 
 };

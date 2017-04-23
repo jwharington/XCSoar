@@ -387,6 +387,7 @@ XCSOAR_SOURCES := \
 	$(SRC)/InfoBoxes/Content/Weather.cpp \
 	$(SRC)/InfoBoxes/Content/Airspace.cpp \
 	$(SRC)/InfoBoxes/Content/Propulsion.cpp \
+	$(SRC)/InfoBoxes/Content/ElectricPropulsion.cpp \
 	$(SRC)/InfoBoxes/Data.cpp \
 	$(SRC)/InfoBoxes/Format.cpp \
 	$(SRC)/InfoBoxes/Units.cpp \
