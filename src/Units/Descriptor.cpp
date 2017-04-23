@@ -58,6 +58,7 @@ const UnitDescriptor Units::unit_descriptors[] = {
   { _T("%"), 1, 0 },
   { _T(":1"), 1, 0 },
   { _T("V"), 1, 0 },
+  { _T("rpm"), 1, 0 },
 };
 
 static_assert(ARRAY_SIZE(Units::unit_descriptors) == (size_t)Unit::COUNT,
