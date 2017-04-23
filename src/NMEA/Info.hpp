@@ -37,6 +37,8 @@ Copyright_License {
 #include "DeviceInfo.hpp"
 #include "FLARM/Data.hpp"
 #include "Geo/SpeedVector.hpp"
+#include "NMEA/Propulsion.hpp"
+#include "NMEA/ElectricPropulsion.hpp"
 
 #ifdef ANDROID
 #include "GliderLink/GliderLinkData.hpp"
@@ -366,6 +368,12 @@ struct NMEAInfo {
 #ifdef ANDROID
   GliderLinkData glink_data;
 #endif
+
+  PropulsionInfo propulsion;
+  Validity propulsion_available;
+
+  ElectricPropulsionInfo electric_propulsion;
+  Validity electric_propulsion_available;
 
   void UpdateClock();
 
