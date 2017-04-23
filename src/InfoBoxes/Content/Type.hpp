@@ -164,6 +164,11 @@ namespace InfoBoxFactory
 
     e_NbrSat, /* Number of used Sat by GPS module */
 
+    // generic propulsion
+    e_prop_turn_rate,
+    e_prop_throttle,
+
+    // electric propulsion
     e_NUM_TYPES /* Last item */
   };
 
