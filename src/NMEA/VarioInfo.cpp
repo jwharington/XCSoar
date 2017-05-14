@@ -30,6 +30,7 @@ VarioInfo::Clear()
   sink_rate = 0;
   average = netto_average = 0;
   cruise_gr = INVALID_GR;
+  cruise_distance = 0;
   average_gr = 0;
   gr = INVALID_GR;
   ld_vario = INVALID_GR;
