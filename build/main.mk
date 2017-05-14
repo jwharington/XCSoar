@@ -252,6 +252,7 @@ XCSOAR_SOURCES := \
 	$(SRC)/Computer/CuComputer.cpp \
 	$(SRC)/Computer/FlyingComputer.cpp \
 	$(SRC)/Computer/CirclingComputer.cpp \
+	$(SRC)/Computer/CruiseComputer.cpp \
 	$(SRC)/Computer/ThermalBandComputer.cpp \
 	$(SRC)/Computer/Wind/Computer.cpp \
 	$(SRC)/Computer/ContestComputer.cpp \
