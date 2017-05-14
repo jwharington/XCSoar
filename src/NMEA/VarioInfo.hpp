@@ -21,6 +21,8 @@ struct VarioInfo
   double gr;
   /** Glide ratio over ground while in Cruise mode */
   double cruise_gr;
+  /** Distance covered while in Cruise mode */
+  double cruise_distance;
 
   /**
    * Average glide ratio over ground.  Zero means the value is not available.

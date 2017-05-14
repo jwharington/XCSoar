@@ -38,7 +38,7 @@ UpdateInfoBoxGRCruise(InfoBoxData &data) noexcept
   data.SetValueFromGlideRatio(cruise_gr);
 
   if (basic.location_available)
-    data.SetCommentFromDistance(basic.location.DistanceS(calculated.cruise_start_location));
+    data.SetCommentFromDistance(calculated.cruise_distance);
   else
     data.SetCommentInvalid();
 }
