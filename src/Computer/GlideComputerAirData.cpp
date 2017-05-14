@@ -66,6 +66,7 @@ GlideComputerAirData::ResetFlight(DerivedInfo &calculated,
     flying_computer.Reset();
 
   circling_computer.Reset();
+  cruise_computer.Reset(calculated);
   wave_computer.Reset();
 
   thermal_band_computer.Reset();
@@ -123,7 +124,8 @@ GlideComputerAirData::ProcessVertical(const MoreData &basic,
                       settings);
 
   GR(basic, calculated.flight, calculated);
-  CruiseGR(basic, calculated);
+
+  cruise_computer.Compute(basic, calculated);
 
   average_vario.Compute(basic, calculated.circling, last_circling,
                         calculated, settings.circling);
@@ -207,27 +209,6 @@ GlideComputerAirData::GR(const MoreData &basic, const FlyingState &flying,
                -basic.total_energy_vario, LOW_PASS_FILTER_VARIO_LD_ALPHA);
   } else {
     vario_info.ld_vario = INVALID_GR;
-  }
-}
-
-inline void
-GlideComputerAirData::CruiseGR(const MoreData &basic, DerivedInfo &calculated)
-{
-  if (!calculated.circling && basic.location_available &&
-      basic.NavAltitudeAvailable()) {
-    if (calculated.cruise_start_time < 0) {
-      calculated.cruise_start_location = basic.location;
-      calculated.cruise_start_altitude = basic.nav_altitude;
-      calculated.cruise_start_time = basic.time;
-    } else {
-      calculated.cruise_distance =
-        basic.location.DistanceS(calculated.cruise_start_location);
-
-      calculated.cruise_gr =
-          UpdateGR(calculated.cruise_gr, calculated.cruise_distance,
-                   calculated.cruise_start_altitude - basic.nav_altitude,
-                   0.5);
-    }
   }
 }
 
@@ -436,4 +417,12 @@ GlideComputerAirData::NextLegEqThermal(const NMEAInfo &basic,
 
   calculated.next_leg_eq_thermal =
       settings.polar.glide_polar_task.GetNextLegEqThermal(wind_comp, next_comp);
+}
+
+
+void
+GlideComputerAirData::ResetStats(const MoreData &basic, DerivedInfo &calculated)
+{
+  circling_computer.ResetStats();
+  cruise_computer.ResetStats(basic, calculated);
 }

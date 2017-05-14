@@ -312,7 +312,7 @@ void
 GlideComputer::OnStartTask()
 {
   GlideComputerBlackboard::StartTask();
-  air_data_computer.ResetStats();
+  air_data_computer.ResetStats(gps_info, SetCalculated());
   stats_computer.StartTask(Basic());
   log_computer.StartTask(Basic());
 }

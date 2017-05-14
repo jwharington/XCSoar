@@ -2342,6 +2342,7 @@ RUN_ANALYSIS_SOURCES = \
 	$(SRC)/Computer/GlideRatioCalculator.cpp \
 	$(SRC)/Computer/AutoQNH.cpp \
 	$(SRC)/Computer/CirclingComputer.cpp \
+	$(SRC)/Computer/CruiseComputer.cpp \
 	$(SRC)/Computer/Wind/Computer.cpp \
 	$(SRC)/Computer/Wind/Settings.cpp \
 	$(SRC)/Computer/ContestComputer.cpp \
