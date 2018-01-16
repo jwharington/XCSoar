@@ -46,7 +46,8 @@ static WindSettings wind_settings;
 static const int TYP_TRAIL = 15;
 static const int MAX_TRAIL = 3*TYP_TRAIL;
 static const int HYS_TRAIL = 10;
-const double DISTANCE = 30;
+double DISTANCE = 30;
+int SCORE_BUFFER = 0;
 
 struct TrailPoint {
   CatmullRomInterpolator::Record pos;
@@ -405,7 +406,16 @@ static double distance(const CatmullRomInterpolator::Record& a,
 
 int main(int argc, char **argv)
 {
-  Args args(argc, argv, "DRIVER FILE");
+  /* last 2 arguments are the proximity distance to use.
+        30 metres is good
+        61 metres is "legal" in Australia
+  */
+  // get the distance
+  DISTANCE = std::stoi(argv[argc-2]);
+  // get the penalty buffer
+  SCORE_BUFFER = std::stoi(argv[argc-1]);
+
+  Args args(argc-2, argv, "DRIVER FILE");
   int retval;
   std::list<MAircraft*> group;
   EncounterMapStore encounter_store;
@@ -608,6 +618,7 @@ int main(int argc, char **argv)
 
   //////////////
   {
+    // Create a file of "penalties" for the day - this is the sum of the maximum distance of each incursion
     FILE* fout = fopen("penalty.txt","w");
     fprintf(fout, "# id idi penalty\n");
     int num_aircraft = 0;
@@ -616,6 +627,21 @@ int main(int argc, char **argv)
       if (a.live) {
         num_aircraft++;
         fprintf(fout, "\"%s\" %d %f\n", a.id, a.idi, a.penalty);
+      }
+    }
+    fclose(fout);
+
+    // Create the penalty file for the scorer to apply
+    fout = fopen("scoring_penalty.txt","w");
+    fprintf(fout, "# comp_id penalty\n");
+    int score;
+    for (auto i = group.begin(); i!= group.end(); ++i) {
+      const MAircraft& a = *(*i);
+      if (a.live) {
+        // penalty is the sum of the "penalties" minus the buffer
+        score = (int)a.penalty - SCORE_BUFFER;
+        // Only if we have a postitive penalty output it.
+        if(score > 0) fprintf(fout, "\"%s\" %d\n", a.id, score);
       }
     }
     fclose(fout);
@@ -650,4 +676,3 @@ int main(int argc, char **argv)
 
   exit(retval);
 }
-
