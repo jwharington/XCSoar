@@ -24,6 +24,9 @@ Copyright_License {
 #ifndef XCSOAR_CRUISE_COMPUTER_HPP
 #define XCSOAR_CRUISE_COMPUTER_HPP
 
+#include "Geo/Flat/FlatProjection.hpp"
+#include "Geo/SearchPointVector.hpp"
+
 struct MoreData;
 struct DerivedInfo;
 
@@ -34,6 +37,12 @@ public:
 
   void Compute(const MoreData &basic,
                DerivedInfo &calculated);
+
+ private:
+  SearchPointVector search_hull;
+  /** Task projection used for flat-earth representation */
+  FlatProjection projection;
+  double cruise_start_time;
 };
 
 #endif
