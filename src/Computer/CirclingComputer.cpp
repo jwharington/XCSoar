@@ -311,6 +311,9 @@ CirclingComputer::PercentCircling(const MoreData &basic,
     if (basic.gps_vario>= 0) {
       circling_info.time_climb_circling += dt;
     }
+    else {
+      circling_info.total_thermal_height_lost += basic.gps_vario * dt;
+    }
   } else {
     // Add time step to the cruise time
     // timeCruising += (Basic->Time-LastTime);

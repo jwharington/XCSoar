@@ -36,6 +36,7 @@ CirclingInfo::Clear()
   time_climb_noncircling = 0;
   time_climb_circling = 0;
   total_height_gain = 0;
+  total_thermal_height_lost = 0;
 
   cruise_start_time = -1;
   climb_start_time = -1;
