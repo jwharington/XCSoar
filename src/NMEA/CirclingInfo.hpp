@@ -92,6 +92,9 @@ struct CirclingInfo
    */
   double noncircling_climb_percentage;
 
+  /** Total height lost when in thermals during task */
+  double total_thermal_height_lost;
+
   /** Time spent in cruise mode */
   FloatDuration time_cruise;
   /** Time spent in circling mode */
