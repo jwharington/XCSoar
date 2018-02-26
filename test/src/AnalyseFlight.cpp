@@ -82,6 +82,7 @@ ComputeCircling(DebugReplay &replay, const CirclingSettings &circling_settings)
                             replay.Basic(),
                             replay.Calculated().flight,
                             circling_settings);
+  circling_computer.PercentCircling(replay.Basic(), replay.Calculated().flight, replay.SetCalculated());
 }
 
 static void
