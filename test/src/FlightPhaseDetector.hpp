@@ -83,6 +83,8 @@ struct Phase {
   double distance;
   /** Number of the phases of the same type, combined into this phase. */
   unsigned int merges;
+  /** Cumulative height lost during thermalling, m */
+  double thermal_height_lost;
 
   /** Average ground speed during the phase */
   double GetSpeed() const;
