@@ -317,8 +317,8 @@ CirclingComputer::PercentCircling(const MoreData &basic,
   } else {
     // Add time step to the cruise time
     // timeCruising += (Basic->Time-LastTime);
+    circling_info.total_thermal_height_lost = 0;
     circling_info.time_cruise += dt;
-
     if (basic.gps_vario>= 0) {
       circling_info.time_climb_noncircling += dt;
     }
