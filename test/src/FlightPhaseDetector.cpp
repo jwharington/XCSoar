@@ -67,6 +67,7 @@ CombinePhases(Phase &base, const Phase &addition)
   base.distance += addition.distance;
   base.duration += addition.duration;
   base.alt_diff += addition.alt_diff;
+  base.thermal_height_lost += addition.thermal_height_lost;
   base.merges++;
 }
 
@@ -173,8 +174,9 @@ FlightPhaseDetector::Update(const MoreData &basic, const DerivedInfo &calculated
     }
   }
   // Update the current phase with additional data
-  if (current_phase.phase_type == Phase::Type::CIRCLING)
+  if (current_phase.phase_type == Phase::Type::CIRCLING) {
     current_phase.thermal_band = calculated.thermal_encounter_band;
+  }
   current_phase.duration = basic.time - current_phase.start_time;
   current_phase.alt_diff = basic.nav_altitude - current_phase.start_alt;
   current_phase.distance += current_phase.end_loc.Distance(basic.location);
@@ -182,6 +184,7 @@ FlightPhaseDetector::Update(const MoreData &basic, const DerivedInfo &calculated
   current_phase.end_time = basic.time;
   current_phase.end_loc = basic.location;
   current_phase.end_alt = basic.nav_altitude;
+  current_phase.thermal_height_lost = calculated.total_thermal_height_lost;
   UpdateCirclingDirection(current_phase, CalcCirclingDirection(calculated));
   // When powered flight is detected, current phase becomes "powered"
   if (IsPoweredFlight(calculated)) {
