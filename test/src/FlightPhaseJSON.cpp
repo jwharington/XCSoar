@@ -100,8 +100,10 @@ WritePhase(BufferedOutputStream &writer, Phase &phase)
   object.WriteElement("vario", JSON::WriteDouble, phase.GetVario());
   object.WriteElement("glide_rate", JSON::WriteDouble, phase.GetGlideRate());
 
-  if (phase.phase_type == Phase::Type::CIRCLING)
+  if (phase.phase_type == Phase::Type::CIRCLING) {
+    object.WriteElement("thermal_height_lost", JSON::WriteDouble, phase.thermal_height_lost);
     report(writer, phase.thermal_collection);
+  }
 }
 
 static void
@@ -113,6 +115,7 @@ WriteCirclingStats(BufferedOutputStream &writer, const Phase &stats)
   object.WriteElement("fraction", JSON::WriteDouble, stats.fraction);
   object.WriteElement("vario", JSON::WriteDouble, stats.GetVario());
   object.WriteElement("count", JSON::WriteInteger, stats.merges);
+  object.WriteElement("thermal_height_lost", JSON::WriteDouble, stats.thermal_height_lost);
 }
 
 static void
