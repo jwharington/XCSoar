@@ -169,7 +169,7 @@ class MAircraft {
     const char* ptr = args.PeekNext();
     const char* ptr_end = ptr+strlen(ptr)-1;
 
-    while (*ptr_end != '/') {
+    while ((*ptr_end != '/') && (ptr_end > ptr)) {
       ptr_end--;
     }
     ptr = ptr_end;
