@@ -310,6 +310,20 @@ class MAircraft {
     sprintf(buf, "encounter_%05d-%d.txt", info.encounter_num, !first);
     FILE* fenc = fopen(buf,"w");
 
+    FILE* fjson;
+    sprintf(buf, "encounter_%05d.json", info.encounter_num);
+    if (first) {
+      fjson = fopen(buf,"w");
+      fprintf(fjson,"{\n  \"time_start\": %g, \"time_end\": %g, \"time_close\": %d, \"d_min\": %g, \"time_pred\": %g, \"v_max\": %g,\n",
+              info.time_start, info.time_end, info.time_close, info.d_min, info.time_pred, info.v_max);
+      fprintf(fjson," \"aircraft\": [\n");
+    } else {
+      fjson = fopen(buf,"a");
+    }
+    assert(fjson);
+    fprintf(fjson," {\n");
+    fprintf(fjson,"   \"id\": \"%s\",\n", id);
+
     fprintf(fenc, "# id time_start time_end time_close d_min time_pred v_max\n");
     fprintf(fenc, "# \"%s\" %g %g %d %g %g %g\n", id, info.time_start, info.time_end, info.time_close, info.d_min, info.time_pred, info.v_max);
     fprintf(fenc, "#\n");
@@ -323,6 +337,9 @@ class MAircraft {
     FlatProjection proj(info.loc_min);
     const double scale = proj.GetApproximateScale();
     double a_last = 500;
+
+    fprintf(fjson,"   \"trace\": [\n");
+    bool cont = false;
 
     for (auto it = trail.begin(); it != trail.end(); ++it) {
 
@@ -349,10 +366,29 @@ class MAircraft {
 
         fprintf(fenc, "%g %g %g %g %g %g %g %g %g %d\n", it->pos.time-tzero, fp.x, fp.y,
                 it->pos.baro_altitude, it->pos.gps_altitude, v, 180/M_PI*a, 180/M_PI*r, bank_angle, (int)it->turn_mode);
+
+        if (cont) {
+          fprintf(fjson,",\n");
+        } else {
+          cont = true;
+        }
+        fprintf(fjson, "      {\"t\": %g, \"x\": %g, \"y\": %g, \"alt_baro\": %g, \"alt_gps\": %g, \"v\": %g, \"hdg\": %g, \"turnrate\": %g, \"bank\": %g, \"turn_mode\": %d}", it->pos.time-tzero, fp.x, fp.y,
+                it->pos.baro_altitude, it->pos.gps_altitude, v, 180/M_PI*a, 180/M_PI*r, bank_angle, (int)it->turn_mode);
       }
       a_last = a;
     }
     fclose(fenc);
+
+    fprintf(fjson,"    ]\n");
+
+    if (!first) {
+      fprintf(fjson,"     }\n");
+      fprintf(fjson,"  ]\n");
+      fprintf(fjson,"}\n");
+    } else {
+      fprintf(fjson," },\n");
+    }
+    fclose(fjson);
   }
 
   CatmullRomInterpolator interpolator;
