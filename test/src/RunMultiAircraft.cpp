@@ -570,17 +570,7 @@ int main(int argc, char **argv)
         }
 
         const double d_vert = distance_vert(a.interp_loc, b.interp_loc);
-        /*
-        if (d_vert > DISTANCE/2)
-          continue;
-        */
-
         const double d_horiz = distance_horiz(a.interp_loc, b.interp_loc);
-        /*
-        if (d_horiz > DISTANCE)
-          continue;
-        */
-
         const double d_abs = sqrt(d_horiz*d_horiz+d_vert*d_vert);
 
         acc_spacing_global+= d_abs;
