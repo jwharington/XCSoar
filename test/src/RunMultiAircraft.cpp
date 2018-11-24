@@ -429,7 +429,7 @@ static double distance_horiz(const CatmullRomInterpolator::Record& a,
 static double distance_vert(const CatmullRomInterpolator::Record& a,
                      const CatmullRomInterpolator::Record& b)
 {
-  return std::max(fabs(a.baro_altitude - b.baro_altitude), 0.);
+  return std::max(fabs(a.gps_altitude - b.gps_altitude), 0.);
 }
 
 static double distance(const CatmullRomInterpolator::Record& a,
