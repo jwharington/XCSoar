@@ -314,8 +314,8 @@ class MAircraft {
     sprintf(buf, "encounter_%05d.json", info.encounter_num);
     if (first) {
       fjson = fopen(buf,"w");
-      fprintf(fjson,"{\n  \"time_start\": %g, \"time_end\": %g, \"time_close\": %d, \"d_min\": %g, \"time_pred\": %g, \"v_max\": %g,\n",
-              info.time_start, info.time_end, info.time_close, info.d_min, info.time_pred, info.v_max);
+      fprintf(fjson,"{\n  \"time_start\": %g, \"time_end\": %g, \"time_close\": %d, \"d_min\": %g, \"time_pred\": %g, \"v_max\": %g, \"d_threshold\": %g,\n",
+              info.time_start, info.time_end, info.time_close, info.d_min, info.time_pred, info.v_max, DISTANCE);
       fprintf(fjson," \"aircraft\": [\n");
     } else {
       fjson = fopen(buf,"a");
