@@ -39,6 +39,7 @@ CruiseComputer::ResetStats(const MoreData &basic, DerivedInfo &calculated)
 {
   calculated.cruise_start_location = basic.location;
   calculated.cruise_start_altitude = basic.nav_altitude;
+  calculated.cruise_start_altitude_te = basic.TE_altitude;
   calculated.cruise_start_time = basic.time;
 }
 
@@ -50,6 +51,7 @@ CruiseComputer::Compute(const MoreData &basic,
     if (calculated.cruise_start_time < 0) {
       calculated.cruise_start_location = basic.location;
       calculated.cruise_start_altitude = basic.nav_altitude;
+      calculated.cruise_start_altitude_te = basic.TE_altitude;
       calculated.cruise_start_time = basic.time;
     } else {
 
@@ -90,7 +92,7 @@ CruiseComputer::Compute(const MoreData &basic,
 
       calculated.cruise_gr =
           UpdateGR(calculated.cruise_gr, calculated.cruise_distance,
-                   calculated.cruise_start_altitude - basic.nav_altitude,
+                   calculated.cruise_start_altitude_te - basic.TE_altitude,
                    0.5);
     }
   }
