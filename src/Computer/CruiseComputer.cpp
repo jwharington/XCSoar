@@ -95,49 +95,5 @@ CruiseComputer::Compute(const MoreData &basic,
     }
   }
 
-  /*
-  if (!basic.NavAltitudeAvailable()) {
-    Reset();
-    calculated.gr = INVALID_GR;
-    calculated.average_gr = 0;
-    return;
-  }
-
-  if (!last_location_available) {
-    Reset();
-    calculated.gr = INVALID_GR;
-    calculated.average_gr = 0;
-
-    last_location = basic.location;
-    last_location_available = basic.location_available;
-    last_altitude = basic.nav_altitude;
-    return;
-  }
-
-  if (!basic.location_available.Modified(last_location_available))
-    return;
-
-  auto DistanceFlown = basic.location.DistanceS(last_location);
-
-  // Glide ratio over ground
-  calculated.gr =
-    UpdateGR(calculated.gr, DistanceFlown,
-             last_altitude - basic.nav_altitude, 0.1);
-
-  if (calculated.flight.flying && !calculated.circling) {
-    if (!gr_calculator_initialised) {
-      gr_calculator_initialised = true;
-      gr_calculator.Initialize(settings);
-    }
-
-    gr_calculator.Add((int)DistanceFlown, (int)basic.nav_altitude);
-    calculated.average_gr = gr_calculator.Calculate();
-  } else
-    gr_calculator_initialised = false;
-
-  last_location = basic.location;
-  last_location_available = basic.location_available;
-  last_altitude = basic.nav_altitude;
-  */
 }
 
