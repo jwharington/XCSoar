@@ -59,6 +59,11 @@ void
 SystemWidget::Prepare(ContainerWindow &parent, const PixelRect &rc)
 {
   AddButton("Reboot", *this, REBOOT);
+
+#ifdef KOBO
+  KoboModel model = DetectKoboModel();
+  if (model != KoboModel::CLARA_HD)
+#endif
   AddButton(IsKoboOTGKernel() ? "Disable USB-OTG" : "Enable USB-OTG",
             *this, SWITCH_KERNEL);
 
