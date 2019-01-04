@@ -434,7 +434,7 @@ FlarmTrafficWindow::PaintRadarTarget(Canvas &canvas,
   if (WarningMode())
     return;
 
-  // if vertical speed to small or negative -> skip this one
+  // if vertical speed too small or negative -> skip this one
   if (side_display_type == SIDE_INFO_VARIO &&
       (!traffic.climb_rate_avg30s_available ||
        traffic.climb_rate_avg30s < 0.5 ||
@@ -481,7 +481,7 @@ FlarmTrafficWindow::PaintTargetInfoSmall(
   if (relalt == 0)
     return;
 
-  // Write the relativ altitude devided by 100 to the Buffer
+  // Write the relative altitude divided by 100 to the Buffer
   StaticString<10> buffer;
   buffer.Format(_T("%d"), abs(relalt));
 
