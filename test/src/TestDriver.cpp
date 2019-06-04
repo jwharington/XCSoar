@@ -49,6 +49,7 @@
 #include "Device/Driver/Westerboer.hpp"
 #include "Device/Driver/XCTracer.hpp"
 #include "Device/Driver/Zander.hpp"
+#include "Device/Driver/PI300.hpp"
 #include "Device/Driver.hpp"
 #include "Device/RecordedFlight.hpp"
 #include "Device/Parser.hpp"
@@ -1532,6 +1533,36 @@ TestACD()
 }
 
 static void
+TestPI300()
+{
+  NullPort null;
+  Device *device = pi300_driver.CreateOnPort(dummy_config, null);
+  ok1(device != NULL);
+
+  NMEAInfo nmea_info;
+  nmea_info.Reset();
+  nmea_info.clock = 1;
+
+  const uint8_t buf[25] = {
+    0x79,0x2e,0x04,0x82,0x16,0xff,0x01,0x00,0x00,0x18,0x16,0x15,0x8f,
+    0x00,0x0b,0x00,0xfe,0x01,0x88,0x01,0x00,0x01,0x00,0x0d,0x60
+  };
+
+  ok1(device->DataReceived(buf, 25, nmea_info));
+  ok1(nmea_info.electric_propulsion_available);
+  ok1(equals(nmea_info.electric_propulsion.voltage, 57.62));
+  ok1(equals(nmea_info.electric_propulsion.current, -0.7815));
+  ok1(equals(nmea_info.propulsion.turn_rate, 0));
+  ok1(equals(nmea_info.electric_propulsion.temperature_battery.ToCelsius(), 24));
+  ok1(equals(nmea_info.electric_propulsion.temperature_motor.ToCelsius(), 22));
+  ok1(equals(nmea_info.electric_propulsion.temperature_controller.ToCelsius(), 21));
+  ok1(equals(nmea_info.electric_propulsion.capacity, 51.0));
+  ok1(equals(nmea_info.propulsion.throttle, 0.0));
+
+  delete device;
+}
+
+static void
 TestDeclare(const struct DeviceRegister &driver)
 {
   NullDataHandler handler;
@@ -1602,7 +1633,7 @@ TestFlightList(const struct DeviceRegister &driver)
 
 int main(int argc, char **argv)
 {
-  plan_tests(827);
+  plan_tests(835);
 
   TestGeneric();
   TestTasman();
@@ -1629,6 +1660,7 @@ int main(int argc, char **argv)
   TestVaulter();
   TestXCTracer();
   TestACD();
+  TestPI300();
 
   /* XXX the Triadis drivers have too many dependencies, not enabling
      for now */
