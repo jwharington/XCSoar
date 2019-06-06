@@ -177,11 +177,11 @@ test_replay(const Contest olc_type,
 			    flying_state);
 
     calculated.flight.flying = true;
-    
+
     trace_computer.Update(settings_computer, basic, calculated);
-    
+
     contest_manager.UpdateIdle();
-  
+
     if (verbose>1) {
       sim.print(f, basic);
       f.flush();
@@ -202,7 +202,7 @@ test_replay(const Contest olc_type,
 }
 
 
-int main(int argc, char** argv) 
+int main(int argc, char** argv)
 try {
   if (!ParseArgs(argc,argv)) {
     return 0;
