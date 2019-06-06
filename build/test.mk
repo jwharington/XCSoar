@@ -797,7 +797,8 @@ DEBUG_PROGRAM_NAMES = \
 	IGC2NMEA \
 	NearestWaypoints \
 	RunKalmanFilter1d \
-	ArcApprox
+	ArcApprox \
+	test_replay_retrospective
 
 ifeq ($(TARGET),UNIX)
 DEBUG_PROGRAM_NAMES += \
