@@ -35,6 +35,7 @@
 /**
  * A Catmull-Rom splines interpolator
  * @see http://www.cs.cmu.edu/~462/projects/assn2/assn2/catmullRom.pdf
+ * @see http://algorithmist.net/docs/catmullrom.pdf
  */
 class CatmullRomInterpolator
 {
@@ -47,13 +48,13 @@ public:
   };
 
 private:
-  const double time;
+  const double alpha;
 
   unsigned num;
   Record p[4];
 
 public:
-  CatmullRomInterpolator(double _time):time(_time)
+  CatmullRomInterpolator(double _alpha):alpha(_alpha)
   {
     Reset();
   }
@@ -87,7 +88,7 @@ public:
     return (num == 4);
   }
 
-  GeoVector 
+  GeoVector
   GetVector(double _time) const
   {
     assert(Ready());
@@ -122,10 +123,10 @@ public:
 
     const auto u2 = Square(u);
     const auto u3 = u2 * u;
-    const double c[4]= {-time * u3 + 2 * time * u2 - time * u,
-                        (2 - time) * u3 + (time - 3) * u2 + 1,
-                        (time - 2) * u3 + (3 - 2 * time) * u2 + time * u,
-                        time * u3 - time * u2};
+    const double c[4]= {-alpha * u3 + 2 * alpha * u2 - alpha * u,
+                        (2 - alpha) * u3 + (alpha - 3) * u2 + 1,
+                        (alpha - 2) * u3 + (3 - 2 * alpha) * u2 + alpha * u,
+                        alpha * u3 - alpha * u2};
 
     Record r;
     r.location.latitude =
