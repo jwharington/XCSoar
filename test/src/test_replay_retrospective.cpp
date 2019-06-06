@@ -1,4 +1,5 @@
 #include "test_debug.hpp"
+#include "TestUtil.hpp"
 #include "harness_aircraft.hpp"
 #include "Replay/IgcReplay.hpp"
 #include "Engine/Navigation/Aircraft.hpp"
@@ -18,20 +19,15 @@
 static bool
 test_replay_retrospective()
 {
-  Directory::Create(_T("output/results"));
+  Directory::Create(Path(_T("output/results")));
   std::ofstream f("output/results/res-sample.txt");
 
   Waypoints waypoints;
-  WaypointReader w(waypoint_file.c_str(), 0);
-  if (!ok1(!w.Error())) {
-    printf("# waypoint file %s\n", waypoint_file.c_str());
-    skip(2, 0, "opening waypoint file failed");
-    return false;
-  }
-
   NullOperationEnvironment operation;
-  if(!ok1(w.Parse(waypoints, operation))) {
-    skip(1, 0, "parsing waypoint file failed");
+  if (!ok1(ReadWaypointFile(waypoint_file, waypoints,
+                            WaypointFactory(WaypointOrigin::NONE),
+                            operation))) {
+    skip(2, 0, "parsing waypoint file failed");
     return false;
   }
 
@@ -44,15 +40,7 @@ test_replay_retrospective()
   retro.search_range = range_threshold;
   retro.angle_tolerance = Angle::Degrees(autopilot_parms.bearing_noise);
 
-  FileLineReaderA *reader = new FileLineReaderA(replay_file.c_str());
-  if (reader->error()) {
-    delete reader;
-    return false;
-  }
-
-  waypoints.Optimise();
-
-  IgcReplay sim(reader);
+  IgcReplay sim(std::make_unique<FileLineReaderA>(replay_file));
 
   NMEAInfo basic;
   basic.Reset();
@@ -66,14 +54,16 @@ test_replay_retrospective()
       // report task
       auto candidate_list = retro.getNearWaypointList();
       for (auto it = candidate_list.begin(); it != candidate_list.end(); ++it) {
-	const Waypoint& wp = it->waypoint;
-	g << (double)wp.location.longitude.Degrees() << " "
-	  << (double)wp.location.latitude.Degrees() << " "
-	  << "\"" << wp.name << "\"\n";
+        const WaypointPtr wp = it->waypoint;
+        if (wp != nullptr) {
+          g << (double)wp->location.longitude.Degrees() << " "
+            << (double)wp->location.latitude.Degrees() << " "
+            << "\"" << wp->name << "\"\n";
+        }
       }
     }
 
-    f << (double)basic.time << " " 
+    f << (double)basic.time << " "
       <<  (double)basic.location.longitude.Degrees() << " "
       <<  (double)basic.location.latitude.Degrees() << "\n";
     f.flush();
@@ -82,7 +72,7 @@ test_replay_retrospective()
   double d_ach, d_can;
   retro.CalcDistances(d_ach, d_can);
   printf("# distances %f %f\n", (double)d_ach, (double)d_can);
-  printf("# size %d\n", retro.getNearWaypointList().size());
+  printf("# size %d\n", static_cast<int>(retro.getNearWaypointList().size()));
 
   return true;
 }
@@ -95,8 +85,8 @@ int main(int argc, char** argv)
   range_threshold = 15000;
   autopilot_parms.bearing_noise = 25;
 
-  replay_file = "test/data/9crx3101.igc";
-  waypoint_file = "test/data/benalla9.xcw";
+  replay_file = Path(_T("test/data/9crx3101.igc"));
+  waypoint_file = Path(_T("test/data/benalla9.xcw"));
 
   if (!ParseArgs(argc,argv)) {
     return 0;
