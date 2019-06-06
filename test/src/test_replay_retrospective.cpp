@@ -21,6 +21,7 @@ test_replay_retrospective()
 {
   Directory::Create(Path(_T("output/results")));
   std::ofstream f("output/results/res-sample.txt");
+  f.precision(10);
 
   Waypoints waypoints;
   NullOperationEnvironment operation;
@@ -50,7 +51,7 @@ test_replay_retrospective()
 
     if (retro.UpdateSample(basic.location)) {
       std::ofstream g("output/results/res-retro.txt");
-
+      g.precision(10);
       // report task
       auto candidate_list = retro.getNearWaypointList();
       for (auto it = candidate_list.begin(); it != candidate_list.end(); ++it) {
@@ -92,7 +93,7 @@ int main(int argc, char** argv)
     return 0;
   }
 
-  plan_tests(4);
+  plan_tests(3);
 
   ok(test_replay_retrospective(),"replay retrospective",0);
 
