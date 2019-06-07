@@ -167,9 +167,9 @@ public:
   }
 
   bool
-  NeedData(double t_simulation) const
+  NeedData(const double t_simulation) const
   {
-    return !Ready() || (p[2].time <= t_simulation + 0.1);
+    return !Ready() || (p[2].time <= t_simulation);
   }
 
 private:
