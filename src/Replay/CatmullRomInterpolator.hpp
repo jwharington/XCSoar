@@ -111,7 +111,7 @@ public:
   {
     assert(Ready());
 
-    const auto u = GetTimeFraction(_time, false);
+    const auto u = GetTimeFraction(_time);
 
     /*
       ps = ( c0   c1    c2  c3)
@@ -174,17 +174,14 @@ public:
 
 private:
   double
-  GetTimeFraction(const double time, bool limit_range = true) const
+  GetTimeFraction(const double time) const
   {
     assert(Ready());
     assert(p[2].time > p[1].time);
 
     const auto fraction = (time - p[1].time) / (p[2].time - p[1].time);
 
-    if (limit_range)
-      return Clamp(fraction, 0., 1.);
-    else
-      return fraction;
+    return Clamp(fraction, 0., 1.);
   }
 };
 
