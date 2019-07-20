@@ -84,6 +84,10 @@ InfoBoxLook::ReinitialiseLayout(unsigned width)
 
   title_font.Load(title_font_d);
 
+  FontDescription comment_font_d(8);
+  AutoSizeFont(comment_font_d, width, _T("1234567890"));
+  comment_font.Load(comment_font_d);
+
   FontDescription value_font_d(10, true);
   AutoSizeFont(value_font_d, width, _T("1234m"));
   value_font.Load(value_font_d);
