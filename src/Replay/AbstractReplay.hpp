@@ -26,7 +26,7 @@ Copyright_License {
 
 struct NMEAInfo;
 
-class AbstractReplay 
+class AbstractReplay
 {
 public:
   virtual ~AbstractReplay() {}

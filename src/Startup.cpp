@@ -301,7 +301,7 @@ Startup()
   glide_computer->SetLogger(logger);
   glide_computer->Initialise();
 
-  replay = new Replay(logger, *protected_task_manager);
+  replay = new Replay(logger, *protected_task_manager, device_blackboard->Calculated().wind);
 
 #ifdef HAVE_CMDLINE_REPLAY
   if (CommandLine::replay_path != nullptr) {

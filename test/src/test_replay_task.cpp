@@ -115,12 +115,12 @@ test_replay()
   NMEAInfo basic;
   basic.Reset();
 
+  sim.state.wind.norm = 7;
+  sim.state.wind.bearing = Angle::Degrees(330);
+
   while (sim.Update(basic) && !sim.started) {
   }
   state_last = sim.state;
-
-  sim.state.wind.norm = 7;
-  sim.state.wind.bearing = Angle::Degrees(330);
 
   auto time_last = sim.state.time;
 

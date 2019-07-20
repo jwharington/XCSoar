@@ -188,8 +188,8 @@ Replay::Update()
       clock.Update();
     }
 
-    const CatmullRomInterpolator::Record r = cli->Interpolate(virtual_time);
-    const GeoVector v = cli->GetVector(virtual_time);
+    const CatmullRomInterpolator::Record r = cli->Interpolate(virtual_time, wind);
+    const GeoVector v = cli->GetVector(virtual_time, wind);
 
     NMEAInfo data = next_data;
     data.clock = virtual_time;

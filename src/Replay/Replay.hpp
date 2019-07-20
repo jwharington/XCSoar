@@ -77,9 +77,9 @@ class Replay final
   CatmullRomInterpolator *cli;
 
 public:
-  Replay(Logger *_logger, ProtectedTaskManager &_task_manager)
+  Replay(Logger *_logger, ProtectedTaskManager &_task_manager, const SpeedVector &_wind)
     :time_scale(1), replay(nullptr),
-     logger(_logger), task_manager(_task_manager), cli(nullptr) {
+     logger(_logger), task_manager(_task_manager), cli(nullptr), wind(_wind) {
   }
 
   ~Replay() {
@@ -92,6 +92,7 @@ public:
 
 private:
   bool Update();
+  const SpeedVector& wind;
 
 public:
   void Stop();
