@@ -27,11 +27,13 @@
 #include "io/LineReader.hpp"
 #include "NMEA/Info.hpp"
 #include "Units/System.hpp"
+#include "Geo/Geoid.hpp"
 
 IgcReplay::IgcReplay(std::unique_ptr<NLineReader> &&_reader)
   :reader(std::move(_reader))
 {
   extensions.clear();
+  fr_info.clear();
 }
 
 IgcReplay::~IgcReplay()
@@ -41,14 +43,19 @@ IgcReplay::~IgcReplay()
 inline bool
 IgcReplay::ScanBuffer(const char *buffer, IGCFix &fix, NMEAInfo &basic)
 {
-  if (IGCParseFix(buffer, extensions, fix) && fix.gps_valid)
+  if (IGCParseFix(buffer, extensions, fix) && fix.gps_valid) {
+    const double sep = EGM96::LookupSeparation(fix.location);
+    fix.gps_altitude += sep*fr_info.geoid_correction;
     return true;
+  }
 
   BrokenDate date;
   if (IGCParseDateRecord(buffer, date))
     basic.ProvideDate(date);
-  else
-    IGCParseExtensions(buffer, extensions);
+  else if (IGCParseExtensions(buffer, extensions)) {}
+  else if (IGCParseFRInfo(buffer, fr_info)) {
+    fr_info.CheckCorrection();
+  }
 
   return false;
 }

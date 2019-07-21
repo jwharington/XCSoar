@@ -26,17 +26,20 @@ Copyright_License {
 
 #include "DebugReplayFile.hpp"
 #include "IGC/IGCExtensions.hpp"
+#include "IGC/IGCFRInfo.hpp"
 #include "io/FileLineReader.hpp"
 
 struct IGCFix;
 
 class DebugReplayIGC : public DebugReplayFile {
   IGCExtensions extensions;
+  IGCFRInfo fr_info;
 
 private:
   DebugReplayIGC(FileLineReaderA *_reader)
     : DebugReplayFile(_reader) {
     extensions.clear();
+    fr_info.clear();
   }
 
 public:

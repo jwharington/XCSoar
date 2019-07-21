@@ -2,7 +2,7 @@
 Copyright_License {
 
   XCSoar Glide Computer - http://www.xcsoar.org/
-  Copyright (C) 2000-2016 The XCSoar Project
+  Copyright (C) 2000-2019 The XCSoar Project
   A detailed list of copyright holders can be found in the file "AUTHORS".
 
   This program is free software; you can redistribute it and/or
@@ -21,45 +21,15 @@ Copyright_License {
 }
 */
 
-#ifndef IGC_REPLAY_HPP
-#define IGC_REPLAY_HPP
+#ifndef XCSOAR_IGC_FRINFO_HPP
+#define XCSOAR_IGC_FRINFO_HPP
 
-#include "AbstractReplay.hpp"
-#include "IGC/IGCExtensions.hpp"
-#include "IGC/IGCFRInfo.hpp"
-
-#include <memory>
-
-class NLineReader;
-struct IGCFix;
-
-class IgcReplay: public AbstractReplay
-{
-  std::unique_ptr<NLineReader> reader;
-
-  IGCExtensions extensions;
-  IGCFRInfo fr_info;
-
-public:
-  IgcReplay(std::unique_ptr<NLineReader> &&_reader);
-  ~IgcReplay() override;
-
-  bool Update(NMEAInfo &data) override;
-
-private:
-  /**
-   * Parse a line.
-   *
-   * @return true if a new fix was found
-   */
-  bool ScanBuffer(const char *buffer, IGCFix &fix, NMEAInfo &basic);
-
-  /**
-   * Read from the IGC file until a new fix was found.
-   *
-   * @return false on end-of-file
-   */
-  bool ReadPoint(IGCFix &fix, NMEAInfo &basic);
+struct IGCFRInfo {
+  int geoid_correction;
+  char fr_type[80];
+  char fw_version[80];
+  void CheckCorrection();
+  void clear();
 };
 
 #endif
