@@ -292,6 +292,8 @@ IGCParseFix(const char *buffer, const IGCExtensions &extensions, IGCFix &fix)
       ParseExtensionValueN(start, finish, 3, fix.tas);
     else if (StringIsEqual(extension.code, "SIU"))
       ParseExtensionValue(start, finish, fix.siu);
+    else if (StringIsEqual(extension.code, "FXA"))
+      ParseExtensionValue(start, finish, fix.fxa);
   }
 
   return true;
