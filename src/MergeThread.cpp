@@ -63,7 +63,7 @@ MergeThread::Tick() noexcept
 
 #ifdef HAVE_PCM_PLAYER
   bool vario_available;
-  double vario;
+  double vario, netto_vario;
 #endif
 
   {
@@ -89,6 +89,7 @@ MergeThread::Tick() noexcept
 #ifdef HAVE_PCM_PLAYER
     vario_available = basic.brutto_vario_available;
     vario = vario_available ? basic.brutto_vario : 0;
+    netto_vario = vario_available ? basic.netto_vario : 0;
 #endif
 
     /* update last_any in every iteration */
@@ -103,7 +104,7 @@ MergeThread::Tick() noexcept
 
 #ifdef HAVE_PCM_PLAYER
   if (vario_available)
-    AudioVarioGlue::SetValue(vario);
+    AudioVarioGlue::SetValue(vario, netto_vario);
   else
     AudioVarioGlue::NoValue();
 #endif

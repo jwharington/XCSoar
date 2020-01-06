@@ -24,34 +24,71 @@ Copyright_License {
 #include "ToneSynthesiser.hpp"
 #include "Math/FastTrig.hpp"
 #include "util/Macros.hpp"
+#include "util/Clamp.hpp"
 
 #include <cassert>
 
-void
-ToneSynthesiser::SetTone(unsigned tone_hz)
+template <typename T> int sgn(T val) {
+  return (T(0) < val) - (val < T(0));
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+int16_t ToneSynthesiser::get_sample()
 {
-  increment = ARRAY_SIZE(ISINETABLE) * tone_hz / sample_rate;
+  return
+      (dds_synthesiser.get_sample()*master_volume /* + dither.update() */)
+      /(ENVELOPE_MAX_VOLUME*MASTER_MAX_VOLUME);
+}
+
+void ToneSynthesiser::init(const VarioSoundSettings& settings)
+{
+  master_volume = settings.volume;
+  DDSCommon::init(settings);
+
+  // now initialise player
+  dds_synthesiser.init();
 }
 
 void
 ToneSynthesiser::Synthesise(int16_t *buffer, size_t n)
 {
-  assert(angle < ARRAY_SIZE(ISINETABLE));
-
-  for (int16_t *end = buffer + n; buffer != end; ++buffer) {
-    *buffer = ISINETABLE[angle] * (32767 / 1024) * (int)volume / 100;
-    angle = (angle + increment) & (ARRAY_SIZE(ISINETABLE) - 1);
+  int16_t* p = buffer;
+  const int16_t* e = p + n;
+  while (p<e) {
+    *p++ = get_sample();
   }
 }
 
-unsigned
-ToneSynthesiser::ToZero() const
+void
+ToneSynthesiser::update_sample(const int value)
 {
-  assert(angle < ARRAY_SIZE(ISINETABLE));
+  tone_last = tone_now;
 
-  if (angle < increment)
-    /* close enough */
-    return 0;
+  dt_sample = sample_counter - sample_count_last;
+  sample_count_last = sample_counter;
 
-  return (ARRAY_SIZE(ISINETABLE) - angle) / increment;
+  tone_now = DDSCommon::clamp_tone(value);
+  silent = false; // start playing
+
+  if ((dt_sample > sample_rate*2) || (!dt_sample)) {
+    // too slow or too fast, don't interpolate
+    dt_sample = sample_rate;
+    tone_last = tone_now;
+  }
+}
+
+void ToneSynthesiser::SetSilence()
+{
+  silent = true;
+}
+
+void ToneSynthesiser::set_deadband(const int imin, const int imax)
+{
+  dds_synthesiser.set_deadband(imin, imax);
+}
+
+void ToneSynthesiser::clear_deadband()
+{
+  dds_synthesiser.clear_deadband();
 }

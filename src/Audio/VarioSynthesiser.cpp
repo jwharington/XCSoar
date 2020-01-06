@@ -23,140 +23,62 @@ Copyright_License {
 
 #include "VarioSynthesiser.hpp"
 #include "Math/FastMath.hpp"
-#include "util/Clamp.hpp"
+#include "Math/FastTrig.hpp"
+
+#include "util/Compiler.h"
+#include "util/Macros.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include <cassert>
 
-/**
- * The minimum and maximum vario range for the constants below [cm/s].
- */
-static constexpr int min_vario = -500, max_vario = 500;
-
-unsigned
-VarioSynthesiser::VarioToFrequency(int ivario)
+void VarioSynthesiser::init(const VarioSoundSettings& _settings)
 {
-  return ivario > 0
-    ? (zero_frequency + (unsigned)ivario * (max_frequency - zero_frequency)
-       / (unsigned)max_vario)
-    : (zero_frequency - (unsigned)(ivario * (int)(zero_frequency - min_frequency) / min_vario));
+  // initialise settings
+  settings = _settings;
+  ToneSynthesiser::init(settings);
+}
+
+static int vario_to_tone(const double vario)
+{
+  const double vario_max = 5.0;
+  return lrintf(vario*TONE_RANGE/vario_max)+TONE_RANGE;
 }
 
 void
-VarioSynthesiser::SetVario(double vario)
+VarioSynthesiser::SetVario(const double vario, const double netto)
 {
   const std::lock_guard<Mutex> lock(mutex);
 
-  const int ivario = Clamp((int)(vario * 100), min_vario, max_vario);
-
-  if (dead_band_enabled && InDeadBand(ivario)) {
-    /* inside the "dead band" */
-    UnsafeSetSilence();
-    return;
-  }
-
-  /* update the ToneSynthesiser base class */
-  SetTone(VarioToFrequency(ivario));
-
-  if (ivario > 0) {
-    /* while climbing, the vario sound gets interrupted by silence
-       periodically */
-
-    const unsigned period_ms = sample_rate
-      * (min_period_ms + (max_vario - ivario)
-         * (max_period_ms - min_period_ms) / max_vario)
-      / 1000;
-
-    silence_count = period_ms / 3;
-    audible_count = period_ms - silence_count;
-
-    /* preserve the old "_remaining" values as much as possible, to
-       avoid chopping off the previous tone */
-
-    if (audible_remaining > audible_count)
-      audible_remaining = audible_count;
-
-    if (silence_remaining > silence_count)
-      silence_remaining = silence_count;
+  // reduce tone scale across deadband
+  float v_i = vario;
+  if (settings.dead_band_enabled) {
+    if (netto > settings.max_dead) {
+      v_i -= settings.max_dead/2;
+    } else if (netto < settings.min_dead) {
+      v_i -= settings.min_dead/2;
+    }
+    set_deadband(vario_to_tone(settings.min_dead), vario_to_tone(settings.max_dead));
   } else {
-    /* continuous tone while sinking */
-    audible_count = 1;
-    silence_count = 0;
+    clear_deadband();
   }
+
+  update_sample(vario_to_tone(v_i));
 }
 
 void
 VarioSynthesiser::SetSilence()
 {
   const std::lock_guard<Mutex> lock(mutex);
-  UnsafeSetSilence();
+  ToneSynthesiser::SetSilence();
 }
-
-void
-VarioSynthesiser::UnsafeSetSilence()
-{
-  audible_count = 0;
-  silence_count = 1;
-
-  if (audible_remaining > 0)
-    /* quit the current period as early as possible; the method
-       Synthesise() will take care for finishing the current sine
-       wave to avoid clicking noise */
-    audible_remaining = 1;
-
-  silence_remaining = 0;
-}
-
 
 void
 VarioSynthesiser::Synthesise(int16_t *buffer, size_t n)
 {
   const std::lock_guard<Mutex> lock(mutex);
-
-  assert(audible_count > 0 || silence_count > 0);
-
-  if (silence_count == 0) {
-    /* magic value for "continuous tone" */
-    ToneSynthesiser::Synthesise(buffer, n);
-    return;
-  }
-
-  while (n > 0) {
-    if (audible_remaining > 0) {
-      /* generate a period of audible tone */
-
-      unsigned o = silence_count > 0
-        ? std::min(n, audible_remaining)
-        : n;
-      ToneSynthesiser::Synthesise(buffer, o);
-      buffer += o;
-      n -= o;
-      audible_remaining -= o;
-
-      if (audible_remaining == 0 && silence_remaining > 0) {
-        /* finish the current sine wave to avoid clicking noise */
-        audible_remaining = ToZero();
-        if (audible_remaining == 0)
-          /* finished, we can now emit a period of silence */
-          Restart();
-      }
-    } else if (silence_remaining > 0) {
-      /* generate a period of silence (climbing) */
-
-      unsigned o = audible_count > 0
-        ? std::min(n, silence_remaining)
-        : n;
-      /* the "silence" PCM sample value is zero */
-      std::fill_n(buffer, o, 0);
-      buffer += o;
-      n -= o;
-      silence_remaining -= o;
-    } else {
-      /* period finished, begin next one */
-
-      audible_remaining = audible_count;
-      silence_remaining = silence_count;
-    }
-  }
+  ToneSynthesiser::Synthesise(buffer, n);
 }
+
+

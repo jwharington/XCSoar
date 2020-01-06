@@ -26,6 +26,7 @@ Copyright_License {
 #include "Audio/VarioSynthesiser.hpp"
 #include "Screen/Init.hpp"
 #include "system/Args.hpp"
+#include "system/Clock.hpp"
 #include "DebugReplay.hpp"
 
 #include <boost/asio.hpp>
@@ -68,10 +69,11 @@ private:
     }
 
     auto vario = replay.Basic().brutto_vario;
-    printf("%2.1f\n", (double)vario);
-    synthesiser.SetVario(vario);
+    auto netto_vario = replay.Basic().netto_vario;
+    printf("%2.1f %2.1f\n", (double)vario, (double) netto_vario);
+    synthesiser.SetVario(vario, netto_vario);
 
-    timer.expires_from_now(std::chrono::seconds(1));
+    timer.expires_from_now(std::chrono::milliseconds(1000));
     Start();
   }
 };

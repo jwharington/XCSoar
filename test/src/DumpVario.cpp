@@ -46,7 +46,7 @@ main(int argc, char **argv)
 
   while (replay->Next()) {
     auto vario = replay->Basic().brutto_vario;
-    synthesiser.SetVario(vario);
+    synthesiser.SetVario(vario, vario);
 
     static int16_t buffer[sample_rate];
     synthesiser.Synthesise(buffer, ARRAY_SIZE(buffer));

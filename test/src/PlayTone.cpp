@@ -44,12 +44,12 @@ Copyright_License {
 int
 main(int argc, char **argv)
 {
-  Args args(argc, argv, "HZ");
+  Args args(argc, argv, "index");
   const char *freq_s = args.ExpectNext();
   args.ExpectEnd();
 
-  unsigned freq = strtoul(freq_s, NULL, 10);
-  if (freq == 0 || freq > 48000) {
+  int freq = strtol(freq_s, NULL, 10);
+  if (freq < -TONE_RANGE || freq >= TONE_RANGE) {
     fprintf(stderr, "Invalid frequency\n");
     return EXIT_FAILURE;
   }
@@ -63,8 +63,12 @@ main(int argc, char **argv)
 
   const unsigned sample_rate = 44100;
 
+  VarioSoundSettings settings;
+  settings.SetDefaults();
+
   ToneSynthesiser tone(sample_rate);
-  tone.SetTone(freq);
+  tone.init(settings);
+  tone.update_sample(/*freq>=0? TONE_SHORT_BEEP: TONE_CONTINUOUS, */ freq);
 
   if (!player->Start(tone)) {
     fprintf(stderr, "Failed to start PCMPlayer\n");

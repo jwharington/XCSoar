@@ -2,7 +2,7 @@
 Copyright_License {
 
   XCSoar Glide Computer - http://www.xcsoar.org/
-  Copyright (C) 2000-2016 The XCSoar Project
+  Copyright (C) 2000-2020 The XCSoar Project
   A detailed list of copyright holders can be found in the file "AUTHORS".
 
   This program is free software; you can redistribute it and/or
@@ -27,51 +27,38 @@ Copyright_License {
 #include "PCMSynthesiser.hpp"
 #include "util/Compiler.h"
 
+#include "DDSSynth.hpp"
+#include "Dither.hpp"
+
 /**
  * This class generates tones with a sine wave.
  */
-class ToneSynthesiser : public PCMSynthesiser {
-  unsigned volume = 100, angle = 0, increment = 0;
-
-public:
-  explicit ToneSynthesiser(unsigned _sample_rate) : sample_rate(_sample_rate) {
+class ToneSynthesiser : public PCMSynthesiser, private DDSCommon {
+ public:
+  explicit ToneSynthesiser(const unsigned _sample_rate) {
+    sample_rate = _sample_rate;
   }
 
-  unsigned GetSampleRate() const {
+  void init(const VarioSoundSettings& settings);
+
+  unsigned GetSampleRate() const override {
     return sample_rate;
   }
 
-  /**
-   * Set the (software) volume of the generated tone.
-   *
-   * @param _volume the new volume level, 0 indicating muted, 100
-   * means full volume
-   */
-  void SetVolume(unsigned _volume) {
-    volume = _volume;
-  }
-
-  void SetTone(unsigned tone_hz);
-
   /* methods from class PCMSynthesiser */
-  virtual void Synthesise(int16_t *buffer, size_t n);
+  virtual void Synthesise(int16_t *buffer, size_t n) override;
 
-protected:
-  const unsigned sample_rate;
+  void SetSilence();
 
-  /**
-   * Returns the number of samples until the sample value gets close
-   * to zero.
-   */
-  gcc_pure
-  unsigned ToZero() const;
+  void update_sample(const int value);
+  void set_deadband(const int imin, const int imax);
+  void clear_deadband();
 
-  /**
-   * Start a new period.
-   */
-  void Restart() {
-    angle = 0;
-  }
+ private:
+  int16_t get_sample();
+  Dither dither;
+  uint8_t master_volume = 0;
+  DDSSynth dds_synthesiser;
 };
 
 #endif

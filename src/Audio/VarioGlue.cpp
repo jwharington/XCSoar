@@ -89,19 +89,14 @@ AudioVarioGlue::Configure(const VarioSoundSettings &settings)
   assert(synthesiser != nullptr);
 
   if (settings.enabled) {
-    synthesiser->SetVolume(settings.volume);
-    synthesiser->SetDeadBand(settings.dead_band_enabled);
-    synthesiser->SetFrequencies(settings.min_frequency, settings.zero_frequency,
-                                settings.max_frequency);
-    synthesiser->SetPeriods(settings.min_period_ms, settings.max_period_ms);
-    synthesiser->SetDeadBandRange(settings.min_dead, settings.max_dead);
+    synthesiser->init(settings);
     player->Start(*synthesiser);
   } else
     player->Stop();
 }
 
 void
-AudioVarioGlue::SetValue(double vario)
+AudioVarioGlue::SetValue(const double vario, const double netto)
 {
 #ifdef ANDROID
   if (!have_sles)
@@ -111,7 +106,7 @@ AudioVarioGlue::SetValue(double vario)
   assert(player != nullptr);
   assert(synthesiser != nullptr);
 
-  synthesiser->SetVario(vario);
+  synthesiser->SetVario(vario, netto);
 }
 
 void

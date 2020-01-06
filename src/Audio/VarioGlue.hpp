@@ -51,8 +51,9 @@ namespace AudioVarioGlue {
    * Update the vario value.
    *
    * @param vario the current vario value [m/s]
+   * @param netto the current netto value [m/s]
    */
-  void SetValue(double vario);
+  void SetValue(const double vario, const double netto);
 
   /**
    * Declare that no vario value is known (e.g. when connection to all
