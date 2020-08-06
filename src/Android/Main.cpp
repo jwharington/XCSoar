@@ -168,6 +168,7 @@ Java_org_xcsoar_NativeView_initializeNative(JNIEnv *env, jobject obj,
   is_nook = StringIsEqual(native_view->GetProduct(), "NOOK");
   is_dithered = StringIsEqual(native_view->GetProduct(), "HLTE203T");
 #endif
+  LogFormat(_T("Product %s %s"), native_view->GetProduct(), is_dithered? _T("dithered"): _T(""));
 
   event_queue = new EventQueue();
 
