@@ -48,4 +48,6 @@ CirclingInfo::Clear()
   circling_percentage = -1;
   noncircling_climb_percentage = -1;
   circling_climb_percentage = -1;
+
+  circle_period = 0;
 }

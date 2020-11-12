@@ -283,4 +283,7 @@ const char WaveAssistant[] = "WaveAssistant";
 
 const char MasterAudioVolume[] = "MasterAudioVolume";
 
+const char Average1Turn[] = "Average1Turn";
+const char AverageTimeConstant[] = "AverageTimeConstant";
+
 }

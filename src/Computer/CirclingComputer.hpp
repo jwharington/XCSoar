@@ -26,12 +26,18 @@ Copyright_License {
 
 #include "Geo/GeoPoint.hpp"
 #include "time/DeltaTime.hpp"
+#include <list>
 
 struct CirclingInfo;
 struct NMEAInfo;
 struct MoreData;
 struct CirclingSettings;
 struct FlyingState;
+
+struct HeadingBufferData {
+  Angle turned;
+  double time;
+};
 
 /**
  * Detect when the aircraft begins or ends circling.
@@ -71,6 +77,13 @@ class CirclingComputer {
    * Minimum altitude since start of task.
    */
   double min_altitude;
+
+  /**
+   * Circling period calculation
+   */
+  Angle heading_accumulator;
+  Angle last_turn_heading;
+  std::list<HeadingBufferData> heading_buffer;
 
 public:
   /**

@@ -33,9 +33,9 @@ struct VarioInfo
 {
   double sink_rate;
 
-  /** Average vertical speed based on 30s */
+  /** Average vertical speed based on specified period (m/s) */
   double average;
-  /** Average vertical speed of the airmass based on 30s */
+  /** Average vertical speed of the airmass based on specified period (m/s) */
   double netto_average;
 
   /** Instant glide ratio over ground */

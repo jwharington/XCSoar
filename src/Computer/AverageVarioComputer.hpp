@@ -26,22 +26,24 @@ Copyright_License {
 
 #include "Math/WindowFilter.hpp"
 #include "time/DeltaTime.hpp"
+#include "NMEA/Derived.hpp"
+#include "Settings.hpp"
 
 struct MoreData;
-struct VarioInfo;
 
 class AverageVarioComputer {
   DeltaTime delta_time;
 
-  WindowFilter<30> vario_30s_filter;
-  WindowFilter<30> netto_30s_filter;
+  WindowFilter<60> vario_avg_filter;
+  WindowFilter<60> netto_avg_filter;
 
 public:
   void Reset();
 
   void Compute(const MoreData &basic,
                bool circling, bool last_circling,
-               VarioInfo &calculated);
+               DerivedInfo &calculated,
+               const CirclingSettings &settings);
 };
 
 #endif

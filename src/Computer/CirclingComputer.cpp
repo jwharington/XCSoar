@@ -32,6 +32,7 @@ Copyright_License {
 static constexpr Angle MIN_TURN_RATE = Angle::Degrees(4);
 static constexpr double CRUISE_CLIMB_SWITCH(15);
 static constexpr double CLIMB_CRUISE_SWITCH(10);
+static const unsigned MAX_HEADING_BUF_SIZE = 60;
 
 void
 CirclingComputer::Reset()
@@ -39,6 +40,9 @@ CirclingComputer::Reset()
   turn_rate_delta_time.Reset();
   turning_delta_time.Reset();
   percent_delta_time.Reset();
+
+  heading_accumulator = Angle::Zero(); // reset
+  heading_buffer.clear();
 
   ResetStats();
 }
@@ -232,6 +236,48 @@ CirclingComputer::Turning(CirclingInfo &circling_info,
     }
     break;
   }
+
+
+  /**
+   * Determine time for a turn
+   * If we have a buffer, we can calculate the change
+   * If not, initialise with a zero angle and the current time
+   */
+  if (circling_info.circling) {
+    if (heading_buffer.size()>1) {
+      heading_accumulator += (basic.attitude.heading - last_turn_heading).AsDelta().Absolute();
+
+      while (heading_buffer.size() >= 1 &&
+              ((heading_accumulator >= heading_buffer.front().turned + Angle::FullCircle()) ||
+              (heading_buffer.size() > MAX_HEADING_BUF_SIZE))) {
+        heading_buffer.pop_front();
+      }
+      heading_buffer.push_back({heading_accumulator, flight.flight_time});
+      const HeadingBufferData start = heading_buffer.front();
+      const HeadingBufferData end = heading_buffer.back();
+
+      if ((end.turned - start.turned) > Angle::QuarterCircle()) {
+        const double period = Angle::FullCircle() / (end.turned - start.turned) *
+                                (end.time - start.time);
+        circling_info.circle_period = (period <= (settings.average_base_time) * 2)
+            ? period
+            : settings.average_base_time;
+      }
+      else {
+        circling_info.circle_period = 0;
+      }
+    }
+    else {
+      heading_buffer.push_back({Angle::Zero(), flight.flight_time});
+    }
+  }
+  else {
+    heading_buffer.clear();
+    heading_accumulator = Angle::Zero();
+    circling_info.circle_period = 0;
+  }
+
+  last_turn_heading = basic.attitude.heading;
 }
 
 void

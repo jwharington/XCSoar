@@ -281,6 +281,9 @@ extern const char WaveAssistant[];
 
 extern const char MasterAudioVolume[];
 
+extern const char Average1Turn[];
+extern const char AverageTimeConstant[];
+
 }
 
 #endif
