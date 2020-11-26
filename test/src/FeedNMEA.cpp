@@ -81,6 +81,8 @@ try {
   char stamp[6] = "";
 
   char line[1024];
+  int nmesg = 0;
+  int delta = 50;
   while (fgets(line, sizeof(line), stdin) != NULL) {
     if (memcmp(line, "$GP", 3) == 0 &&
         (memcmp(line + 3, "GGA", 3) == 0 ||
@@ -88,13 +90,20 @@ try {
         line[6] == ',' &&
         !StringIsEqual(stamp, line + 7, sizeof(stamp))) {
       /* the time stamp has changed - sleep for one second */
-      Sleep(1000);
+      Sleep(std::max(0,1000-nmesg*delta));
       strncpy(stamp, line + 7, sizeof(stamp));
+      delta = 1000/nmesg;
+      nmesg = 0;
     }
 
     if (!port->FullWriteString(line, env, std::chrono::seconds(1))) {
       fprintf(stderr, "Failed to write to port\n");
       return EXIT_FAILURE;
+    }
+    if (strlen(line)>2) {
+      printf("> %s", line);
+      Sleep(delta);
+      nmesg++;
     }
   }
 
