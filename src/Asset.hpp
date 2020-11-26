@@ -303,10 +303,10 @@ constexpr
 static inline bool
 HasEPaper()
 {
-#if defined(ANDROID) && defined(__arm__)
-  return IsNookSimpleTouch();
+#ifdef __arm__
+  return is_eink;
 #else
-  return IsKobo();
+  return false;
 #endif
 }
 

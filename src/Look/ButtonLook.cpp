@@ -32,20 +32,20 @@ ButtonLook::Initialise(const Font &_font)
 
   standard.foreground_color = COLOR_BLACK;
   standard.foreground_brush.Create(standard.foreground_color);
-  standard.background_color = IsDithered() ? COLOR_WHITE : COLOR_LIGHT_GRAY;
+  standard.background_color = HasEPaper() ? COLOR_WHITE : COLOR_LIGHT_GRAY;
   if (IsDithered()) {
     standard.CreateBorder(COLOR_BLACK, COLOR_BLACK);
   } else if (!HasColors()) {
     standard.CreateBorder(LightColor(COLOR_DARK_GRAY), COLOR_BLACK);
   } else {
-    standard.CreateBorder(LightColor(standard.background_color),
-                          DarkColor(standard.background_color));
+    standard.CreateBorder(LightColor(COLOR_LIGHT_GRAY),
+                          DarkColor(COLOR_LIGHT_GRAY));
   }
 
   focused.foreground_color = COLOR_WHITE;
   focused.foreground_brush.Create(focused.foreground_color);
   focused.background_color = IsDithered() ? COLOR_BLACK : COLOR_XCSOAR_DARK;
-  if (IsDithered()) {
+  if (HasEPaper()) {
     focused.CreateBorder(COLOR_WHITE, COLOR_WHITE);
   } else if (!HasColors()) {
     focused.CreateBorder(LightColor(COLOR_DARK_GRAY), COLOR_BLACK);

@@ -249,7 +249,7 @@ AircraftRenderer::Draw(Canvas &canvas, const MapSettings &settings_map,
                        const AircraftLook &look,
                        const Angle angle, const PixelPoint aircraft_pos)
 {
-  const bool inverse = IsDithered() || !settings_map.terrain.enable;
+  const bool inverse = HasEPaper() || !settings_map.terrain.enable;
 
   switch (settings_map.aircraft_symbol) {
   case AircraftSymbol::DETAILED:

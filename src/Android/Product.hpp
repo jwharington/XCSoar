@@ -29,7 +29,7 @@ Copyright_License {
 extern bool has_cursor_keys;
 
 #ifdef __arm__
-extern bool is_nook, is_dithered;
+extern bool is_nook, is_dithered, is_eink;
 #endif
 
 /**

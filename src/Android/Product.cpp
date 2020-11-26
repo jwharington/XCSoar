@@ -27,6 +27,6 @@ bool has_cursor_keys;
 
 #ifdef __arm__
 
-bool is_nook, is_dithered;
+bool is_nook, is_dithered, is_eink;
 
 #endif
