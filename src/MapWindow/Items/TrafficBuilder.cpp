@@ -64,7 +64,11 @@ MapItemListBuilder::AddSkyLinesTraffic()
       const TCHAR *name;
       if (name_i == data.user_names.end()) {
         /* no name found */
-        buffer.UnsafeFormat(_T("SkyLines %u"), (unsigned)id);
+        if (i.second.ogn_type) {
+          buffer.UnsafeFormat(_T("OGN %06X"), (unsigned)id);
+        } else {
+          buffer.UnsafeFormat(_T("SkyLines %u"), (unsigned)id);
+        }
         name = buffer;
       } else
         /* we know the name */

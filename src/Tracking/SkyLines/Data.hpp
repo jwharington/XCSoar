@@ -48,12 +48,13 @@ struct Data {
 
     GeoPoint location;
     int altitude;
+    bool ogn_type;
 
     Traffic() = default;
     constexpr Traffic(uint32_t _time, GeoPoint _location,
-                      int _altitude)
+                      int _altitude, bool _ogn_type)
     :time_of_day_ms(_time),
-      location(_location), altitude(_altitude) {}
+      location(_location), altitude(_altitude), ogn_type(_ogn_type) {}
   };
 
   struct Wave {

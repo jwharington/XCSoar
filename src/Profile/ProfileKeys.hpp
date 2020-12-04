@@ -246,6 +246,12 @@ extern const char SkyLinesNearTrafficEnabled[];
 extern const char SkyLinesTrafficMapMode[];
 extern const char SkyLinesTrackingKey[];
 
+extern const char OGNTrackingEnabled[];
+extern const char OGNRoaming[];
+extern const char OGNTrackingInterval[];
+extern const char OGNRange[];
+extern const char OGNPilotID[];
+
 extern const char CloudEnabled[];
 extern const char CloudShowThermals[];
 extern const char CloudKey[];

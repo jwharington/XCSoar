@@ -32,8 +32,10 @@ Copyright_License {
 #include "Tracking/SkyLines/Handler.hpp"
 #include "Tracking/SkyLines/Glue.hpp"
 #include "Tracking/SkyLines/Data.hpp"
-#include "thread/StandbyThread.hpp"
+#include "Tracking/OGN/Handler.hpp"
+#include "Tracking/OGN/Glue.hpp"
 #include "Tracking/LiveTrack24.hpp"
+#include "thread/StandbyThread.hpp"
 #include "time/PeriodClock.hpp"
 #include "Geo/GeoPoint.hpp"
 #include "time/BrokenDateTime.hpp"
@@ -43,7 +45,8 @@ struct DerivedInfo;
 
 class TrackingGlue final
   : protected StandbyThread,
-    private SkyLinesTracking::Handler
+    private SkyLinesTracking::Handler,
+    private OGN::Handler
 {
   struct LiveTrack24State
   {
@@ -64,6 +67,7 @@ class TrackingGlue final
   TrackingSettings settings;
 
   SkyLinesTracking::Glue skylines;
+  OGN::Glue ogn;
 
   SkyLinesTracking::Data skylines_data;
 
@@ -98,6 +102,11 @@ private:
   /* virtual methods from SkyLinesTracking::Handler */
   virtual void OnTraffic(uint32_t pilot_id, unsigned time_of_day_ms,
                          const GeoPoint &location, int altitude) override;
+  virtual void OnOGNTraffic(const unsigned flight_id,
+                            const TCHAR *name,
+                            const unsigned time_of_day_s,
+                            const ::GeoPoint &location, int altitude) override;
+
     virtual void OnUserName(uint32_t user_id, const TCHAR *name) override;
   void OnWave(unsigned time_of_day_ms,
               const GeoPoint &a, const GeoPoint &b) override;
@@ -105,6 +114,7 @@ private:
                  const AGeoPoint &bottom, const AGeoPoint &top,
                  double lift) override;
   void OnSkyLinesError(std::exception_ptr e) override;
+  void OnOGNError(std::exception_ptr e) override;
 
 public:
   const SkyLinesTracking::Data &GetSkyLinesData() const {

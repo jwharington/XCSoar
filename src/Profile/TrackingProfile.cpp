@@ -76,6 +76,17 @@ static void Load(const ProfileMap &map,
   map.GetEnum(ProfileKeys::LiveTrack24TrackingVehicleType, settings.vehicleType);
   map.Get(ProfileKeys::LiveTrack24TrackingVehicleName, settings.vehicle_name);
 }
+
+static void Load(const ProfileMap &map,
+                 OGN::Settings &settings)
+{
+  map.Get(ProfileKeys::OGNTrackingEnabled, settings.enabled);
+  map.Get(ProfileKeys::OGNRoaming, settings.roaming);
+  map.Get(ProfileKeys::OGNTrackingInterval, settings.interval);
+  map.Get(ProfileKeys::OGNRange, settings.range_km);
+  map.Get(ProfileKeys::OGNPilotID, settings.pilot_id);
+}
+
 }
 
 void
@@ -83,6 +94,7 @@ Profile::Load(const ProfileMap &map, TrackingSettings &settings)
 {
   Load(map, settings.skylines);
   Load(map, settings.livetrack24);
+  Load(map, settings.ogn);
 }
 
 #endif /* HAVE_TRACKING */

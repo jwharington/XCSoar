@@ -117,6 +117,7 @@ class TrafficListWidget : public ListWidget, public DataFieldListener,
     double near_distance;
 
     int altitude;
+    bool ogn_type = false;
 #endif
 
     explicit Item(FlarmId _id)
@@ -132,14 +133,14 @@ class TrafficListWidget : public ListWidget, public DataFieldListener,
 #ifdef HAVE_SKYLINES_TRACKING
     explicit Item(uint32_t _id, uint32_t _time_of_day_ms,
                   const GeoPoint &_location, int _altitude,
-                  tstring &&_name)
+                  tstring &&_name, bool _ogn_type)
       :id(FlarmId::Undefined()), skylines_id(_id),
        time_of_day_ms(_time_of_day_ms),
        color(FlarmColor::COUNT),
        loaded(false),
        location(_location),
        vector(GeoVector::Invalid()), name(std::move(_name)),
-       altitude(_altitude) {
+       altitude(_altitude), ogn_type(_ogn_type) {
       assert(IsSkyLines());
 
       near_name.clear();
@@ -410,7 +411,7 @@ TrafficListWidget::UpdateList()
 
         items.emplace_back(i.first, i.second.time_of_day_ms,
                            i.second.location, i.second.altitude,
-                           std::move(name));
+                           std::move(name), i.second.ogn_type);
         Item &item = items.back();
 
         if (i.second.location.IsValid()) {
@@ -607,8 +608,11 @@ TrafficListWidget::OnPaintItem(Canvas &canvas, PixelRect rc,
   } else if (item.IsSkyLines()) {
     if (!item.name.empty())
       tmp = item.name.c_str();
-    else
+    else if (item.ogn_type) {
+      tmp.UnsafeFormat(_T("OGN %06X"), item.skylines_id);
+    } else {
       tmp.UnsafeFormat(_T("SkyLines %u"), item.skylines_id);
+    }
 #endif
   } else {
     tmp = _T("?");

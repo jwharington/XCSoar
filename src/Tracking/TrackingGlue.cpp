@@ -50,7 +50,8 @@ MapVehicleTypeToLivetrack24(LiveTrack24::Settings::VehicleType vt)
 
 TrackingGlue::TrackingGlue(boost::asio::io_context &io_context)
   :StandbyThread("Tracking"),
-   skylines(io_context, this)
+   skylines(io_context, this),
+   ogn(io_context, this)
 {
   settings.SetDefaults();
   LiveTrack24::SetServer(settings.livetrack24.server);
@@ -74,6 +75,7 @@ void
 TrackingGlue::SetSettings(const TrackingSettings &_settings)
 {
   skylines.SetSettings(_settings.skylines);
+  ogn.SetSettings(_settings.ogn);
 
   if (_settings.livetrack24.server != settings.livetrack24.server ||
       _settings.livetrack24.username != settings.livetrack24.username ||
@@ -100,6 +102,11 @@ TrackingGlue::OnTimer(const MoreData &basic, const DerivedInfo &calculated)
     skylines.Tick(basic, calculated);
   } catch (...) {
     LogError(std::current_exception(), "SkyLines error");
+  }
+  try {
+    ogn.Tick(basic, calculated);
+  } catch (...) {
+    LogError(std::current_exception(), "OGN error");
   }
 
   if (!settings.livetrack24.enabled)
@@ -225,7 +232,7 @@ TrackingGlue::OnTraffic(uint32_t pilot_id, unsigned time_of_day_ms,
   {
     const std::lock_guard<Mutex> lock(skylines_data.mutex);
     const SkyLinesTracking::Data::Traffic traffic(time_of_day_ms,
-                                                  location, altitude);
+                                                  location, altitude, false);
     skylines_data.traffic[pilot_id] = traffic;
 
     user_known = skylines_data.IsUserKnown(pilot_id);
@@ -235,6 +242,20 @@ TrackingGlue::OnTraffic(uint32_t pilot_id, unsigned time_of_day_ms,
     /* we don't know this user's name yet - try to find it out by
        asking the server */
     skylines.RequestUserName(pilot_id);
+}
+
+void
+TrackingGlue::OnOGNTraffic(const unsigned flight_id,
+                           const TCHAR *name,
+                           const unsigned time_of_day_s,
+                           const ::GeoPoint &location,
+                           const int altitude)
+{
+  const std::lock_guard<Mutex> lock(skylines_data.mutex);
+  const SkyLinesTracking::Data::Traffic traffic(time_of_day_s*1000,
+                                                location, altitude, true);
+  skylines_data.traffic[flight_id] = traffic;
+  skylines_data.user_names[flight_id] = name;
 }
 
 void
@@ -279,4 +300,10 @@ void
 TrackingGlue::OnSkyLinesError(std::exception_ptr e)
 {
   LogError(e, "SkyLines error");
+}
+
+void
+TrackingGlue::OnOGNError(std::exception_ptr e)
+{
+  LogError(e, "OGN error");
 }

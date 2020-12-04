@@ -2,7 +2,7 @@
 Copyright_License {
 
   XCSoar Glide Computer - http://www.xcsoar.org/
-  Copyright (C) 2000-2016 The XCSoar Project
+  Copyright (C) 2000-2020 The XCSoar Project
   A detailed list of copyright holders can be found in the file "AUTHORS".
 
   This program is free software; you can redistribute it and/or
@@ -21,20 +21,31 @@ Copyright_License {
 }
 */
 
-#ifndef XCSOAR_TRACKING_FEATURES_HPP
-#define XCSOAR_TRACKING_FEATURES_HPP
+#ifndef XCSOAR_TRACKING_OGN_HANDLER_HPP
+#define XCSOAR_TRACKING_OGN_HANDLER_HPP
 
-#include "net/http/Features.hpp"
-#include "Tracking/SkyLines/Features.hpp"
+#include <exception>
+#include <stdint.h>
+#include <tchar.h>
 
-/* live tracking requires networking */
-#ifdef HAVE_HTTP
-#define HAVE_LIVETRACK24
-#define HAVE_OGN_TRACKING
-#endif
+struct GeoPoint;
 
-#if defined(HAVE_SKYLINES_TRACKING) || defined(HAVE_LIVETRACK24) || defined(HAVE_OGN_TRACKING)
-#define HAVE_TRACKING
-#endif
+namespace OGN {
+
+class Handler {
+public:
+  virtual void OnOGNTraffic(const unsigned flight_id,
+                            const TCHAR* name,
+                            const unsigned time_of_day_s,
+                            const ::GeoPoint &location, int altitude) {}
+  /**
+   * An error has occurred, and the OGN client is
+   * defunct.  To make restore its function, call Client::Open()
+   * again.
+   */
+  virtual void OnOGNError(std::exception_ptr e) = 0;
+};
+
+} /* namespace OGN */
 
 #endif

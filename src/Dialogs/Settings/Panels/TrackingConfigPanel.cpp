@@ -51,7 +51,7 @@ enum ControlIndex {
   SL_KEY,
 #endif
 #if defined(HAVE_SKYLINES_TRACKING) && defined(HAVE_LIVETRACK24)
-  SPACER,
+  SPACER1,
 #endif
 #ifdef HAVE_LIVETRACK24
   LT24_ENABLED,
@@ -60,7 +60,19 @@ enum ControlIndex {
   LT24_VEHICLE_NAME,
   LT24_SERVER,
   LT24_USERNAME,
-  LT24_PASSWORD
+  LT24_PASSWORD,
+#endif
+#if defined(HAVE_OGN_TRACKING) && (defined(HAVE_SKYLINES_TRACKING) || defined(HAVE_LIVETRACK24))
+  SPACER2,
+#endif
+#if defined(HAVE_OGN_TRACKING)
+  OGN_ENABLED,
+#ifdef HAVE_NET_STATE_ROAMING
+  OGN_ROAMING,
+#endif
+  OGN_INTERVAL,
+  OGN_PILOT_ID,
+  OGN_RANGE,
 #endif
 };
 
@@ -74,7 +86,9 @@ public:
 #ifdef HAVE_SKYLINES_TRACKING
   void SetSkyLinesEnabled(bool enabled);
 #endif
-
+#ifdef HAVE_OGN_TRACKING
+  void SetOGNEnabled(bool enabled);
+#endif
 #ifdef HAVE_LIVETRACK24
   void SetLiveTrack24Enabled(bool enabled);
 #endif
@@ -101,6 +115,21 @@ TrackingConfigPanel::SetSkyLinesEnabled(bool enabled)
   SetRowEnabled(SL_NEAR_TRAFFIC_ENABLED,
                 enabled && GetValueBoolean(SL_TRAFFIC_ENABLED));
   SetRowEnabled(SL_KEY, enabled);
+}
+
+#endif
+
+#ifdef HAVE_OGN_TRACKING
+
+void
+TrackingConfigPanel::SetOGNEnabled(bool enabled)
+{
+#ifdef HAVE_NET_STATE_ROAMING
+  SetRowEnabled(OGN_ROAMING, enabled);
+#endif
+  SetRowEnabled(OGN_INTERVAL, enabled);
+  SetRowEnabled(OGN_RANGE, enabled);
+  SetRowEnabled(OGN_PILOT_ID, enabled);
 }
 
 #endif
@@ -136,7 +165,13 @@ TrackingConfigPanel::OnModified(DataField &df)
     return;
   }
 #endif
-
+#ifdef HAVE_OGN_TRACKING
+  if (IsDataField(OGN_ENABLED, df)) {
+    const DataFieldBoolean &dfb = (const DataFieldBoolean &)df;
+    SetOGNEnabled(dfb.GetAsBoolean());
+    return;
+  }
+#endif
 #ifdef HAVE_LIVETRACK24
   if (IsDataField(LT24_ENABLED, df)) {
     const DataFieldBoolean &dfb = (const DataFieldBoolean &)df;
@@ -164,6 +199,20 @@ static constexpr StaticEnumChoice tracking_intervals[] = {
   { 600, _T("10 min") },
   { 900, _T("15 min") },
   { 1200, _T("20 min") },
+  { 0 },
+};
+
+#endif
+
+#ifdef HAVE_OGN_TRACKING
+
+static constexpr StaticEnumChoice ogn_ranges[] = {
+  { 10, _T("10 km") },
+  { 25, _T("25 km") },
+  { 50, _T("50 km") },
+  { 100, _T("100 km") },
+  { 200, _T("200 km") },
+  { 500, _T("500 km") },
   { 0 },
 };
 
@@ -244,8 +293,24 @@ TrackingConfigPanel::Prepare(ContainerWindow &parent, const PixelRect &rc)
   AddPassword(_("Password"), _T(""), settings.livetrack24.password);
 #endif
 
+#if defined(HAVE_OGN_TRACKING) && (defined(HAVE_SKYLINES_TRACKING) || defined(HAVE_LIVETRACK24))
+  AddSpacer();
+#endif
+#ifdef HAVE_OGN_TRACKING
+  AddBoolean(_T("OGN"), nullptr, settings.ogn.enabled, this);
+#ifdef HAVE_NET_STATE_ROAMING
+  AddBoolean(_T("Roaming"), nullptr, settings.ogn.roaming, this);
+#endif
+  AddEnum(_("Tracking Interval"), nullptr, tracking_intervals+4, settings.ogn.interval);
+  AddText(_("Pilot ID"), _T(""), settings.ogn.pilot_id);
+  AddEnum(_("Range"), nullptr, ogn_ranges, settings.ogn.range_km);
+#endif
+
 #ifdef HAVE_SKYLINES_TRACKING
   SetSkyLinesEnabled(settings.skylines.enabled);
+#endif
+#ifdef HAVE_OGN_TRACKING
+  SetOGNEnabled(settings.ogn.enabled);
 #endif
 
 #ifdef HAVE_LIVETRACK24
@@ -253,7 +318,7 @@ TrackingConfigPanel::Prepare(ContainerWindow &parent, const PixelRect &rc)
 #endif
 }
 
-#ifdef HAVE_SKYLINES_TRACKING
+#if defined(HAVE_SKYLINES_TRACKING) || defined(HAVE_OGN_TRACKING)
 static bool
 SaveKey(const RowFormWidget &form, unsigned idx, const char *profile_key,
         uint64_t &value_r)
@@ -320,6 +385,23 @@ TrackingConfigPanel::Save(bool &_changed)
 
   changed |= SaveValue(LT24_PASSWORD, ProfileKeys::LiveTrack24Password,
                        settings.livetrack24.password);
+#endif
+
+#ifdef HAVE_OGN_TRACKING
+  changed |= SaveValue(OGN_ENABLED, ProfileKeys::OGNTrackingEnabled,
+                       settings.ogn.enabled);
+
+#ifdef HAVE_NET_STATE_ROAMING
+  changed |= SaveValue(OGN_ROAMING, ProfileKeys::OGNRoaming,
+                       settings.ogn.roaming);
+#endif
+
+  changed |= SaveValue(OGN_INTERVAL, ProfileKeys::OGNTrackingInterval,
+                       settings.ogn.interval);
+  changed |= SaveValue(OGN_PILOT_ID, ProfileKeys::OGNPilotID,
+                       settings.ogn.pilot_id);
+  changed |= SaveValue(OGN_RANGE, ProfileKeys::OGNRange,
+                       settings.ogn.range_km);
 #endif
 
   _changed |= changed;

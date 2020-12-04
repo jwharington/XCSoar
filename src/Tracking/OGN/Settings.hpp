@@ -2,7 +2,7 @@
 Copyright_License {
 
   XCSoar Glide Computer - http://www.xcsoar.org/
-  Copyright (C) 2000-2016 The XCSoar Project
+  Copyright (C) 2000-2020 The XCSoar Project
   A detailed list of copyright holders can be found in the file "AUTHORS".
 
   This program is free software; you can redistribute it and/or
@@ -21,20 +21,36 @@ Copyright_License {
 }
 */
 
-#ifndef XCSOAR_TRACKING_FEATURES_HPP
-#define XCSOAR_TRACKING_FEATURES_HPP
+#ifndef XCSOAR_TRACKING_OGN_SETTINGS_HPP
+#define XCSOAR_TRACKING_OGN_SETTINGS_HPP
 
-#include "net/http/Features.hpp"
-#include "Tracking/SkyLines/Features.hpp"
+#include "util/StaticString.hxx"
+#include <tchar.h>
 
-/* live tracking requires networking */
-#ifdef HAVE_HTTP
-#define HAVE_LIVETRACK24
-#define HAVE_OGN_TRACKING
-#endif
+namespace OGN {
 
-#if defined(HAVE_SKYLINES_TRACKING) || defined(HAVE_LIVETRACK24) || defined(HAVE_OGN_TRACKING)
-#define HAVE_TRACKING
-#endif
+struct Settings {
+  bool enabled;
+  bool roaming;
+  StaticString<64> server;
+  StaticString<64> pilot_id;
+  unsigned range_km;
+
+  /**
+   * Tracking interval in seconds.
+   */
+  unsigned interval;
+
+  void SetDefaults() {
+    enabled = false;
+    server = _T("live.glidernet.org");
+    pilot_id.clear();
+    range_km = 100;
+    interval = 60;
+    roaming = true;
+  }
+};
+
+} /* namespace OGN */
 
 #endif

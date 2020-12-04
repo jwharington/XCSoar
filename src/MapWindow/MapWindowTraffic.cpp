@@ -245,6 +245,23 @@ MapWindow::DrawSkyLinesTraffic(Canvas &canvas) const
           ? name_i->second.c_str()
           : _T("");
 
+        bool duplicate = false;
+        if (i.second.ogn_type) {
+          // ignore if already in flarm traffic
+          const TrafficList &flarm = Basic().flarm.traffic;
+          if (!flarm.IsEmpty())
+            for (auto it = flarm.list.begin(), end = flarm.list.end();
+                 (it != end) && !duplicate; ++it) {
+              const FlarmTraffic &traffic = *it;
+              if (traffic.location_available && traffic.HasName() && (0==strncmp(name, traffic.name, 64))) {
+                duplicate = true;
+              }
+            }
+        }
+        if (duplicate) {
+          continue;
+        }
+
         TCHAR alt_buffer[32];
         FormatUserAltitude(i.second.altitude, alt_buffer, true);
         StaticString<128> buffer(name);

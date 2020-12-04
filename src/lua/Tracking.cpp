@@ -58,6 +58,16 @@ l_tracking_index(lua_State *L)
       Lua::Push(L, (int)settings.livetrack24.interval);
   } else if (StringIsEqual(name, "livetrack24_vehicle_name")) { 
       Lua::Push(L, settings.livetrack24.vehicle_name);
+  } else if (StringIsEqual(name, "ogn_tracking_enabled")) {
+    Lua::Push(L, settings.ogn.enabled);
+  } else if (StringIsEqual(name, "ogn_roaming")) {
+    Lua::Push(L, settings.ogn.roaming);
+  } else if (StringIsEqual(name, "ogn_interval")) {
+    Lua::Push(L, (int)settings.ogn.interval);
+  } else if (StringIsEqual(name, "ogn_range")) {
+    Lua::Push(L, (int)settings.ogn.range_km);
+  } else if (StringIsEqual(name, "ogn_pilot_id")) {
+    Lua::Push(L, settings.ogn.pilot_id);
   } else
     return 0;
 
@@ -208,6 +218,72 @@ l_tracking_set_livetrack24_vehiclename(lua_State *L)
   return 0;
 }
 
+
+static int
+l_tracking_enable_ogn(lua_State *L)
+{
+  if (lua_gettop(L) != 0)
+    return luaL_error(L, "Invalid parameters");
+
+  TrackingSettings &settings =
+      CommonInterface::SetComputerSettings().tracking;
+  settings.ogn.enabled = true;
+
+  return 0;
+}
+
+static int
+l_tracking_disable_ogn(lua_State *L)
+{
+  if (lua_gettop(L) != 0)
+    return luaL_error(L, "Invalid parameters");
+
+  TrackingSettings &settings =
+      CommonInterface::SetComputerSettings().tracking;
+  settings.ogn.enabled = false;
+
+  return 0;
+}
+
+static int
+l_tracking_set_ogn_interval(lua_State *L)
+{
+  if (lua_gettop(L) != 1)
+    return luaL_error(L, "Invalid parameters");
+
+  TrackingSettings &settings =
+      CommonInterface::SetComputerSettings().tracking;
+  settings.ogn.interval = luaL_checknumber(L, 1);
+
+  return 0;
+}
+
+static int
+l_tracking_set_ogn_range(lua_State *L)
+{
+  if (lua_gettop(L) != 1)
+    return luaL_error(L, "Invalid parameters");
+
+  TrackingSettings &settings =
+      CommonInterface::SetComputerSettings().tracking;
+  settings.ogn.range_km = luaL_checknumber(L, 1);
+
+  return 0;
+}
+
+static int
+l_tracking_set_ogn_pilot_id(lua_State *L)
+{
+  if (lua_gettop(L) != 1)
+    return luaL_error(L, "Invalid parameters");
+
+  TrackingSettings &settings =
+      CommonInterface::SetComputerSettings().tracking;
+  settings.ogn.pilot_id.SetUTF8(luaL_checkstring(L, 1));
+
+  return 0;
+}
+
 static constexpr struct luaL_Reg settings_funcs[] = {
   {"enable_skylines", l_tracking_enable_skylines},
   {"disable_skylines", l_tracking_disable_skylines},
@@ -220,6 +296,11 @@ static constexpr struct luaL_Reg settings_funcs[] = {
   {"disable_livetrack24", l_tracking_disable_livetrack24},
   {"set_livetrack24_interval", l_tracking_set_livetrack24_interval},
   {"set_livetrack24_vehiclename", l_tracking_set_livetrack24_vehiclename},
+  {"enable_ogn", l_tracking_enable_ogn},
+  {"disable_ogn", l_tracking_disable_ogn},
+  {"set_ogn_interval", l_tracking_set_ogn_interval},
+  {"set_ogn_range", l_tracking_set_ogn_range},
+  {"set_ogn_pilot_id", l_tracking_set_ogn_pilot_id},
   {nullptr, nullptr}
 };
 

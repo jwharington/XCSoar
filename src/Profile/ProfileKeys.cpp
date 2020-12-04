@@ -248,6 +248,12 @@ const char SkyLinesNearTrafficEnabled[] = "SkyLinesNearTrafficEnabled";
 const char SkyLinesTrafficMapMode[] = "SkyLinesTrafficMapMode";
 const char SkyLinesTrackingKey[] = "SkyLinesTrackingKey";
 
+const char OGNTrackingEnabled[] = "OGNTrackingEnabled";
+const char OGNRoaming[] = "OGNRoaming";
+const char OGNTrackingInterval[] = "OGNTrackingInterval";
+const char OGNRange[] = "OGNRange";
+const char OGNPilotID[] = "OGNPilotID";
+
 const char CloudEnabled[] = "CloudEnabled";
 const char CloudShowThermals[] = "CloudShowThermals";
 const char CloudKey[] = "CloudKey";

@@ -794,6 +794,8 @@ XCSOAR_SOURCES += \
 	$(SRC)/Tracking/SkyLines/Assemble.cpp \
 	$(SRC)/Tracking/SkyLines/Key.cpp \
 	$(SRC)/Tracking/SkyLines/Glue.cpp \
+	$(SRC)/Tracking/OGN/Client.cpp \
+	$(SRC)/Tracking/OGN/Glue.cpp \
 	$(SRC)/Tracking/TrackingGlue.cpp
 
 ifeq ($(HAVE_PCM_PLAYER),y)
