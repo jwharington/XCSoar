@@ -57,6 +57,9 @@ DebugReplayIGC::Next()
         if (fix.gps_valid) {
           const double sep = EGM96::LookupSeparation(fix.location);
           fix.gps_altitude += sep*fr_info.geoid_correction;
+          if (fix.fxa>0) {
+            h_acc = fix.fxa/2.0;
+          }
         }
         CopyFromFix(fix);
 

@@ -48,6 +48,9 @@ private:
 public:
   virtual bool Next() override;
   virtual bool Rewind() override;
+  double GetHAccuracy() const override {
+    return 0;
+  }
 
   static DebugReplay *Create(Path input_file, const tstring &driver_name);
 };

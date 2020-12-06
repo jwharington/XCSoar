@@ -34,6 +34,7 @@ struct IGCFix;
 class DebugReplayIGC : public DebugReplayFile {
   IGCExtensions extensions;
   IGCFRInfo fr_info;
+  double h_acc = 5.0;
 
 private:
   DebugReplayIGC(FileLineReaderA *_reader)
@@ -47,6 +48,9 @@ public:
   virtual bool Rewind() override;
 
   static DebugReplay *Create(Path input_file);
+  double GetHAccuracy() const override {
+    return h_acc;
+  }
 
 protected:
   void CopyFromFix(const IGCFix &fix);

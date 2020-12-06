@@ -73,6 +73,7 @@ public:
   virtual long Size() const = 0;
   virtual long Tell() const = 0;
   virtual bool Next() = 0;
+  virtual double GetHAccuracy() const = 0;
 
   /* Return a detail level for this fix - only used for skylines */
   virtual int Level() const {
