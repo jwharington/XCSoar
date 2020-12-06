@@ -37,6 +37,14 @@ DebugReplayIGC::Create(Path input_file)
 }
 
 bool
+DebugReplayIGC::Rewind()
+{
+  reader->Rewind();
+  Reset();
+  return true;
+}
+
+bool
 DebugReplayIGC::Next()
 {
   last_basic = computed_basic;

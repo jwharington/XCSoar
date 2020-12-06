@@ -46,7 +46,8 @@ private:
   DebugReplayNMEA(FileLineReaderA *_reader, const DeviceRegister *driver);
 
 public:
-  virtual bool Next();
+  virtual bool Next() override;
+  virtual bool Rewind() override;
 
   static DebugReplay *Create(Path input_file, const tstring &driver_name);
 };

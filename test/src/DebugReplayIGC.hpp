@@ -43,7 +43,8 @@ private:
   }
 
 public:
-  virtual bool Next();
+  virtual bool Next() override;
+  virtual bool Rewind() override;
 
   static DebugReplay *Create(Path input_file);
 

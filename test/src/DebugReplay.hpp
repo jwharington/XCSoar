@@ -65,6 +65,10 @@ protected:
 public:
   DebugReplay();
   virtual ~DebugReplay();
+  virtual bool Rewind() {
+    return false;
+  };
+  void Reset();
 
   virtual long Size() const = 0;
   virtual long Tell() const = 0;
