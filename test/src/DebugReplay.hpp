@@ -44,6 +44,10 @@ protected:
 public:
   DebugReplay();
   virtual ~DebugReplay();
+  virtual bool Rewind() {
+    return false;
+  };
+  void Reset();
 
   virtual bool Next() = 0;
 

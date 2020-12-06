@@ -12,6 +12,15 @@
 DebugReplay::DebugReplay()
   :glide_polar(1)
 {
+  Reset();
+}
+
+DebugReplay::~DebugReplay()
+{
+}
+
+void DebugReplay::Reset()
+{
   raw_basic.Reset();
   computed_basic.Reset();
   calculated.Reset();
@@ -21,10 +30,6 @@ DebugReplay::DebugReplay()
   wrap_clock.Reset();
 
   qnh = AtmosphericPressure::Standard();
-}
-
-DebugReplay::~DebugReplay()
-{
 }
 
 void

@@ -35,6 +35,13 @@ DebugReplayNMEA::Create(Path input_file, const tstring &driver_name)
   return new DebugReplayNMEA(reader, driver);
 }
 
+bool
+DebugReplayNMEA::Rewind()
+{
+  reader->Rewind();
+  Reset();
+  return true;
+}
 
 bool
 DebugReplayNMEA::Next()
