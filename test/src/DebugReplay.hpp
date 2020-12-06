@@ -32,7 +32,7 @@ Copyright_License {
 #include "time/WrapClock.hpp"
 #include "system/Args.hpp"
 #include "Atmosphere/Pressure.hpp"
-
+#include <string>
 
 class DebugReplay {
 protected:
@@ -73,6 +73,8 @@ public:
   virtual long Size() const = 0;
   virtual long Tell() const = 0;
   virtual bool Next() = 0;
+  virtual std::string GetTypeInfo() const = 0;
+  virtual std::string GetIdentifier() const = 0;
   virtual double GetHAccuracy() const = 0;
 
   /* Return a detail level for this fix - only used for skylines */

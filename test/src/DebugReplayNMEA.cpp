@@ -88,3 +88,13 @@ DebugReplayNMEA::Next()
 
   return false;
 }
+
+std::string DebugReplayNMEA::GetTypeInfo() const
+{
+  return std::string("NMEA");
+}
+
+std::string DebugReplayNMEA::GetIdentifier() const
+{
+  return std::string("unknown");
+}

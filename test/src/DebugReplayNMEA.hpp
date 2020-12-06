@@ -48,6 +48,8 @@ private:
 public:
   virtual bool Next() override;
   virtual bool Rewind() override;
+  std::string GetTypeInfo() const override;
+  std::string GetIdentifier() const override;
   double GetHAccuracy() const override {
     return 0;
   }

@@ -28,6 +28,7 @@ Copyright_License {
 #include "Units/System.hpp"
 #include "system/Path.hpp"
 #include "Geo/Geoid.hpp"
+#include <sstream>
 
 DebugReplay*
 DebugReplayIGC::Create(Path input_file)
@@ -75,6 +76,7 @@ DebugReplayIGC::Next()
       } else if (IGCParseFRInfo(line, fr_info)) {
         fr_info.CheckCorrection();
       }
+    } else if (IGCParseHeader(line, header)) {
     } else if (IGCParseExtensions(line, extensions)) {}
   }
 
@@ -148,4 +150,21 @@ DebugReplayIGC::CopyFromFix(const IGCFix &fix)
     basic.gps.satellites_used = fix.siu;
     basic.gps.satellites_used_available.Update(basic.clock);
   }
+}
+
+std::string DebugReplayIGC::GetTypeInfo() const
+{
+  std::ostringstream oss;
+  oss << "Type" << fr_info.fr_type
+      << " Version" << fr_info.fw_version
+      << " Correction:" << fr_info.geoid_correction;
+  return oss.str();
+}
+
+std::string DebugReplayIGC::GetIdentifier() const
+{
+  std::ostringstream oss;
+  oss << "Manufacturer:" << header.manufacturer
+      << " LoggerID:" << header.id;
+  return oss.str();
 }
