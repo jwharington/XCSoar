@@ -27,6 +27,7 @@ Copyright_License {
 #include <array>
 #include <string_view>
 #include <stdexcept>
+#include <cstddef>
 
 static unsigned char
 ParseHexDigit(const unsigned char c) {
