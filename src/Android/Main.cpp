@@ -159,7 +159,7 @@ Java_org_xcsoar_NativeView_initializeNative(JNIEnv *env, jobject obj,
   LogFormat(_T("Starting XCSoar %s"), XCSoar_ProductToken);
 
   OpenGL::Initialise();
-  TextUtil::Initialise(env);
+  TextUtil::Initialise(env, context);
 
   assert(native_view == nullptr);
   native_view = new NativeView(env, obj, width, height, xdpi, ydpi,

@@ -32,11 +32,13 @@ Copyright_License {
 struct StringView;
 struct PixelSize;
 class FontDescription;
+class Context;
 
 class TextUtil : protected Java::GlobalObject {
   static JNIEnv *env;
   static jmethodID midTextUtil, midGetFontMetrics, midGetTextBounds;
   static jmethodID midGetTextTextureGL;
+  static Context *context;
 
   unsigned height, ascent_height, capital_height;
   unsigned line_spacing, style;
@@ -44,7 +46,7 @@ class TextUtil : protected Java::GlobalObject {
   TextUtil(jobject _obj);
 
 public:
-  static void Initialise(JNIEnv *env);
+  static void Initialise(JNIEnv *env, Context* _context);
   static void Deinitialise(JNIEnv *env);
 
   gcc_malloc

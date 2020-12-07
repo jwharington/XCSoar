@@ -29,8 +29,10 @@ Copyright_License {
 #include "Look/FontDescription.hpp"
 #include "util/StringView.hxx"
 #include "Asset.hpp"
+#include "Context.hpp"
 
 JNIEnv *TextUtil::env;
+Context *TextUtil::context;
 static Java::TrivialClass cls;
 jmethodID TextUtil::midTextUtil;
 jmethodID TextUtil::midGetFontMetrics;
@@ -38,13 +40,14 @@ jmethodID TextUtil::midGetTextBounds;
 jmethodID TextUtil::midGetTextTextureGL;
 
 void
-TextUtil::Initialise(JNIEnv *_env)
+TextUtil::Initialise(JNIEnv *_env, Context *_context)
 {
   env = _env;
+  context = _context;
 
   cls.Find(env, "org/xcsoar/TextUtil");
 
-  midTextUtil = env->GetMethodID(cls, "<init>", "(IIIZ)V");
+  midTextUtil = env->GetMethodID(cls, "<init>", "(IIIZLandroid/content/Context;)V");
   midGetFontMetrics = env->GetMethodID(cls, "getFontMetrics", "([I)V");
   midGetTextBounds = env->GetMethodID(cls, "getTextBounds",
                                       "(Ljava/lang/String;)[I");
@@ -98,7 +101,7 @@ TextUtil::create(const FontDescription &d)
   // construct org.xcsoar.TextUtil object
   localObject = env->NewObject(cls, midTextUtil,
                                paramStyle, paramTextSize,
-                               paint_flags, d.IsMonospace());
+                               paint_flags, d.IsMonospace(), context->Get());
   if (!localObject)
     return nullptr;
 

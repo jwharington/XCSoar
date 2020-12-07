@@ -127,6 +127,11 @@ $(SOUND_FILES): $(RAW_DIR)/%.ogg: Data/sound/%.wav | $(RAW_DIR)/dirstamp
 	@$(NQ)echo "  OGGENC  $@"
 	$(Q)$(OGGENC) -o $@ $<
 
+FONT_DIR = $(ANDROID_BUILD)/res/font
+FONT_FILES = $(patsubst %,$(FONT_DIR)/%.ttf, $(B612_NAMES) )
+$(FONT_FILES): $(FONT_DIR)/%.ttf: $(B612_DIR)/%.ttf | $(FONT_DIR)/dirstamp
+	$(Q)cp $< $@
+
 PNG1 := $(patsubst Data/bitmaps/%.bmp,$(DRAWABLE_DIR)/%.png,$(BMP_BITMAPS))
 
 # workaround for an ImageMagick bug (observed with the Debian package
@@ -179,7 +184,7 @@ $(ANDROID_XML_RES_COPIES): $(ANDROID_BUILD)/%: android/%
 	$(Q)-$(MKDIR) -p $(dir $@)
 	$(Q)cp $< $@
 
-$(ANDROID_BUILD)/resources.apk: $(PNG_FILES) $(SOUND_FILES) $(ANDROID_XML_RES_COPIES) | $(ANDROID_BUILD)/gen/dirstamp
+$(ANDROID_BUILD)/resources.apk: $(PNG_FILES) $(SOUND_FILES) $(FONT_FILES) $(ANDROID_XML_RES_COPIES) | $(ANDROID_BUILD)/gen/dirstamp
 	@$(NQ)echo "  AAPT"
 	$(Q)$(AAPT) package -f -m --auto-add-overlay \
 		--custom-package $(JAVA_PACKAGE) \

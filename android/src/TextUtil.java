@@ -32,6 +32,7 @@ import android.graphics.Typeface;
 import android.graphics.Canvas;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.content.Context;
 
 public class TextUtil {
   private Paint paint;
@@ -40,10 +41,17 @@ public class TextUtil {
   private int[] id = new int[5];
 
   public TextUtil(int style, int textSize,
-                  int paint_flags, boolean monospace) {
-    Typeface tf = monospace
-      ? Typeface.MONOSPACE
-      : Typeface.create((Typeface)null, style);
+                  int paint_flags, boolean monospace, Context context) {
+    int res_mono[] = {R.font.b612monoregular,
+                       R.font.b612monobold,
+                       R.font.b612monoitalic,
+                       R.font.b612monobolditalic};
+    int res_sans[] = {R.font.b612regular,
+                       R.font.b612bold,
+                       R.font.b612italic,
+                       R.font.b612bolditalic};
+    int res_selected = monospace? res_mono[style]: res_sans[style];
+    Typeface tf = context.getResources().getFont(res_selected);
 
     paint = new Paint(paint_flags);
     paint.setTypeface(tf);
