@@ -125,6 +125,10 @@ Profile::Load(const ProfileMap &map, InfoBoxSettings &settings)
 
   case InfoBoxSettings::Geometry::TOP_8_VARIO:
     break;
+
+  case InfoBoxSettings::Geometry::SPLIT_15:
+    break;
+
   }
 
   map.Get(ProfileKeys::AppInverseInfoBox, settings.inverse);
