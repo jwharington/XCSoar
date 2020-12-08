@@ -1953,6 +1953,14 @@ RUN_MAP_WINDOW_SOURCES = \
 	$(SRC)/RadioFrequency.cpp \
 	$(SRC)/Atmosphere/Pressure.cpp \
 	$(SRC)/Atmosphere/AirDensity.cpp \
+	$(SRC)/Device/Parser.cpp \
+	$(SRC)/Device/Util/NMEAReader.cpp \
+	$(SRC)/Device/Driver/FLARM/StaticParser.cpp \
+	$(SRC)/NMEA/Checksum.cpp \
+	$(SRC)/NMEA/InputLine.cpp \
+	$(SRC)/Device/Port/Port.cpp \
+	$(SRC)/FLARM/Traffic.cpp \
+	$(TEST_SRC_DIR)/FakeGeoid.cpp \
 	$(TEST_SRC_DIR)/Fonts.cpp \
 	$(TEST_SRC_DIR)/FakeAsset.cpp \
 	$(TEST_SRC_DIR)/FakeDialogs.cpp \
