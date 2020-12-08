@@ -30,7 +30,6 @@ struct MoreData;
 struct DerivedInfo;
 class ThermalEncounterBand;
 class ThermalEncounterCollection;
-struct ComputerSettings;
 
 /**
  * Record the thermal band.
@@ -45,8 +44,7 @@ public:
 
   void Compute(const MoreData &basic, const DerivedInfo &calculated,
                ThermalEncounterBand &tbe,
-               ThermalEncounterCollection &tbc,
-               const ComputerSettings &settings);
+               ThermalEncounterCollection &tbc);
 private:
   bool in_encounter;
 };
