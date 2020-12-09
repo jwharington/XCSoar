@@ -39,6 +39,8 @@ enum ControlIndex {
   AverEffTime,
   PredictWindDrift,
   WaveAssistant,
+  AveragerTurn,
+  AveragerTimeConstant,
 };
 
 class GlideComputerConfigPanel final : public RowFormWidget {
@@ -116,6 +118,17 @@ GlideComputerConfigPanel::Prepare(ContainerWindow &parent, const PixelRect &rc)
 
   AddBoolean(_("Wave assistant"), nullptr,
              settings_computer.wave.enabled);
+
+  AddBoolean(_("Averager use turn period"),
+             _("Controls whether to use turn period or specified period for vario and netto averagers."),
+             settings_computer.circling.average_1_turn);
+  SetExpertRow(AveragerTurn);
+
+  AddInteger(_("Vario averager time"),
+             _("The time period used for vario and netto averagers."),
+             _T("%u s"), _T("%u s"),
+             4, 40, 2, settings_computer.circling.average_base_time);
+  SetExpertRow(AveragerTimeConstant);
 }
 
 bool
@@ -146,6 +159,9 @@ GlideComputerConfigPanel::Save(bool &_changed)
 
   changed |= SaveValue(WaveAssistant, ProfileKeys::WaveAssistant,
                        settings_computer.wave.enabled);
+
+  changed |= SaveValue(AveragerTurn, ProfileKeys::Average1Turn, settings_computer.circling.average_1_turn);
+  changed |= SaveValue(AveragerTimeConstant, ProfileKeys::AverageTimeConstant, settings_computer.circling.average_base_time);
 
   _changed |= changed;
 
