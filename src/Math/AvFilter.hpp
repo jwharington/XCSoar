@@ -28,6 +28,7 @@
 
 #include <numeric>
 #include <cassert>
+#include <algorithm>
 
 /**
  * Average/bucket filter.  When filter is full, can return samples
@@ -68,6 +69,18 @@ public:
     assert(!x.empty());
 
     return std::accumulate(x.begin(), x.end(), 0.0) / x.size();
+  }
+
+  /**
+   * Calculate average from up to n samples
+   *
+   * @return Average value in buffer
+   */
+  gcc_pure
+  double Average(size_t n) const {
+    assert(!x.empty());
+    n = std::min(n, x.size());
+    return std::accumulate(x.end() - n, x.end(), 0.0) / n;
   }
 
   /**
