@@ -765,6 +765,7 @@ DEBUG_PROGRAM_NAMES = \
 	RunCirclingWind RunWindEKF RunWindComputer \
 	RunExternalWind \
 	RunTask \
+	RunVario \
 	LoadImage ViewImage \
 	RunCanvas RunMapWindow \
 	RunListControl \
@@ -1663,6 +1664,23 @@ RUN_TASK_SOURCES = \
 RUN_TASK_LDADD = $(DEBUG_REPLAY_LDADD)
 RUN_TASK_DEPENDS = TASK WAYPOINT GLIDE GEO MATH UTIL IO TIME
 $(eval $(call link-program,RunTask,RUN_TASK))
+
+RUN_VARIO_SOURCES = \
+	$(DEBUG_REPLAY_SOURCES) \
+	$(SRC)/Computer/AverageVarioComputer.cpp \
+	$(SRC)/Computer/CirclingComputer.cpp \
+	$(SRC)/Computer/Wind/Settings.cpp \
+	$(SRC)/Computer/Wind/WindEKF.cpp \
+	$(SRC)/Computer/Wind/WindEKFGlue.cpp \
+	$(SRC)/Computer/Wind/CirclingWind.cpp \
+	$(SRC)/Computer/Wind/Computer.cpp \
+	$(SRC)/Computer/Wind/MeasurementList.cpp \
+	$(SRC)/Computer/Wind/Store.cpp \
+	$(SRC)/Formatter/TimeFormatter.cpp \
+	$(TEST_SRC_DIR)/RunVario.cpp
+RUN_VARIO_LDADD = $(RUN_WIND_COMPUTER_LDADD)
+RUN_VARIO_DEPENDS = $(RUN_WIND_COMPUTER_LDADD)
+$(eval $(call link-program,RunVario,RUN_VARIO))
 
 RUN_TRACE_SOURCES = \
 	$(DEBUG_REPLAY_SOURCES) \
