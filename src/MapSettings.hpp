@@ -74,6 +74,7 @@ enum class DisplaySkyLinesTrafficMapMode: uint8_t {
   OFF,
   SYMBOL,
   SYMBOL_NAME,
+  SYMBOL_NAME_ALT,
 };
 
 struct MapItemListSettings {

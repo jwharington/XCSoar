@@ -140,6 +140,7 @@ static constexpr StaticEnumChoice skylines_map_mode_list[] = {
   { (unsigned)DisplaySkyLinesTrafficMapMode::OFF, N_("Off"), N_("No SkyLines traffic is drawn.") },
   { (unsigned)DisplaySkyLinesTrafficMapMode::SYMBOL, N_("Symbol"), N_("Draws the SkyLines symbol only.") },
   { (unsigned)DisplaySkyLinesTrafficMapMode::SYMBOL_NAME, N_("Symbol and Name"), N_("Draws the SkyLines symbol with name.") },
+  { (unsigned)DisplaySkyLinesTrafficMapMode::SYMBOL_NAME_ALT, N_("Symbol, Name, Altitude"), N_("Draws the SkyLines symbol with name and altitude.") },
   { 0 }
 };
 

@@ -239,7 +239,7 @@ MapWindow::DrawSkyLinesTraffic(Canvas &canvas) const
     PixelPoint pt;
     if (render_projection.GeoToScreenIfVisible(i.second.location, pt)) {
       traffic_look.teammate_icon.Draw(canvas, pt);
-      if (DisplaySkyLinesTrafficMapMode::SYMBOL_NAME == GetMapSettings().skylines_traffic_map_mode) {
+      if (DisplaySkyLinesTrafficMapMode::SYMBOL_NAME <= GetMapSettings().skylines_traffic_map_mode) {
         const auto name_i = skylines_data->user_names.find(i.first);
         const TCHAR *name = name_i != skylines_data->user_names.end()
           ? name_i->second.c_str()
@@ -247,8 +247,10 @@ MapWindow::DrawSkyLinesTraffic(Canvas &canvas) const
 
         TCHAR alt_buffer[32];
         FormatUserAltitude(i.second.altitude, alt_buffer, true);
-        StaticString<128> buffer;
-        buffer.Format(_T("%s [%s]"), name, alt_buffer);
+        StaticString<128> buffer(name);
+        if (DisplaySkyLinesTrafficMapMode::SYMBOL_NAME_ALT == GetMapSettings().skylines_traffic_map_mode) {
+          buffer.Format(_T("%s [%s]"), name, alt_buffer);
+        }
 
         TextInBoxMode mode;
         mode.shape = LabelShape::OUTLINED;
