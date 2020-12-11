@@ -59,3 +59,31 @@ UpdateInfoBoxNearestAirspaceVertical(InfoBoxData &data)
   data.SetValueFromArrival(nearest.distance);
   data.SetComment(nearest.airspace->GetName());
 }
+
+void
+UpdateInfoBoxNearestAirspaceRadio(InfoBoxData &data)
+{
+  AltitudeState altitude;
+  altitude.altitude = CommonInterface::Basic().nav_altitude;
+  altitude.altitude_agl = CommonInterface::Calculated().altitude_agl;
+
+  for (const auto &i : airspace_database.QueryInside(CommonInterface::Basic().location)) {
+    const AbstractAirspace &airspace = i.GetAirspace();
+
+    /* check delta below */
+    auto base = airspace.GetBase().GetAltitude(altitude);
+    auto base_delta = base - altitude.altitude;
+
+    /* check delta above */
+    auto top = airspace.GetTop().GetAltitude(altitude);
+    auto top_delta = altitude.altitude - top;
+
+    if ((top_delta <= 0) && (base_delta <= 0) && airspace.GetRadioText().length()) {
+      data.SetValue(airspace.GetRadioText().c_str());
+      data.SetComment(airspace.GetName());
+      return;
+    }
+  }
+
+  data.SetInvalid();
+}

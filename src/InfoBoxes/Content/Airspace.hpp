@@ -32,4 +32,7 @@ UpdateInfoBoxNearestAirspaceHorizontal(InfoBoxData &data);
 void
 UpdateInfoBoxNearestAirspaceVertical(InfoBoxData &data);
 
+void
+UpdateInfoBoxNearestAirspaceRadio(InfoBoxData &data);
+
 #endif

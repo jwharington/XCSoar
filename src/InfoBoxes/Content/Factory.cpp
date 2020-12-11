@@ -1091,6 +1091,14 @@ static constexpr MetaData meta_data[] = {
     UpdateInfoBoxThermalTime,
   },
 
+  // e_AirspaceRadio
+  {
+    N_("Airspace radio"),
+    N_("AS Radio"),
+    N_("The radio frequency associated with the vertically nearest airspace to you."),
+    UpdateInfoBoxNearestAirspaceRadio,
+  },
+
 };
 
 static_assert(ARRAY_SIZE(meta_data) == NUM_TYPES,
