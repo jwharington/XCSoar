@@ -29,6 +29,7 @@ Copyright_License {
 #include "MapWindow/Items/RaspMapItem.hpp"
 #include "Look/DialogLook.hpp"
 #include "Look/MapLook.hpp"
+#include "Look/TrafficLook.hpp"
 #include "Renderer/AircraftRenderer.hpp"
 #include "Renderer/AirspaceListRenderer.hpp"
 #include "Renderer/WaypointListRenderer.hpp"
@@ -408,10 +409,17 @@ SinceInMinutes(double now_s, uint32_t past_ms)
 static void
 Draw(Canvas &canvas, PixelRect rc,
      const SkyLinesTrafficMapItem &item,
-     const TwoTextRowsRenderer &row_renderer)
+     const TwoTextRowsRenderer &row_renderer,
+     const TrafficLook &traffic_look)
 {
   rc.right = row_renderer.DrawRightFirstRow(canvas, rc,
                                             FormatUserAltitude(item.altitude));
+
+  const unsigned line_height = rc.GetHeight();
+  const unsigned text_padding = Layout::GetTextPadding();
+  const PixelPoint pt(rc.left + line_height / 2, rc.top + line_height / 2);
+  traffic_look.teammate_icon.Draw(canvas, pt);
+  rc.left += line_height + text_padding;
 
   row_renderer.DrawFirstRow(canvas, rc, item.name);
 
@@ -489,7 +497,7 @@ MapItemListRenderer::Draw(Canvas &canvas, const PixelRect rc,
 
 #ifdef HAVE_SKYLINES_TRACKING
   case MapItem::SKYLINES_TRAFFIC:
-    ::Draw(canvas, rc, (const SkyLinesTrafficMapItem &)item, row_renderer);
+    ::Draw(canvas, rc, (const SkyLinesTrafficMapItem &)item, row_renderer, traffic_look);
     break;
 #endif
 
