@@ -245,8 +245,10 @@ MapWindow::DrawSkyLinesTraffic(Canvas &canvas) const
           ? name_i->second.c_str()
           : _T("");
 
+        TCHAR alt_buffer[32];
+        FormatUserAltitude(i.second.altitude, alt_buffer, true);
         StaticString<128> buffer;
-        buffer.Format(_T("%s [%um]"), name, i.second.altitude);
+        buffer.Format(_T("%s [%s]"), name, alt_buffer);
 
         TextInBoxMode mode;
         mode.shape = LabelShape::OUTLINED;
