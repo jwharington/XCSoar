@@ -59,10 +59,8 @@ AverageVarioComputer::Compute(const MoreData &basic,
   }
 
   const unsigned time = circling &&
-      settings.average_1_turn &&
-      (calculated.circle_period > 0) &&
-      (calculated.circle_period <= 60) ?
-      (unsigned)calculated.circle_period :
+      settings.average_1_turn && (calculated.circle_period > 0) ?
+      std::min((unsigned)ceil(calculated.circle_period), settings.average_base_time * 2) :
       settings.average_base_time;
 
   calculated.average = vario_avg_filter.Average(time);

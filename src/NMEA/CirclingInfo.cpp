@@ -50,5 +50,5 @@ CirclingInfo::Clear()
   noncircling_climb_percentage = -1;
   circling_climb_percentage = -1;
 
-  circle_period = 0;
+  circle_period = -1;
 }

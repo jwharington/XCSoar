@@ -93,7 +93,7 @@ struct CirclingInfo
   /** True if in circling mode, False otherwise */
   bool circling;
 
-  /** Time to complete one turn (s), 0 if data is invalid */
+  /** Time to complete one turn (s), negative if data is invalid */
   double circle_period;
 
   /**
