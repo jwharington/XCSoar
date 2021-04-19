@@ -166,7 +166,9 @@ Java_org_xcsoar_NativeView_initializeNative(JNIEnv *env, jobject obj,
                                product);
 #ifdef __arm__
   is_nook = StringIsEqual(native_view->GetProduct(), "NOOK");
-  is_eink = is_dithered || is_nook || IsKobo() || StringIsEqual(native_view->GetProduct(), "HLTE203T");
+  is_eink = is_dithered || is_nook || IsKobo()
+      || StringIsEqual(native_view->GetProduct(), "HLTE203T") // Hisense A5 pro CC
+      || StringIsEqual(native_view->GetProduct(), "HNR320T"); // Hisense A7 CC
 #endif
   LogFormat(_T("Product %s %s"), native_view->GetProduct(), is_dithered? _T("dithered"): _T(""));
 
