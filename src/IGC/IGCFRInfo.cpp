@@ -24,9 +24,75 @@
 #include "IGCFRInfo.hpp"
 #include "util/StringAPI.hxx"
 
+#include <list>
+#include <cstdio>
+#include "io/FileLineReader.hpp"
+#include "system/Path.hpp"
+
+struct IGCFRInfoDBType {
+  int geoid_correction;
+  char fr_type[80];
+  char fw_version[80];
+
+  bool check(IGCFRInfo& other) const {
+    if ((nullptr != StringFind(fr_type, other.fr_type))
+         && (nullptr != StringFind(fr_type, other.fr_type))) {
+      other.geoid_correction = geoid_correction;
+      return true;
+    }
+    return false;
+  }
+};
+
+typedef std::list<IGCFRInfoDBType> IGCFRInfoDB;
+
+static IGCFRInfoDB fw_info_db;
+static bool fw_info_init = false;
+
+static bool IGCFRInfoDB_check(IGCFRInfo& info)
+{
+  for (auto &d: fw_info_db) {
+    if (d.check(info))
+      return true;
+  }
+  return false;
+}
+
+bool IGCFRInfoDB_init(const char* file_path)
+{
+  fw_info_init = true;
+  try {
+    Path path = Path(file_path);
+    FileLineReaderA reader(path);
+    char *line;
+    do {
+      line = reader.ReadLine();
+      if (nullptr != line) {
+        IGCFRInfoDBType d;
+        if (3 == sscanf(line, "%d '%80s' '%80s'", &d.geoid_correction, d.fr_type, d.fw_version)) {
+          fw_info_db.push_back(d);
+        }
+      }
+    } while (nullptr != line);
+    return true;
+  } catch (...) {
+    return false;
+  }
+}
+
 void IGCFRInfo::CheckCorrection()
 {
+  if (!fw_info_init) {
+    IGCFRInfoDB_init("igc_fr_geoid.txt") ||
+    IGCFRInfoDB_init("/etc/igc_fr_geoid.txt");
+  }
+
   geoid_correction = 0;
+
+  if (IGCFRInfoDB_check(*this)) {
+    return;
+  }
+
   if (nullptr != StringFind(fr_type, "FLARM") || nullptr != StringFind(fr_type, "Flarm")) {
     if (nullptr != StringFind(fw_version, ":6.") ||
         nullptr != StringFind(fw_version, "06.") ||
