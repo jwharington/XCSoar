@@ -25,7 +25,9 @@
 #include "util/StringAPI.hxx"
 
 #include <list>
+#include <regex>
 #include <cstdio>
+#include <cstring>
 #include "io/FileLineReader.hpp"
 #include "system/Path.hpp"
 
@@ -38,6 +40,7 @@ struct IGCFRInfoDBType {
     if ((nullptr != StringFind(other.fr_type, fr_type))
         && (nullptr != StringFind(other.fw_version, fw_version))) {
       other.geoid_correction = geoid_correction;
+      //      printf("match %d %s %s\n", geoid_correction, fr_type, fw_version);
       return true;
     }
     return false;
@@ -69,8 +72,16 @@ bool IGCFRInfoDB_init(const char* file_path)
       line = reader.ReadLine();
       if (nullptr != line) {
         IGCFRInfoDBType d;
-        if (3 == sscanf(line, "%d '%80s' '%80s'", &d.geoid_correction, d.fr_type, d.fw_version)) {
-          fw_info_db.push_back(d);
+        std::string sline(line);
+        std::regex pattern("(-?[01]) '(.*)' '(.*)'");
+        std::smatch pieces_match;
+        if (std::regex_match(sline, pieces_match, pattern)) {
+          if (4 == pieces_match.size()) {
+            d.geoid_correction = atoi(pieces_match[1].str().c_str());
+            strncpy(d.fr_type,pieces_match[2].str().c_str(),80);
+            strncpy(d.fw_version,pieces_match[3].str().c_str(),80);
+            fw_info_db.push_back(d);
+          }
         }
       }
     } while (nullptr != line);
