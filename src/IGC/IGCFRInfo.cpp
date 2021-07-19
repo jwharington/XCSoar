@@ -35,8 +35,8 @@ struct IGCFRInfoDBType {
   char fw_version[80];
 
   bool check(IGCFRInfo& other) const {
-    if ((nullptr != StringFind(fr_type, other.fr_type))
-         && (nullptr != StringFind(fr_type, other.fr_type))) {
+    if ((nullptr != StringFind(other.fr_type, fr_type))
+        && (nullptr != StringFind(other.fw_version, fw_version))) {
       other.geoid_correction = geoid_correction;
       return true;
     }
