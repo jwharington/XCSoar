@@ -24,7 +24,7 @@ struct TrailPoint {
   const bool actual;
 
   void update_reconstruction(const TrailPoint& prev, const SpeedVector& wind);
-  SpeedVector v_wind;
+  SpeedVector v_wind = SpeedVector(0,0);
   double v_ias = 0;
   Angle bank_angle = Angle::Native(0);
   Angle turn_rate_wind = Angle::Native(0);
