@@ -28,7 +28,11 @@ void TrailPoint::update_reconstruction(const TrailPoint& prev, const SpeedVector
 
   turn_rate_wind = turnrate(v_wind, prev.v_wind).Half() + prev.turn_rate_wind.Half();
   bank_angle = Angle::Radians(atan(turn_rate_wind.Radians() * v_wind.norm / G));
-  yaw_angle = (v_wind.bearing + Angle::Radians(WING_LOADING*9.81*bank_angle.tan()/(0.5*1.225*v_ias*v_ias*LIFT_CURVE_SLOPE))).AsDelta();
+  if (v_ias>10.0) {
+    yaw_angle = (v_wind.bearing + Angle::Radians(WING_LOADING*9.81*bank_angle.tan()/(0.5*1.225*v_ias*v_ias*LIFT_CURVE_SLOPE))).AsDelta();
+  } else {
+    yaw_angle = (v_wind.bearing).AsDelta();
+  }
 
   nv = (v_wind.norm - prev.v_wind.norm)/G;
   if (fabs(nv)> ACCEL_MAX_PLAUSIBLE_G) {
