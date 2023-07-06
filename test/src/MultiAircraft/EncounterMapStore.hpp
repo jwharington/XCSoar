@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <list>
 #include <cstdio>
+#include <string>
 
 namespace MultiAircraft {
 
