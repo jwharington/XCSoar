@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
   flights.run();
 
-  if (debug) {
+  if (debug || true) {
     flights.write_diagnostics();
   }
 
