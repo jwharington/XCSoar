@@ -74,6 +74,7 @@ void FlightCollection::finalise()
     a.finalise(alt_start);
   }
   alt_start.calculate();
+  alt_start_av = alt_start.get_avg();
 }
 
 static void write_header(const std::list<AircraftModel>& group)
