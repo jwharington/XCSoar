@@ -73,7 +73,7 @@ bool IGCFRInfoDB_init(const char* file_path)
       if (nullptr != line) {
         IGCFRInfoDBType d;
         std::string sline(line);
-        std::regex pattern("(-?[01]) '(.*)' '(.*)'");
+        std::regex pattern("(-?[012]) '(.*)' '(.*)'");
         std::smatch pieces_match;
         if (std::regex_match(sline, pieces_match, pattern)) {
           if (4 == pieces_match.size()) {
