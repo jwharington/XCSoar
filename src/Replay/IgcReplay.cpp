@@ -45,7 +45,7 @@ IgcReplay::ScanBuffer(const char *buffer, IGCFix &fix, NMEAInfo &basic)
 {
   if (IGCParseFix(buffer, extensions, fix) && fix.gps_valid) {
     const double sep = EGM96::LookupSeparation(fix.location);
-    fix.gps_altitude += sep*fr_info.geoid_correction;
+    fix.gps_altitude += sep*(fr_info.geoid_correction-1);
     return true;
   }
 
