@@ -57,7 +57,7 @@ DebugReplayIGC::Next()
       if (IGCParseFix(line, extensions, fix)) {
         if (fix.gps_valid) {
           const double sep = EGM96::LookupSeparation(fix.location);
-          fix.gps_altitude += sep*fr_info.geoid_correction;
+          fix.gps_altitude += sep*(fr_info.geoid_correction-1);
           if (fix.fxa>0) {
             h_acc = fix.fxa/2.0;
           }
@@ -77,7 +77,7 @@ DebugReplayIGC::Next()
         fr_info.CheckCorrection();
       }
     } else if (IGCParseHeader(line, header)) {
-    } else if (IGCParseExtensions(line, extensions)) {}
+    } //else if (IGCParseExtensions(line, extensions)) {}
   }
 
   if (computed_basic.time_available)
