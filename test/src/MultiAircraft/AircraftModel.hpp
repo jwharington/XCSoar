@@ -69,6 +69,7 @@ class AircraftModel {
   void set_wind_if_not_available(const SpeedVector& wind_avg);
 
   void calc_aspect(const AircraftModel& target);
+  bool aliased(const AircraftModel& other) const;
 
  private:
   AircraftModel(const AircraftModel&) = delete;

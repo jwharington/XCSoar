@@ -187,7 +187,7 @@ void FlightCollectionEncounter::encounter_update(const int t)
     auto j = i;
     while (++j != group.end()) {
       const AircraftModel& b = *j;
-      if (!b.live || !b.valid)
+      if (!b.live || !b.valid || b.aliased(a))
         continue;
 
       const double d_vert = distance_vert(a.interp_loc, b.interp_loc);

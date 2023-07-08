@@ -73,6 +73,16 @@ std::string AircraftModel::get_symbol() const
   }
 }
 
+
+bool AircraftModel::aliased(const AircraftModel& other) const
+{
+  const MoreData &basic = replay->Basic();
+  const MoreData &other_basic = other.replay->Basic();
+  return (basic.time == other_basic.time) &&
+	(basic.location == other_basic.location) &&
+	(basic.gps_altitude == other_basic.gps_altitude);	
+}
+
 void AircraftModel::advance()
 {
   if (replay->Next()) {
