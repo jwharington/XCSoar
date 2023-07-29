@@ -173,6 +173,15 @@ void FlightCollection::write_diagnostics() const
     fprintf(fout, "baro_error=%f\n", sqrt(baro_error.get_avg()));
   }
   fclose(fout);
+
+  std::ofstream json_location_file;
+  json_location_file.open("location.json", std::ofstream::out | std::ofstream::app);
+  json_location_file << "{\n"
+	  << "\"latitude\": " << loc_general.latitude.Degrees() << ",\n"
+	  << "\"longitude\": " << loc_general.longitude.Degrees() << ",\n"
+	  << "\"geoid_sep\": " << geoid_sep << "\n"
+	  << "}\n";
+  json_location_file.close();
 }
 
 const GeoPoint FlightCollection::calc_av_flight_loc_start() const
