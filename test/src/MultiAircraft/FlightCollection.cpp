@@ -75,6 +75,7 @@ void FlightCollection::finalise()
   }
   alt_start.calculate();
   alt_start_av = alt_start.get_avg();
+  loc_general = calc_av_flight_loc_start(false);
 }
 
 static void write_header(const std::list<AircraftModel>& group)
@@ -179,17 +180,18 @@ void FlightCollection::write_diagnostics() const
   json_location_file << "{\n"
 	  << "\"latitude\": " << loc_general.latitude.Degrees() << ",\n"
 	  << "\"longitude\": " << loc_general.longitude.Degrees() << ",\n"
-	  << "\"geoid_sep\": " << geoid_sep << "\n"
+	  << "\"geoid_sep\": " << geoid_sep << ",\n"
+  	  << "\"alt_start_av\": " << alt_start_av << "\n"
 	  << "}\n";
   json_location_file.close();
 }
 
-const GeoPoint FlightCollection::calc_av_flight_loc_start() const
+const GeoPoint FlightCollection::calc_av_flight_loc_start(const bool first_pass) const
 {
   GeoPoint center(Angle::Native(0),Angle::Native(0));
   int n = 0;
   for (auto&& a : group) {
-    if (a.flight_present()) {
+    if (a.flight_present(first_pass)) {
       n++;
     }
   }
@@ -197,7 +199,7 @@ const GeoPoint FlightCollection::calc_av_flight_loc_start() const
     const double inv_n = 1.0/n;
     for (auto&& a : group) {
       const GeoPoint &p = a.get_flight_loc_start();
-      if (a.flight_present()) {
+      if (a.flight_present(first_pass)) {
         center += p*inv_n;
       }
     }

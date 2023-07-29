@@ -201,9 +201,9 @@ void AircraftModel::Interpolate(const int t, const SpeedVector& wind)
 }
 
 
-bool AircraftModel::flight_present() const
+bool AircraftModel::flight_present(const bool first_pass) const
 {
-  return (flight_time_start)>0;
+  return ((flight_time_start)>0) && (first_pass || (flight_time_end > flight_time_start));
 }
 
 
@@ -285,7 +285,9 @@ void AircraftModel::finalise(Averager& all_alt_start)
     return;
   alt_start.calculate();
   alt_end.calculate();
-  all_alt_start.add(alt_start.get_avg());
+  if (flight_present(false)) {
+    all_alt_start.add(alt_start.get_avg());
+  }
   baro_error.calculate();
 }
 

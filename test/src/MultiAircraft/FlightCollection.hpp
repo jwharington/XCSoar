@@ -32,7 +32,7 @@ class FlightCollection {
   FlatProjection proj;
   int display_interval = 300;
 
-  const GeoPoint calc_av_flight_loc_start() const;
+  const GeoPoint calc_av_flight_loc_start(const bool first_pass=true) const;
   const FlatPoint project_loc(const GeoPoint& p) const
   {
     return proj.ProjectFloat(p)*proj.GetApproximateScale();

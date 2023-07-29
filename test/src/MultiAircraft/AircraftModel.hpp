@@ -70,7 +70,7 @@ class AircraftModel {
 
   void calc_aspect(const AircraftModel& target);
   bool aliased(const AircraftModel& other) const;
-  bool flight_present() const;
+  bool flight_present(const bool first_pass) const;
 
  private:
   AircraftModel(const AircraftModel&) = delete;
