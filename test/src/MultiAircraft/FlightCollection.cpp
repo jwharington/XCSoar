@@ -178,10 +178,20 @@ void FlightCollection::write_diagnostics() const
 const GeoPoint FlightCollection::calc_av_flight_loc_start() const
 {
   GeoPoint center(Angle::Native(0),Angle::Native(0));
-  const double n = 1.0/group.size();
+  int n = 0;
   for (auto&& a : group) {
-    const GeoPoint &p = a.get_flight_loc_start();
-    center += p*n;
+    if (a.flight_present()) {
+      n++;
+    }
+  }
+  if (n) {
+    const double inv_n = 1.0/n;
+    for (auto&& a : group) {
+      const GeoPoint &p = a.get_flight_loc_start();
+      if (a.flight_present()) {
+        center += p*inv_n;
+      }
+    }
   }
   return center;
 }

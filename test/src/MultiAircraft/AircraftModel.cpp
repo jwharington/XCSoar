@@ -201,6 +201,12 @@ void AircraftModel::Interpolate(const int t, const SpeedVector& wind)
 }
 
 
+bool AircraftModel::flight_present() const
+{
+  return (flight_time_start)>0;
+}
+
+
 void AircraftModel::advance_to_start(int &t_start, int &t_end)
 {
   replay->SetCalculated().estimated_wind = SpeedVector();
