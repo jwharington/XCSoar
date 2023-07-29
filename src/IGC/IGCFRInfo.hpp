@@ -32,4 +32,6 @@ struct IGCFRInfo {
   void clear();
 };
 
+bool IGCFRInfoDB_init(const char* file_path);
+
 #endif

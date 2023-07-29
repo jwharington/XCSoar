@@ -29,12 +29,16 @@ Copyright_License {
 #include "system/Args.hpp"
 #include <stdio.h>
 #include "MultiAircraft/FlightCollectionEncounter.hpp"
+#include "IGC/IGCFRInfo.hpp"
 
 bool debug = false;
 
 int main(int argc, char **argv)
 {
   MultiAircraft::FlightCollectionEncounter flights;
+
+  std::string name = std::string(std::getenv("ROOT"))+"/igc_fr_geoid.txt";
+  IGCFRInfoDB_init(name.c_str());
 
   //  test_visibility();
 
