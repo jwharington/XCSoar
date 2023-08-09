@@ -85,8 +85,10 @@ WritePhase(Phase &phase) noexcept
   object.emplace("vario", phase.GetVario());
   object.emplace("glide_rate", phase.GetGlideRate());
 
-  if (phase.phase_type == Phase::Type::CIRCLING)
+  if (phase.phase_type == Phase::Type::CIRCLING) {
+    object.emplace("thermal_height_lost", phase.thermal_height_lost);
     object.emplace("thermal_band", report(phase.thermal_collection));
+  }
   return object;
 }
 
@@ -99,6 +101,7 @@ WriteCirclingStats(const Phase &stats) noexcept
     {"fraction", stats.fraction},
     {"vario", stats.GetVario()},
     {"count", stats.merges},
+    {"thermal_height_lost", stats.thermal_height_lost},
   };
 }
 
