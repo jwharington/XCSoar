@@ -71,11 +71,17 @@ struct IGCFix
    */
   int16_t siu;
 
+  /**
+   * Horizontal Fix accuracy (m).  Negative if undefined.
+   */
+  int16_t fxa;
+
   constexpr void ClearExtensions() noexcept {
     enl = rpm = -1;
     hdm = hdt = trm = trt = -1;
     gsp = ias = tas = -1;
     siu = -1;
+    fxa = -1;
   }
 
   constexpr void Clear() noexcept {
