@@ -7,6 +7,7 @@
 #include "GlideRatioComputer.hpp"
 #include "FlyingComputer.hpp"
 #include "CirclingComputer.hpp"
+#include "CruiseComputer.hpp"
 #include "WaveComputer.hpp"
 #include "ThermalBandComputer.hpp"
 #include "Wind/Computer.hpp"
@@ -36,6 +37,7 @@ class GlideComputerAirData {
 
   FlyingComputer flying_computer;
   CirclingComputer circling_computer;
+  CruiseComputer cruise_computer;
   WaveComputer wave_computer;
   ThermalBandComputer thermal_band_computer;
   WindComputer wind_computer;
@@ -63,9 +65,7 @@ public:
 
   void ResetFlight(DerivedInfo &calculated, const bool full=true);
 
-  void ResetStats() {
-    circling_computer.ResetStats();
-  }
+  void ResetStats(const MoreData &basic, DerivedInfo &calculated);
 
   /**
    * Calculates some basic values

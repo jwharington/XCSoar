@@ -20,10 +20,6 @@ GlideComputerBlackboard::ResetFlight([[maybe_unused]] const bool full)
 void
 GlideComputerBlackboard::StartTask()
 {
-  calculated_info.cruise_start_location = gps_info.location;
-  calculated_info.cruise_start_altitude = gps_info.nav_altitude;
-  calculated_info.cruise_start_time = gps_info.time;
-
   // JMW reset time cruising/time circling stats on task start
   calculated_info.time_circling = {};
   calculated_info.time_cruise = {};
