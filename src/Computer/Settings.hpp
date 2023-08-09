@@ -162,6 +162,12 @@ struct CirclingSettings {
   FloatDuration cruise_to_circling_mode_switch_threshold;
   FloatDuration circling_to_cruise_mode_switch_threshold;
 
+  /** Whether to calculate average based on turn period when circling */
+  bool average_1_turn;
+
+  /** Base time period for averagers (s) */
+  unsigned average_base_time;
+
   void SetDefaults() {
     external_trigger_cruise_enabled = false;
     cruise_to_circling_mode_switch_threshold = std::chrono::seconds{15};

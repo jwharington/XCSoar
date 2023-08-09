@@ -110,7 +110,7 @@ GlideComputerAirData::ProcessVertical(const MoreData &basic,
   cruise_computer.Compute(basic, calculated);
 
   average_vario.Compute(basic, calculated.circling, last_circling,
-                        calculated);
+                        calculated, settings.circling);
   AverageClimbRate(basic, calculated);
 
   if (calculated.circling)

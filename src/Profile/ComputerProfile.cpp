@@ -113,6 +113,9 @@ Profile::Load(const ProfileMap &map, CirclingSettings &settings)
           settings.cruise_to_circling_mode_switch_threshold);
   map.Get(ProfileKeys::CirclingToCruiseModeSwitchThreshold,
           settings.circling_to_cruise_mode_switch_threshold);
+  map.Get(ProfileKeys::Average1Turn, settings.average_1_turn);
+  unsigned base_time;
+  settings.average_base_time = map.Get(ProfileKeys::AverageTimeConstant, base_time) ? base_time : 30;
 }
 
 void

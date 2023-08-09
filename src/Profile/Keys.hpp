@@ -283,6 +283,8 @@ constexpr std::string_view PagesDistinctZoom = "PagesDistinctZoom";
 constexpr std::string_view WaveAssistant = "WaveAssistant";
 
 constexpr std::string_view MasterAudioVolume = "MasterAudioVolume";
+constexpr std::string_view Average1Turn = "Average1Turn";
+constexpr std::string_view AverageTimeConstant = "AverageTimeConstant";
 
 constexpr std::string_view RaspFile = "RaspFile";
 
