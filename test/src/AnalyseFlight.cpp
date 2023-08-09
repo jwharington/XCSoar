@@ -5,6 +5,7 @@
 #include "Contest/ContestManager.hpp"
 #include "system/Args.hpp"
 #include "Computer/CirclingComputer.hpp"
+#include "Computer/CruiseComputer.hpp"
 #include "Computer/ThermalBandComputer.hpp"
 #include "DebugReplay.hpp"
 #include "util/Macros.hpp"
@@ -36,6 +37,7 @@ struct Result {
 
 
 static CirclingComputer circling_computer;
+static CruiseComputer cruise_computer;
 static FlightPhaseDetector flight_phase_detector;
 static ThermalBandComputer thermal_band_computer;
 
@@ -122,6 +124,8 @@ Run(DebugReplay &replay, Result &result,
                                   replay.SetCalculated().thermal_encounter_collection);
 
     flight_phase_detector.Update(replay.Basic(), replay.Calculated());
+
+    cruise_computer.Compute(replay.Basic(), replay.SetCalculated());
 
     if (!basic.time_available || !basic.location_available ||
         !basic.NavAltitudeAvailable())
