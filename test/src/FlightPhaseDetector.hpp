@@ -8,6 +8,7 @@
 #include "Geo/GeoPoint.hpp"
 #include "time/BrokenDateTime.hpp"
 #include "time/Stamp.hpp"
+#include "ThermalBand/ThermalEncounterCollection.hpp"
 
 struct MoreData;
 struct DerivedInfo;
@@ -72,6 +73,9 @@ struct Phase {
   /** Average glide rate during the phase */
   double GetGlideRate() const;
 
+  ThermalEncounterCollection thermal_collection;
+  ThermalBand thermal_band;
+
   /**
    * Reinitialize phase
    */
@@ -86,6 +90,8 @@ struct Phase {
     alt_diff = 0;
     distance = 0;
     merges = 0;
+    thermal_band.Reset();
+    thermal_collection.Reset();
   }
 };
 

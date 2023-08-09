@@ -38,6 +38,29 @@ FormatCirclingDirection(Phase::CirclingDirection circling_direction)
   }
 }
 
+static boost::json::array
+GetSlice(const ThermalBand& band, const unsigned i, const unsigned sz) {
+  if (i==0) {
+    return {band.GetFloor(), 0};
+  } else if (i< sz+1) {
+    return {band.GetSliceCenter(i-1), band.GetSlice(i-1).w_n};
+  } else {
+    return {band.GetCeiling(), 0};
+  }
+}
+
+static boost::json::array
+report(const ThermalBand& band)
+{
+  boost::json::array array;
+  const unsigned sz = band.size();
+
+  for (unsigned i=0; i<=sz+1; ++i) {
+    array.emplace_back(GetSlice(band, i, sz));
+  }
+  return array;
+}
+
 static boost::json::object
 WritePhase(Phase &phase) noexcept
 {
@@ -62,6 +85,8 @@ WritePhase(Phase &phase) noexcept
   object.emplace("vario", phase.GetVario());
   object.emplace("glide_rate", phase.GetGlideRate());
 
+  if (phase.phase_type == Phase::Type::CIRCLING)
+    object.emplace("thermal_band", report(phase.thermal_collection));
   return object;
 }
 
