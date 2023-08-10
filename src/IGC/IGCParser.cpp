@@ -5,12 +5,14 @@
 #include "IGCHeader.hpp"
 #include "IGCFix.hpp"
 #include "IGCExtensions.hpp"
+#include "IGCFRInfo.hpp"
 #include "IGCDeclaration.hpp"
 #include "time/BrokenDate.hpp"
 #include "time/BrokenTime.hpp"
 #include "util/CharUtil.hxx"
 #include "util/StringAPI.hxx"
 #include "util/StringCompare.hxx"
+#include "util/Macros.hpp"
 
 #include <stdlib.h>
 
@@ -374,4 +376,33 @@ IGCParseDeclarationTurnpoint(const char *line, IGCDeclarationTurnpoint &tp)
 
   tp.name = line + 18;
   return true;
+}
+
+
+bool
+IGCParseFRInfo(const char *buffer, IGCFRInfo &fr_info)
+{
+  if (*buffer++ != 'H')
+    return false;
+
+  if (strlen(buffer) < 12)
+    return false;
+
+  if (buffer == StringFind(buffer, "FFTY")) {
+    buffer+= 4;
+    while (*buffer && (*buffer != ':')) {
+      buffer++;
+    }
+    CopyString(fr_info.fr_type, ARRAY_SIZE(fr_info.fr_type), buffer);
+    return true;
+  } else if (buffer == StringFind(buffer, "FRFW")) {
+    buffer+= 4;
+    while (*buffer && (*buffer != ':')) {
+      buffer++;
+    }
+    CopyString(fr_info.fw_version, ARRAY_SIZE(fr_info.fw_version), buffer);
+    return true;
+  }
+
+  return false;
 }

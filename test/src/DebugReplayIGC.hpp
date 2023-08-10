@@ -5,6 +5,7 @@
 
 #include "DebugReplayFile.hpp"
 #include "IGC/IGCExtensions.hpp"
+#include "IGC/IGCFRInfo.hpp"
 #include "io/FileLineReader.hpp"
 
 struct IGCFix;
@@ -17,6 +18,7 @@ private:
   DebugReplayIGC(FileLineReaderA *_reader)
     : DebugReplayFile(_reader) {
     extensions.clear();
+    fr_info.clear();
   }
 
 public:

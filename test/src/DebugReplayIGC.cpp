@@ -7,6 +7,7 @@
 #include "IGC/IGCFix.hpp"
 #include "Units/System.hpp"
 #include "system/Path.hpp"
+#include "Geo/Geoid.hpp"
 
 DebugReplay*
 DebugReplayIGC::Create(Path input_file)
@@ -34,6 +35,8 @@ DebugReplayIGC::Next()
       IGCFix fix;
       if (IGCParseFix(line, extensions, fix)) {
         if (fix.gps_valid) {
+          const double sep = EGM96::LookupSeparation(fix.location);
+          fix.gps_altitude += sep*(fr_info.geoid_correction-1);
           if (fix.fxa>0) {
             h_acc = fix.fxa/2.0;
           }
@@ -49,9 +52,11 @@ DebugReplayIGC::Next()
           IGCParseDateRecord(line, date)) {
         (BrokenDate &)raw_basic.date_time_utc = date;
         raw_basic.time_available.Clear();
+      } else if (IGCParseFRInfo(line, fr_info)) {
+        fr_info.CheckCorrection();
       }
-    } else if (line[0] == 'I') {
-      IGCParseExtensions(line, extensions);
+    } else if (IGCParseHeader(line, header)) {
+    } else if (IGCParseExtensions(line, extensions)) {
     }
   }
 

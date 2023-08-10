@@ -5,6 +5,7 @@
 
 #include "AbstractReplay.hpp"
 #include "IGC/IGCExtensions.hpp"
+#include "IGC/IGCFRInfo.hpp"
 
 #include <memory>
 
@@ -16,6 +17,7 @@ class IgcReplay: public AbstractReplay
   std::unique_ptr<NLineReader> reader;
 
   IGCExtensions extensions;
+  IGCFRInfo fr_info;
 
 public:
   IgcReplay(std::unique_ptr<NLineReader> &&_reader);

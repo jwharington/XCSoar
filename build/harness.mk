@@ -7,6 +7,8 @@ HARNESS_SOURCES = \
 	$(SRC)/NMEA/SwitchState.cpp \
 	$(SRC)/Computer/FlyingComputer.cpp \
 	$(SRC)/IGC/IGCParser.cpp \
+	$(SRC)/IGC/IGCFRInfo.cpp \
+	$(SRC)/Geo/Geoid.cpp \
 	$(SRC)/Replay/IgcReplay.cpp \
 	$(SRC)/Replay/TaskAutoPilot.cpp \
 	$(SRC)/Replay/AircraftSim.cpp \

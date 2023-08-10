@@ -340,6 +340,8 @@ TEST_REPLAY_TASK_SOURCES = \
 	$(SRC)/Atmosphere/AirDensity.cpp \
 	$(SRC)/Atmosphere/Pressure.cpp \
 	$(SRC)/IGC/IGCParser.cpp \
+	$(SRC)/IGC/IGCFRInfo.cpp \
+	$(SRC)/Geo/Geoid.cpp \
 	$(SRC)/Replay/IgcReplay.cpp \
 	$(SRC)/Replay/TaskAutoPilot.cpp \
 	$(TEST_SRC_DIR)/tap.c \
@@ -349,7 +351,7 @@ TEST_REPLAY_TASK_SOURCES = \
 	$(TEST_SRC_DIR)/harness_task.cpp \
 	$(TEST_SRC_DIR)/test_debug.cpp \
 	$(TEST_SRC_DIR)/test_replay_task.cpp
-TEST_REPLAY_TASK_DEPENDS = TASKFILE ROUTE WAYPOINT GLIDE LIBNMEA GEO MATH IO OS UTIL TIME UNITS
+TEST_REPLAY_TASK_DEPENDS = TASKFILE ROUTE WAYPOINT GLIDE LIBNMEA GEO MATH IO OS UTIL TIME UNITS DATA
 $(eval $(call link-program,test_replay_task,TEST_REPLAY_TASK))
 
 TEST_MATH_TABLES_SOURCES = \
@@ -835,6 +837,9 @@ DEBUG_REPLAY_SOURCES = \
 	$(SRC)/Device/Config.cpp \
 	$(SRC)/IGC/IGCParser.cpp \
 	$(SRC)/IGC/Generator.cpp \
+	$(SRC)/IGC/IGCFRInfo.cpp \
+	$(SRC)/Units/Descriptor.cpp \
+	$(SRC)/Units/System.cpp \
 	$(SRC)/Formatter/NMEAFormatter.cpp \
 	$(ENGINE_SRC_DIR)/Airspace/AirspaceWarningConfig.cpp \
 	$(ENGINE_SRC_DIR)/ThermalBand/ThermalBand.cpp \
@@ -863,7 +868,7 @@ DEBUG_REPLAY_SOURCES = \
 	$(TEST_SRC_DIR)/DebugReplayIGC.cpp \
 	$(TEST_SRC_DIR)/DebugReplayNMEA.cpp \
 	$(TEST_SRC_DIR)/DebugReplay.cpp
-DEBUG_REPLAY_DEPENDS = DRIVER ASYNC LIBNET IO OS THREAD TIME
+DEBUG_REPLAY_DEPENDS = DRIVER ASYNC LIBNET IO OS THREAD TIME DATA
 
 BENCHMARK_PROJECTION_SOURCES = \
 	$(SRC)/Projection/Projection.cpp \
@@ -2160,7 +2165,7 @@ RUN_ANALYSIS_DEPENDS = \
 	OS THREAD \
 	CONTEST TASKFILE ROUTE GLIDE \
 	WAYPOINT WAYPOINTFILE \
-	ROUTE AIRSPACE ZZIP UTIL GEO MATH TIME
+	ROUTE AIRSPACE ZZIP UTIL GEO MATH TIME DATA
 $(eval $(call link-program,RunAnalysis,RUN_ANALYSIS))
 
 RUN_AIRSPACE_WARNING_DIALOG_SOURCES = \
