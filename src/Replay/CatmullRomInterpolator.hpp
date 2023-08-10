@@ -144,9 +144,9 @@ public:
   }
 
   bool
-  NeedData(TimeStamp t_simulation) const
+  NeedData(const TimeStamp t_simulation) const
   {
-    return !Ready() || (p[2].time <= t_simulation + FloatDuration{0.1});
+    return !Ready() || (p[2].time <= t_simulation);
   }
 
 private:
