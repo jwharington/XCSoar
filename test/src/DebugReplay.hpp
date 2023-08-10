@@ -11,7 +11,7 @@
 #include "time/WrapClock.hpp"
 #include "system/Args.hpp"
 #include "Atmosphere/Pressure.hpp"
-
+#include <string>
 
 class DebugReplay {
 protected:
@@ -50,6 +50,8 @@ public:
   void Reset();
 
   virtual bool Next() = 0;
+  virtual std::string GetTypeInfo() const = 0;
+  virtual std::string GetIdentifier() const = 0;
   virtual double GetHAccuracy() const = 0;
 
   /* Return a detail level for this fix - only used for skylines */
