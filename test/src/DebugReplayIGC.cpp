@@ -33,6 +33,11 @@ DebugReplayIGC::Next()
     if (line[0] == 'B') {
       IGCFix fix;
       if (IGCParseFix(line, extensions, fix)) {
+        if (fix.gps_valid) {
+          if (fix.fxa>0) {
+            h_acc = fix.fxa/2.0;
+          }
+        }
         CopyFromFix(fix);
 
         Compute();
