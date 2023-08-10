@@ -67,7 +67,7 @@ public:
     return (num == 4);
   }
 
-  GeoVector 
+  GeoVector
   GetVector(TimeStamp _time) const noexcept
   {
     assert(Ready());
@@ -75,13 +75,22 @@ public:
     if (p[2].time <= p[1].time)
       return GeoVector(0, Angle::Zero());
 
-    const Record r0 = Interpolate(_time - FloatDuration{0.05});
-    const Record r1 = Interpolate(_time + FloatDuration{0.05});
+    const auto u = GetTimeFraction(_time);
+    const auto speed2 = p[1].location.DistanceS(p[2].location) / (p[2].time - p[1].time).count();
+    const auto speed1 = p[0].location.DistanceS(p[1].location) / (p[1].time - p[0].time).count();
 
-    auto speed = p[1].location.DistanceS(p[2].location) / (p[2].time - p[1].time).count();
-    Angle bearing = r0.location.Bearing(r1.location);
+    const Record r0 = Interpolate(_time - FloatDuration{0.25});
+    const Record r1 = Interpolate(_time + FloatDuration{0.25});
+    const Angle bearing = r0.location.Bearing(r1.location);
 
-    return GeoVector(speed, bearing);
+    return GeoVector(speed2*u+speed1*(1-u), bearing);
+  }
+
+  [[gnu::pure]]
+  bool
+  IsActual(TimeStamp _time) const noexcept
+  {
+    return (fabs((_time-p[1].time).count())<0.01) || (fabs((_time-p[2].time).count())<0.01);
   }
 
   [[gnu::pure]]
