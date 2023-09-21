@@ -25,11 +25,12 @@ int main(int argc, char **argv)
         61 metres is "legal" in Australia
   */
   // get the distance
-  flights.DISTANCE = std::stoi(argv[argc-2]);
+  flights.DISTANCE = std::stoi(argv[argc-3]);
   // get the penalty buffer
-  flights.SCORE_BUFFER = std::stoi(argv[argc-1]);
+  flights.SCORE_BUFFER = std::stoi(argv[argc-2]);
+  flights.HEIGHT_THRESHOLD_M = std::stoi(argv[argc-1]);
 
-  Args args(argc-2, argv, "IGC_FILE* DISTANCE SCORE_BUFFER");
+  Args args(argc-4, argv, "IGC_FILE* DISTANCE SCORE_BUFFER HEIGHT_THRESHOLD_M");
 
   if (!flights.load_files(args)) {
     printf("Error! Can't load files\n");
