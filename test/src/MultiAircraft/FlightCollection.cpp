@@ -16,7 +16,7 @@ bool FlightCollection::load_files(Args& args)
       return false;
     }
   } while (!args.IsEmpty());
-  return true;
+  return group.size()>1;
 }
 
 
