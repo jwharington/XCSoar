@@ -30,8 +30,11 @@ int main(int argc, char **argv)
   flights.SCORE_BUFFER = std::stoi(argv[argc-2]);
   flights.HEIGHT_THRESHOLD_M = std::stoi(argv[argc-1]);
 
-  Args args(argc-4, argv, "IGC_FILE* DISTANCE SCORE_BUFFER HEIGHT_THRESHOLD_M");
-
+  Args args(argc-3, argv, "IGC_FILE* DISTANCE SCORE_BUFFER HEIGHT_THRESHOLD_M");
+  if (argc<6) {
+    printf("Insufficient igc files\n");
+    exit(EXIT_FAILURE);
+  }
   if (!flights.load_files(args)) {
     printf("Error! Can't load files\n");
     exit(EXIT_FAILURE);
