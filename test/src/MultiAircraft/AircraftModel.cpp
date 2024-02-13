@@ -91,8 +91,8 @@ void AircraftModel::advance()
       fr_id = replay->GetIdentifier();
 
       json_trace.emplace("id", id);
-      json_trace.emplace("frinfo", fr_info);
-      json_trace.emplace("frid", fr_id);
+      json_trace.emplace("fr_info", fr_info);
+      json_trace.emplace("fr_id", fr_id);
       json_trace.emplace("trace", boost::json::array());
 
       if (!flight_time_start.IsDefined()) {
@@ -358,8 +358,8 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
 
   boost::json::object data = {
     {"id",id},
-    {"frinfo",fr_info},
-    {"frid",fr_id},
+    {"fr_info",fr_info},
+    {"fr_id",fr_id},
     {"turn_mode_list",gen_turnmodelist(info).string()},
     {"in_flock", in_flock},
     {"plausible", plausible},
