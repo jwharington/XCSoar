@@ -14,6 +14,7 @@ unsigned EncounterMapStore::encounter_num = 0;
 
 void EncounterMapStore::update(const int id1, const int id2,
                                const TimeStamp t,
+			       const BrokenDate date,
                                const GeoPoint& loc,
                                const double alt,
                                const SpeedVector &wind,
@@ -24,7 +25,7 @@ void EncounterMapStore::update(const int id1, const int id2,
   const KeyType index = make_index(id1, id2);
   auto it = encounters.find(index);
   if (it == encounters.end()) {
-    encounters.emplace(index, EncounterInfo(encounter_num, t, loc, alt, wind, d, v, p_free));
+    encounters.emplace(index, EncounterInfo(encounter_num, t, date, loc, alt, wind, d, v, p_free));
     encounter_num++;
   } else {
     EncounterInfo &pt = it->second;

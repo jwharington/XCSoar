@@ -181,6 +181,7 @@ void FlightCollectionEncounter::encounter_update(const TimeStamp t)
     const AircraftModel& a = *i;
     if (!a.live || !a.valid)
       continue;
+    const BrokenDate dt = a.flight_date_utc_start;
 
     const double a_h_acc = a.h_acc>0? a.h_acc : h_acc_av;
     const GeoBounds proximity_bounds(a.interp_loc.location+delta_proximity, a.interp_loc.location-delta_proximity);
@@ -228,7 +229,7 @@ void FlightCollectionEncounter::encounter_update(const TimeStamp t)
         const double d_last = distance(a.interp_loc_last, b.interp_loc_last);
         const double v = (d_abs-d_last);
         const double d_exp = expected_distance(DISTANCE, d_abs, h_acc); // approximate
-        encounter_store.update(a.idi, b.idi, t, center(a,b), a.interp_loc.baro_altitude, average_wind(a,b), d_exp, v, 1-p_close);
+        encounter_store.update(a.idi, b.idi, t, dt, center(a,b), a.interp_loc.baro_altitude, average_wind(a,b), d_exp, v, 1-p_close);
       }
     }
   }

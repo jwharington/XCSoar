@@ -77,6 +77,7 @@ class AircraftModel {
   bool flight_present(const bool first_pass) const;
 
   static TimeStamp first_launch;
+  BrokenDate flight_date_utc_start;
 
  private:
   AircraftModel(const AircraftModel&) = delete;

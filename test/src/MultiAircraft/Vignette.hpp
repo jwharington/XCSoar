@@ -8,6 +8,7 @@
 #include "Geo/Flat/FlatProjection.hpp"
 #include "Geo/Flat/FlatPoint.hpp"
 #include "Math/Vector.hpp"
+#include "time/BrokenDate.hpp"
 #include "time/Stamp.hpp"
 
 namespace MultiAircraft {
@@ -17,11 +18,13 @@ struct TrailPoint;
 struct Vignette {
   Vignette(const int _id,
            const TimeStamp _t,
+           const BrokenDate _dt,
            const GeoPoint &_origin, const double _alt,
            const SpeedVector &_wind):
       id(_id),
       time_start(_t),
       time_end(_t),
+      date_utc(_dt),
       origin(_origin),
       alt(_alt),
       wind(_wind),
@@ -33,6 +36,7 @@ struct Vignette {
   unsigned id;
   TimeStamp time_start;
   TimeStamp time_end;
+  BrokenDate date_utc;
   GeoPoint origin;
   double alt;
   SpeedVector wind;

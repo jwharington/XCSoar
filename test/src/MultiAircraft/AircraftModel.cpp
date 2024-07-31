@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iomanip>      // std::setprecision
 
+
 using namespace MultiAircraft;
 
 int AircraftModel::num_aircraft = 0;
@@ -99,6 +100,7 @@ void AircraftModel::advance()
 
         flight_loc_start = basic.location;
         flight_time_start = basic.time;
+	flight_date_utc_start = basic.date_time_utc;
 
         if (alt_start.empty()) {
           alt_start.add(basic.gps_altitude);
@@ -251,6 +253,11 @@ void AircraftModel::finalise(Averager& all_alt_start)
   if (!live)
     return;
   std::ofstream json_file(get_trace_filename());
+
+  char date_buffer[32];
+  FormatISO8601(date_buffer, flight_date_utc_start);
+  json_trace.emplace("date", date_buffer);
+
   json_file << boost::json::serialize(json_trace);
 
   alt_start.calculate();
@@ -258,7 +265,9 @@ void AircraftModel::finalise(Averager& all_alt_start)
   if (flight_present(false)) {
     all_alt_start.add(alt_start.get_avg());
   }
-  baro_error.calculate();
+  if (!baro_error.empty()) {
+    baro_error.calculate();
+  }
 }
 
 void AircraftModel::set_wind_if_not_available(const SpeedVector& wind_avg)
@@ -356,6 +365,9 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
 
   visibility_avg.calculate();
 
+  char date_buffer[32];
+  FormatISO8601(date_buffer, flight_date_utc_start);
+
   boost::json::object data = {
     {"id",id},
     {"fr_info",fr_info},
@@ -363,6 +375,7 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
     {"turn_mode_list",gen_turnmodelist(info).string()},
     {"in_flock", in_flock},
     {"plausible", plausible},
+    {"date_start", date_buffer},
     {"visibility_avg", visibility_avg.get_avg()},
     {"trace", trace}
   };

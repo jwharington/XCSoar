@@ -20,13 +20,14 @@ class EncounterMapStore {
   struct EncounterInfo: public Vignette {
     EncounterInfo(const int _encounter_num,
                   const TimeStamp _t,
+		  const BrokenDate _dt,
                   const GeoPoint &_origin, const double _alt,
                   const SpeedVector &_wind,
 
                   const double _d,
                   const double _v,
                   const double _p_free):
-        Vignette(_encounter_num, _t, _origin, _alt, _wind),
+        Vignette(_encounter_num, _t, _dt, _origin, _alt, _wind),
         d_min(_d),
         v_max(-_v),
         time_pred(_v<0? -_d/_v: 0),
@@ -44,6 +45,7 @@ class EncounterMapStore {
 
   void update(const int id1, const int id2,
               const TimeStamp t,
+	      const BrokenDate date,
               const GeoPoint& loc,
               const double alt,
               const SpeedVector &wind,
