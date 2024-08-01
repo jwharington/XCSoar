@@ -43,9 +43,11 @@ int main(int argc, char **argv)
 
   flights.run();
 
-  std::ofstream file_summary("summary.json");
-  boost::json::object summary = flights.record_summary();
-  file_summary << boost::json::serialize(summary);
+  {
+    std::ofstream file_summary("summary.json");
+    boost::json::object summary = flights.record_summary();
+    file_summary << boost::json::serialize(summary);
+  }
 
   exit(0);
 }
