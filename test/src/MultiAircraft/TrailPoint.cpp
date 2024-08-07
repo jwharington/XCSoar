@@ -28,6 +28,14 @@ void TrailPoint::update_reconstruction(const TrailPoint& prev, const SpeedVector
 {
   v_wind = vector_wind(trk, wind);
   v_ias = v_wind.norm/AirDensityRatio(pos.gps_altitude);
+  roc = (pos.gps_altitude - prev.pos.gps_altitude);
+
+  {
+    const Vector vv = Vector(v_wind);
+    vel[0] = vv.x;
+    vel[1] = vv.y;
+    vel[2] = -roc; // z down
+  }
 
   turn_rate_wind = turnrate(v_wind, prev.v_wind).Half() + prev.turn_rate_wind.Half();
   bank_angle = Angle::Radians(atan(turn_rate_wind.Radians() * v_wind.norm / G));
@@ -57,14 +65,20 @@ void TrailPoint::update_reconstruction(const TrailPoint& prev, const SpeedVector
 
 bool TrailPoint::present(const unsigned id_target) const
 {
-  return (aspects.find(id_target) != aspects.end());
+  return (auxiliaries.find(id_target) != auxiliaries.end());
 }
 
-const Aspect TrailPoint::lookup_aspect(const unsigned id_target) const
+const AuxiliaryPair& TrailPoint::lookup_auxiliary(const unsigned id_target) const
 {
-  auto i = aspects.find(id_target);
-  if (i != aspects.end()) {
+  auto i = auxiliaries.find(id_target);
+  if (i != auxiliaries.end()) {
     return i->second;
   }
-  return Aspect();
+  static const AuxiliaryPair def = AuxiliaryPair(Aspect(), DetectMiss());
+  return def;
+}
+
+void TrailPoint::add_auxiliary(const unsigned id_target, const AuxiliaryPair &p)
+{
+  auxiliaries[id_target] = p;
 }

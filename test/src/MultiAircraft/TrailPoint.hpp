@@ -6,12 +6,15 @@
 #include "Replay/CatmullRomInterpolator.hpp"
 #include "NMEA/CirclingInfo.hpp"
 #include "Visibility.hpp"
+#include "DetectMiss.hpp"
 #include "Geo/Math.hpp"
 #include "Geo/SpeedVector.hpp"
 #include "time/Stamp.hpp"
 #include <unordered_map>
 
 namespace MultiAircraft {
+
+typedef std::pair<Aspect, DetectMiss> AuxiliaryPair;
 
 struct TrailPoint {
   TrailPoint(const CatmullRomInterpolator::Record& _pos,
@@ -32,6 +35,7 @@ struct TrailPoint {
   void update_reconstruction(const TrailPoint& prev, const SpeedVector& wind);
   SpeedVector v_wind = SpeedVector(0,0);
   double v_ias = 0;
+  double roc = 0.0;
   Angle bank_angle = Angle::Native(0);
   Angle turn_rate_wind = Angle::Native(0);
   Angle pitch_angle = Angle::Native(0);
@@ -39,14 +43,15 @@ struct TrailPoint {
   double nv = 0;
   double nturn = 0;
   bool plausible = true;
-  typedef std::unordered_map<unsigned, Aspect> AspectList;
-  const Aspect lookup_aspect(const unsigned id_target) const;
+  double vel[3];
+  typedef std::unordered_map<unsigned, AuxiliaryPair> AuxiliaryList;
+  const AuxiliaryPair& lookup_auxiliary(const unsigned id_target) const;
   bool present(const unsigned id_target) const;
-
-  AspectList aspects;
+  void add_auxiliary(const unsigned id_target, const AuxiliaryPair &p);
 
  private:
   TrailPoint(const TrailPoint&) = delete;
+  AuxiliaryList auxiliaries;
 
   static constexpr double G = 9.81;
   // maximum plausible forward acceleration in g (allowing for some numerical jitter)

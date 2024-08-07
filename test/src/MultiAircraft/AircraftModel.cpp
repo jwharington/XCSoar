@@ -2,10 +2,10 @@
 // Copyright The XCSoar Project
 
 #include "AircraftModel.hpp"
+#include "DetectMiss.hpp"
 #include "Formatter/TimeFormatter.hpp"
 #include <fstream>
 #include <iomanip>      // std::setprecision
-
 
 using namespace MultiAircraft;
 
@@ -321,7 +321,9 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
     }
 
     const FlatPoint fp = info.project_loc_wind(p);
-    const Aspect aspect = p.lookup_aspect(id_target);
+    const AuxiliaryPair& auxiliary = p.lookup_auxiliary(id_target);
+    const Aspect& aspect = auxiliary.first;
+    const DetectMiss& miss = auxiliary.second;
     const Visibility visibility(aspect);
 
     if (detailed) {
@@ -358,6 +360,10 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
       step.emplace("ang_size", visibility.angular_size.Degrees());
       step.emplace("occlusion", visibility.occlusion);
       step.emplace("focus_factor", visibility.focus_factor);
+      step.emplace("roc", p.roc);
+      step.emplace("miss_TCA", miss.TCA);
+      step.emplace("miss_d", miss.miss_d_mag);
+      step.emplace("miss_vrel", miss.vrel_mag);
     }
 
     trace.emplace_back(step);
@@ -395,17 +401,15 @@ double AircraftModel::update_baro_altitude(double& mix)
   return baro_altitude;
 }
 
-const Aspect AircraftModel::get_aspect(const AircraftModel& target) const
-{
-  const GeoVector v(interp_loc.location, target.interp_loc.location);
-  const TrigAngle ang(v.bearing);
-  const double x_inertial[3] = {v.distance*ang.c, v.distance*ang.s, interp_loc.gps_altitude-target.interp_loc.gps_altitude};
-  return euler.get_aspect(x_inertial);
-}
 
-void AircraftModel::calc_aspect(const AircraftModel& target)
+void AircraftModel::calc_auxiliary(const AircraftModel& target)
 {
-  trail.back().aspects[target.idi] = get_aspect(target);
+  // TODO: miss distance and LOS rate (bearing rate)
+  const TrailPoint& p0 = trail.back();
+  const TrailPoint& p1 = target.trail.back();
+  const DetectMiss miss(p0, p1);
+  const AuxiliaryPair auxiliary(euler.get_aspect(miss.xrel), miss);
+  trail.back().add_auxiliary(target.idi, auxiliary);
 }
 
 void AircraftModel::reset()

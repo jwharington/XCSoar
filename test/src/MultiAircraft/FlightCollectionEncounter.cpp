@@ -159,8 +159,8 @@ void FlightCollectionEncounter::visibility_update()
       if (d_vert > DISTANCE_VISIBILITY)
         continue; // fast exit, clearly out of bounds
 
-      a.calc_aspect(b);
-      b.calc_aspect(a);
+      a.calc_auxiliary(b);
+      b.calc_auxiliary(a);
     }
   }
   // TODO: do something like erase_expired in map

@@ -72,7 +72,7 @@ class AircraftModel {
   }
   void set_wind_if_not_available(const SpeedVector& wind_avg);
 
-  void calc_aspect(const AircraftModel& target);
+  void calc_auxiliary(const AircraftModel& target);
   bool aliased(const AircraftModel& other) const;
   bool flight_present(const bool first_pass) const;
 
@@ -81,8 +81,6 @@ class AircraftModel {
 
  private:
   AircraftModel(const AircraftModel&) = delete;
-
-  const Aspect get_aspect(const AircraftModel& target) const;
 
   CatmullRomInterpolator interpolator;
   CirclingComputer circling_computer;

@@ -1510,6 +1510,7 @@ RUN_MULTI_AIRCRAFT_SOURCES = \
 	$(SRC)/Formatter/TimeFormatter.cpp \
 	$(SRC)/TransponderCode.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/Visibility.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/DetectMiss.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/Vignette.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/TrailPoint.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/EncounterMapStore.cpp \
