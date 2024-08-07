@@ -166,6 +166,6 @@ void IGCFRInfo::CheckCorrection()
 void IGCFRInfo::clear()
 {
   geoid_correction = 0;
-  fr_type[0] = 0;
+  strncpy(fr_type,":Unknown",9);
   fw_version[0] = 0;
 }
