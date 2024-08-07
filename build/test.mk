@@ -1520,6 +1520,7 @@ RUN_MULTI_AIRCRAFT_SOURCES = \
 	$(TEST_SRC_DIR)/MultiAircraft/Flock.cpp \
 	$(TEST_SRC_DIR)/RunMultiAircraft.cpp
 RUN_MULTI_AIRCRAFT_LDADD = $(RUN_WIND_COMPUTER_LDADD)
+RUN_MULTI_AIRCRAFT_LDLIBS = -static-libstdc++ -static-libgcc
 RUN_MULTI_AIRCRAFT_DEPENDS = $(RUN_WIND_COMPUTER_DEPENDS) DATA JSON
 $(eval $(call link-program,RunMultiAircraft,RUN_MULTI_AIRCRAFT))
 
