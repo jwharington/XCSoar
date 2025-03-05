@@ -202,6 +202,7 @@ void FlightCollectionEncounter::encounter_update(const TimeStamp t)
         potential_flock_participants.insert(j);
       }
 
+
       if (d_vert > 3*DISTANCE)
         continue; // fast exit, clearly out of bounds
 
@@ -209,26 +210,31 @@ void FlightCollectionEncounter::encounter_update(const TimeStamp t)
         continue; // fast exit, clearly out of bounds
       }
 
+      // TODO JMW calculate actual effective distance
+      const double effective_distance = get_effective_distance(a, b);
+      
       const double v_acc = sqrt(sqr(a.v_acc)+sqr(b.v_acc));
-      if (d_vert - sigma_limit*v_acc > DISTANCE/2)
+
+      if (d_vert - sigma_limit*v_acc > effective_distance/2)
         continue; // fast exit, too many sigma outside, out of bounds
-      const double p_close_v = cdf_normal(z_normal(DISTANCE/2, d_vert, v_acc));
+		  //
+      const double p_close_v = cdf_normal(z_normal(effective_distance/2, d_vert, v_acc));
 
       const double d_horiz = distance_horiz(a.interp_loc, b.interp_loc);
       const double d_abs = sqrt(d_horiz*d_horiz+d_vert*d_vert);
 
       const double b_h_acc = b.h_acc>0? b.h_acc : h_acc_av;
       const double h_acc = sqrt(sqr(a_h_acc)+sqr(b_h_acc));
-      if (d_abs - sigma_limit*h_acc > DISTANCE)
+      if (d_abs - sigma_limit*h_acc > effective_distance)
         continue;
-      const double p_close_h = cdf_normal(z_normal(DISTANCE, d_horiz, h_acc));
+      const double p_close_h = cdf_normal(z_normal(effective_distance, d_horiz, h_acc));
 
       const double p_close = p_close_v*p_close_h;
 
       if (p_close > P_THRESHOLD) {
         const double d_last = distance(a.interp_loc_last, b.interp_loc_last);
         const double v = (d_abs-d_last);
-        const double d_exp = expected_distance(DISTANCE, d_abs, h_acc); // approximate
+        const double d_exp = expected_distance(effective_distance, d_abs, h_acc); // approximate
         encounter_store.update(a.idi, b.idi, t, dt, center(a,b), a.interp_loc.baro_altitude, average_wind(a,b), d_exp, v, 1-p_close);
       }
     }
@@ -244,7 +250,7 @@ void FlightCollectionEncounter::encounter_update(const TimeStamp t)
   std::list<Flock::IndexPoint> P;
   for (auto i: potential_flock_participants) {
     const FlatPoint fp = project_loc(i->get_location());
-    P.push_back(Flock::IndexPoint(Flock::Point(fp.x,fp.y), i->idi));
+    P.push_back(Flock::IndexPoint(Flock::Point(fp.x, fp.y), i->idi));
   }
 
   // sort in increasing x
@@ -258,6 +264,14 @@ void FlightCollectionEncounter::finalise()
 {
   flock_algorithm.finalise();
   FlightCollection::finalise();
+}
+
+
+double FlightCollectionEncounter::get_effective_distance(const AircraftModel& a,
+  const AircraftModel& b) const
+{
+  const AuxiliaryPair& auxiliary = a.lookup_latest_auxiliary(b);
+  return DISTANCE*auxiliary.second.distance_scale;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -319,4 +333,5 @@ boost::json::object FlightCollectionEncounter::record_summary() const
     {"penalty", penalty_summary},
   };
 }
+
 

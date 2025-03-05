@@ -6,6 +6,9 @@
 
 using namespace MultiAircraft;
 
+double DetectMiss::VELOCITY_SCALE_MS = 50.0;
+
+
 static void cross(const double* p0, const double* p1, double *res)
 {
   res[0] = p0[1]*p1[2]-p0[2]-p1[1];
@@ -70,6 +73,8 @@ DetectMiss::DetectMiss(const TrailPoint& p0, const TrailPoint& p1)
         vrel_mag = -vrel_mag;
       }
 
+      //
+      distance_scale = 1.0/(1.0+exp(-vrel_mag/VELOCITY_SCALE_MS));
     }
   }
 }

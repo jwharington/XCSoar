@@ -364,6 +364,7 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
       step.emplace("miss_TCA", miss.TCA);
       step.emplace("miss_d", miss.miss_d_mag);
       step.emplace("miss_vrel", miss.vrel_mag);
+      step.emplace("distance_scale", miss.distance_scale);
     }
 
     trace.emplace_back(step);
@@ -435,3 +436,9 @@ std::string AircraftModel::get_trace_filename() const
       << ".json";
   return oss.str();
 }
+
+const AuxiliaryPair& AircraftModel::lookup_latest_auxiliary(const AircraftModel& target) const
+{
+  return trail.back().lookup_auxiliary(target.idi);
+}
+

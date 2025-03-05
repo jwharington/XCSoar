@@ -24,13 +24,16 @@ class FlightCollectionEncounter: public FlightCollection
   virtual boost::json::object record_summary() const override;
 
  protected:
+  double calc_effective_distance(const AuxiliaryPair& auxiliary) const;
   virtual std::string get_symbol(const AircraftModel& m) const override;
   virtual bool process(const TimeStamp t) override;
   void encounter_update(const TimeStamp t);
   void visibility_update();
   virtual void finalise() override;
   double get_average_h_acc() const;
-
+  double get_effective_distance(const AircraftModel& a,
+    const AircraftModel& b) const;
+  
   EncounterMapStore encounter_store;
   FloatDuration time_close{0};
   GeoPoint delta_proximity;

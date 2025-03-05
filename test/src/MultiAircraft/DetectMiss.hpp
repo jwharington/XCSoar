@@ -5,7 +5,7 @@
 
 namespace MultiAircraft {
 
-class TrailPoint;
+struct TrailPoint;
 
 struct DetectMiss {
     DetectMiss(const TrailPoint& p0, const TrailPoint& p1);
@@ -19,6 +19,10 @@ struct DetectMiss {
     double miss_d[3] = {0,0,0};
     double miss_d_mag = 0.0;
     double TCA = 0.0;
+    double distance_scale = 1.0;
+
+    static double VELOCITY_SCALE_MS;
+  
 };
 
 }
