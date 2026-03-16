@@ -24,9 +24,11 @@ struct Aspect {
   Aspect(const double x_body[3], const double x_inertial[3]) {
     range = sqrt(x_body[0]*x_body[0]+x_body[1]*x_body[1]+x_body[2]*x_body[2]);
 
-    elevation_angle = Angle::asin(-x_body[2]/range);
-    azimuth_angle = Angle::FromXY(x_body[0], x_body[1]);
-    inclination_angle = Angle::asin(-x_inertial[2]/range);
+    if (range > 2.0) {
+      elevation_angle = Angle::asin(-x_body[2]/range);
+      azimuth_angle = Angle::FromXY(x_body[0], x_body[1]);
+      inclination_angle = Angle::asin(-x_inertial[2]/range);
+    }
   }
   double range = -1;
   Angle elevation_angle = Angle::Native(0);

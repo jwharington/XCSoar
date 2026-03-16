@@ -1518,9 +1518,14 @@ RUN_MULTI_AIRCRAFT_SOURCES = \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightCollection.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightCollectionEncounter.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightFlock.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/FlightReconstruction.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/ReconstructionUtility.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/Flock.cpp \
 	$(TEST_SRC_DIR)/RunMultiAircraft.cpp
 RUN_MULTI_AIRCRAFT_LDADD = $(RUN_WIND_COMPUTER_LDADD)
+RUN_MULTI_AIRCRAFT_CPPFLAGS = -I../unscented/include -I/usr/include/eigen3 -I../Tableau/include/ \
+	-DEIGEN_MATRIX_PLUGIN=\"unscented/matrix_plugins.h\" \
+	-DEIGEN_INITIALIZE_MATRICES_BY_ZERO=1
 RUN_MULTI_AIRCRAFT_LDLIBS = -static-libstdc++ -static-libgcc
 RUN_MULTI_AIRCRAFT_DEPENDS = $(RUN_WIND_COMPUTER_DEPENDS) DATA JSON
 $(eval $(call link-program,RunMultiAircraft,RUN_MULTI_AIRCRAFT))

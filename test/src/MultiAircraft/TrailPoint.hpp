@@ -35,12 +35,14 @@ struct TrailPoint {
   void update_reconstruction(const TrailPoint& prev, const SpeedVector& wind);
   SpeedVector v_wind = SpeedVector(0,0);
   double v_ias = 0;
+  double v_tas = 0;
   double roc = 0.0;
   Angle bank_angle = Angle::Native(0);
   Angle turn_rate_wind = Angle::Native(0);
   Angle pitch_angle = Angle::Native(0);
   Angle yaw_angle = Angle::Native(0);
   double nv = 0;
+  double load_factor = 0;
   double nturn = 0;
   bool plausible = true;
   double vel[3];

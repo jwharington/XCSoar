@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 
 /**
  * A Catmull-Rom splines interpolator
@@ -111,12 +112,20 @@ public:
 
     const auto u2 = Square(u);
     const auto u3 = u2 * u;
-    const double c[4] = {
+    double c[4] = {
       -time.count() * u3 + 2 * time.count() * u2 - time.count() * u,
       (2 - time.count()) * u3 + (time.count() - 3) * u2 + 1,
       (time.count() - 2) * u3 + (3 - 2 * time.count()) * u2 + time.count() * u,
       time.count() * u3 - time.count() * u2,
     };
+    if (u> 1.0) {
+      const double t = std::clamp((_time - p[2].time) / (p[3].time - p[2].time), 0.0, 1.0);
+      for (int i=0; i<4; ++i) {
+        c[i]= 0;
+      }
+      c[2] = 1.0-t;
+      c[3] = t;
+    }
 
     Record r;
     r.location.latitude =
@@ -166,7 +175,6 @@ private:
     assert(p[2].time > p[1].time);
 
     const auto fraction = (time - p[1].time) / (p[2].time - p[1].time);
-
-    return std::clamp(fraction, 0., 1.);
+    return fraction;
   }
 };

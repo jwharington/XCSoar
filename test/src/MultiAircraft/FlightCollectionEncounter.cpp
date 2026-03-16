@@ -263,6 +263,7 @@ void FlightCollectionEncounter::encounter_update(const TimeStamp t)
 void FlightCollectionEncounter::finalise()
 {
   flock_algorithm.finalise();
+  time_close += encounter_store.erase_expired(TimeStamp::Undefined(), group, DISTANCE, alt_start_av+HEIGHT_THRESHOLD_M);
   FlightCollection::finalise();
 }
 

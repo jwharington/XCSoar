@@ -74,7 +74,7 @@ DetectMiss::DetectMiss(const TrailPoint& p0, const TrailPoint& p1)
       }
 
       //
-      distance_scale = 1.0/(1.0+exp(-vrel_mag/VELOCITY_SCALE_MS));
+      distance_scale = 2.0/(1.0+exp(-vrel_mag/VELOCITY_SCALE_MS));
     }
   }
 }

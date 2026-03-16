@@ -113,7 +113,7 @@ class AircraftModel {
   static constexpr double ALPHA_BARO = 0.05;
   static constexpr double MIX_BARO = 0.5;
 
-  void advance();
+  bool advance();
   void Interpolate(const TimeStamp t, const SpeedVector& wind);
   double update_baro_altitude(double& mix);
 
