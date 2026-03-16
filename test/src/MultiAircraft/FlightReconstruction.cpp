@@ -6,64 +6,40 @@ using namespace tableau::integration;
 
 namespace FlightReconstruction
 {
-  AeroLoad::AeroLoad(const DerivState &state, const GliderAero &parms)
-  {
-    auto &u = state[VEL_U];
-    auto &w = state[VEL_W];
-    const double V_sq = u * u + w * w;
-    V = sqrt(V_sq);
-    alpha = atan(w / u);
-
-    const double CL = parms.dcldalpha * alpha + parms.CL0;
-    // CL = sympy.Min(1.5, sympy.Max(0.0, cl_raw))
-    const double CD = parms.CD0 + parms.k * CL * CL;
-    // CLL = sympy.Min(CL, 1.0)
-    const double CLL = CL;
-
-    const double Q = 0.5 * parms.rho * V_sq;
-    const double QS_mV = Q * parms.S / (parms.m * V);
-    const auto sa = w * QS_mV; // sin(alpha) QS/m
-    const auto ca = u * QS_mV; // cos(alpha) QS/m
-    ax = CLL * sa - CD * ca;
-    az = -CLL * ca - CD * sa;
-    load_factor = -sign(az) * sqrt(ax * ax + az * az) / parms.g;
-  };
-
   DerivState Filter::system_ode(const DerivState &state) const
   {
-    auto &u = state[VEL_U];
-    auto &w = state[VEL_W];
-    auto &q = state[AVEL_Q];
-    auto &q0 = state[QUATERNION + 0];
-    auto &q1 = state[QUATERNION + 1];
-    auto &q2 = state[QUATERNION + 2];
-    auto &q3 = state[QUATERNION + 3];
+    const auto &u = state[VEL_U];
+    const auto &w = state[VEL_W];
+    const auto &q = state[AVEL_Q];
+    const auto &q0 = state[QUATERNION + 0];
+    const auto &q1 = state[QUATERNION + 1];
+    const auto &q2 = state[QUATERNION + 2];
+    const auto &q3 = state[QUATERNION + 3];
 
-    AeroLoad aero(state, parms);
+    const AeroLoad aero(state, parms);
 
     // orientation
     const Eigen::Matrix3d R =
         Eigen::Quaterniond(q0, q1, q2, q3).toRotationMatrix();
-    const Eigen::Vector3d U(u, 0, w);
-    const Eigen::Vector3d pos_dot = R * U;
+    const Eigen::Vector3d pos_dot = R * Eigen::Vector3d(u, 0, w);
 
     // rotation conditions
     const auto p = 0.0;
     const auto qdot = 0;
     // vdot = -r * u + g * b3 = 0  (balanced turn)
-    const auto r = parms.g * R(2, 1) / u;
+    const auto r = aero.g * R(2, 1) / u;
 
     // accelerations
-    auto udot = -q * w + R(2, 0) * parms.g + aero.ax;
-    auto wdot = q * u + R(2, 2) * parms.g + aero.az;
+    const auto udot = -q * w + R(2, 0) * aero.g + aero.ax;
+    const auto wdot = q * u + R(2, 2) * aero.g + aero.az;
 
     // orientation rates (quaternions)
-    auto qmag = q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3;
-    auto lam = 1 - qmag;
-    auto q0dot = -0.5 * (q1 * p + q2 * q + q3 * r) + lam * q0;
-    auto q1dot = 0.5 * (q0 * p + q2 * r - q3 * q) + lam * q1;
-    auto q2dot = 0.5 * (q0 * q - q1 * r + q3 * p) + lam * q2;
-    auto q3dot = 0.5 * (q0 * r + q1 * q - q2 * p) + lam * q3;
+    const auto qmag = q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3;
+    const auto lam = 1 - qmag;
+    const auto q0dot = -0.5 * (q1 * p + q2 * q + q3 * r) + lam * q0;
+    const auto q1dot = 0.5 * (q0 * p + q2 * r - q3 * q) + lam * q1;
+    const auto q2dot = 0.5 * (q0 * q - q1 * r + q3 * p) + lam * q2;
+    const auto q3dot = 0.5 * (q0 * r + q1 * q - q2 * p) + lam * q3;
 
     return DerivState({pos_dot(0), pos_dot(1), pos_dot(2),
                        udot, wdot, qdot,
@@ -72,9 +48,9 @@ namespace FlightReconstruction
 
   void Filter::system_model(State &state, double dt) const
   {
-    double t0 = 0.0;
-    DerivState y0 = convert_state(state);
-    DerivState dy0 = system_ode(y0);
+    const double t0 = 0.0;
+    const DerivState y0 = convert_state(state);
+    const DerivState dy0 = system_ode(y0);
 
     DOP853Config<DerivState> cfg;
     cfg.derivative = [this](const DerivState &y, double)
@@ -99,11 +75,8 @@ namespace FlightReconstruction
   Measurement Filter::measurement_model(const State &state) const
   {
     auto &[states, attitude] = state.data;
-    auto &u = states[VEL_U];
-    auto &w = states[VEL_W];
-    auto V_sq = u * u + w * w;
-    auto V = sqrt(V_sq);
-    return {states[POS_X], states[POS_Y], states[POS_Z], V};
+    return {states[POS_X], states[POS_Y], states[POS_Z],
+            hypot(states[VEL_U], states[VEL_W])};
   }
 
   void Filter::update(const Measurement &meas, const double DT)
