@@ -18,116 +18,121 @@
 #include "Averager.hpp"
 #include "Visibility.hpp"
 
-namespace MultiAircraft {
+namespace MultiAircraft
+{
 
-class AircraftModel {
- public:
-  AircraftModel():
-    interpolator(FloatDuration(0.5)) {
-  }
+  class AircraftModel
+  {
+  public:
+    AircraftModel() : interpolator(FloatDuration(0.5))
+    {
+    }
 
-  bool init(Args& args);
+    bool init(Args &args);
 
-  ~AircraftModel() {
-    if (replay)
-      delete replay;
-  }
+    ~AircraftModel()
+    {
+      if (replay)
+        delete replay;
+    }
 
-  void advance_to_start(TimeStamp &t_start, TimeStamp &t_end);
-  bool advance_to_time(const TimeStamp t, TimeStamp &t_end);
-  std::string get_symbol() const;
+    void advance_to_start(TimeStamp &t_start, TimeStamp &t_end);
+    bool advance_to_time(const TimeStamp t, TimeStamp &t_end);
+    std::string get_symbol() const;
 
-  TurnModeList gen_turnmodelist(const EncounterMapStore::EncounterInfo &info) const;
+    TurnModeList gen_turnmodelist(const EncounterMapStore::EncounterInfo &info) const;
 
-  bool other_visible(const EncounterMapStore::EncounterInfo& info,
-                     const unsigned id_target) const;
-  boost::json::object write_encounter(const EncounterMapStore::EncounterInfo& info,
-                                      const unsigned id_target,
-                                      const bool detailed = false) const;
+    bool other_visible(const EncounterMapStore::EncounterInfo &info,
+                       const unsigned id_target) const;
+    boost::json::object write_encounter(const EncounterMapStore::EncounterInfo &info,
+                                        const unsigned id_target,
+                                        const bool detailed = false) const;
 
-  boost::json::object record_summary(const double alt_start_av, const double geoid_sep,
-                                     Averager& all_baro_error) const;
-  void finalise(Averager& all_alt_start);
+    boost::json::object record_summary(const double alt_start_av, const double geoid_sep,
+                                       Averager &all_baro_error) const;
+    void finalise(Averager &all_alt_start);
 
-  bool valid;
-  bool live = false;
-  bool mark = false;
-  bool in_flock = false;
-  std::string id;
-  std::string fr_info;
-  std::string fr_id;
-  int idi;
-  int n_encounters = 0;
-  double penalty = 0;
-  double h_acc = 0.0; // standard deviation of horizontal accuracy
-  double v_acc = 5.0; // standard deviation of vertical accuracy
-  EulerAngles euler;
+    bool valid;
+    bool live = false;
+    bool mark = false;
+    bool in_flock = false;
+    std::string id;
+    std::string fr_info;
+    std::string fr_id;
+    int idi;
+    int n_encounters = 0;
+    double penalty = 0;
+    double h_acc = 0.0; // standard deviation of horizontal accuracy
+    double v_acc = 5.0; // standard deviation of vertical accuracy
+    EulerAngles euler;
 
-  CatmullRomInterpolator::Record interp_loc;
-  CatmullRomInterpolator::Record interp_loc_last;
+    CatmullRomInterpolator::Record interp_loc;
+    CatmullRomInterpolator::Record interp_loc_last;
 
-  const DerivedInfo &Calculated() const {
-    assert(replay);
-    return replay->Calculated();
-  }
-  void set_wind_if_not_available(const SpeedVector& wind_avg);
+    const DerivedInfo &Calculated() const
+    {
+      assert(replay);
+      return replay->Calculated();
+    }
+    void set_wind_if_not_available(const SpeedVector &wind_avg);
 
-  void calc_auxiliary(const AircraftModel& target);
-  bool aliased(const AircraftModel& other) const;
-  bool flight_present(const bool first_pass) const;
+    void calc_auxiliary(const AircraftModel &target);
+    bool aliased(const AircraftModel &other) const;
+    bool flight_present(const bool first_pass) const;
 
-  static TimeStamp first_launch;
-  BrokenDate flight_date_utc_start;
+    static TimeStamp first_launch;
+    BrokenDate flight_date_utc_start;
 
-  const AuxiliaryPair& lookup_latest_auxiliary(const AircraftModel& target) const;
+    const AuxiliaryPair &lookup_latest_auxiliary(const AircraftModel &target) const;
 
- private:
-  AircraftModel(const AircraftModel&) = delete;
+  private:
+    AircraftModel(const AircraftModel &) = delete;
 
-  CatmullRomInterpolator interpolator;
-  CirclingComputer circling_computer;
-  WindComputer wind_computer;
+    CatmullRomInterpolator interpolator;
+    CirclingComputer circling_computer;
+    WindComputer wind_computer;
 
-  DebugReplay *replay = nullptr;
+    DebugReplay *replay = nullptr;
 
-  bool replay_ok = false;
-  GeoPoint flight_loc_start;
-  TimeStamp flight_time_start = TimeStamp::Undefined();
-  TimeStamp flight_time_end = TimeStamp::Undefined();
-  int flight_num_records = 0;
+    bool replay_ok = false;
+    GeoPoint flight_loc_start;
+    TimeStamp flight_time_start = TimeStamp::Undefined();
+    TimeStamp flight_time_end = TimeStamp::Undefined();
+    int flight_num_records = 0;
 
-  Averager alt_start;
-  Averager alt_end;
+    Averager alt_start;
+    Averager alt_end;
 
-  double baro_offset = 0;
-  Averager baro_error;
+    double baro_offset = 0;
+    Averager baro_error;
 
-  TrailPointList trail;
-  boost::json::object json_trace;
+    TrailPointList trail;
+    boost::json::object json_trace;
 
-  static int num_aircraft;
-  static WindSettings wind_settings;
-  static CirclingSettings circling_settings;
-  static GlidePolar glide_polar;
+    static int num_aircraft;
+    static WindSettings wind_settings;
+    static CirclingSettings circling_settings;
+    static GlidePolar glide_polar;
 
-  static constexpr double ALPHA_BARO = 0.05;
-  static constexpr double MIX_BARO = 0.5;
+    static constexpr double ALPHA_BARO = 0.05;
 
-  bool advance();
-  void Interpolate(const TimeStamp t, const SpeedVector& wind);
-  double update_baro_altitude(double& mix);
+    bool advance();
+    void Interpolate(const TimeStamp t, const SpeedVector &wind);
+    double update_baro_altitude(double &mix);
 
- public:
-  void reset();
-  GeoPoint get_flight_loc_start() const {
-    return flight_loc_start;
-  }
-  const GeoPoint get_location() const;
+  public:
+    static double MIX_BARO;
+    static int filter_type;
 
- private:
-  std::string get_trace_filename() const;
+    void reset();
+    GeoPoint get_flight_loc_start() const
+    {
+      return flight_loc_start;
+    }
+    const GeoPoint get_location() const;
 
-};
+  private:
+    std::string get_trace_filename() const;
+  };
 
 }
-

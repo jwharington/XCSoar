@@ -24,6 +24,12 @@ namespace FlightReconstruction
         return vstate;
     }
 
+    const AeroLoad Filter::get_aero() const
+    {
+        auto state = convert_state(get_state());
+        return AeroLoad(state, parms);
+    }
+
     void set_state(State &state,
                    const DerivState &vstate)
     {
@@ -51,12 +57,6 @@ namespace FlightReconstruction
             Eigen::AngleAxisd(bank, Eigen::Vector3d::UnitX());
         return State({x, y, z, U, 0.0, 0.0},
                      unscented::UnitQuaternion(init_quaternion));
-    }
-
-    template <typename T>
-    int sign(T val)
-    {
-        return (T(0) < val) - (val < T(0));
     }
 
     const Eigen::Vector3d get_euler(const State &state)

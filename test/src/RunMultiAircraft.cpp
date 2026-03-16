@@ -45,42 +45,66 @@ static void DecodeOptions(const boost::json::value &_j,
 
   try
   {
-    flights.DISTANCE = j.at("distance").as_int64();
+    flights.DISTANCE = j.at("distance").to_number<double>();
   }
   catch (const boost::system::system_error &e)
   {
+    std::cout << e.what() << std::endl;
   }
 
   try
   {
-    flights.SCORE_BUFFER = j.at("score_buffer").as_int64();
+    flights.SCORE_BUFFER = j.at("score_buffer").to_number<double>();
   }
   catch (const boost::system::system_error &e)
   {
+    std::cout << e.what() << std::endl;
   }
 
   try
   {
-    flights.HEIGHT_THRESHOLD_M = j.at("height_threshold").as_int64();
+    flights.HEIGHT_THRESHOLD_M = j.at("height_threshold").to_number<double>();
+    std::cout << "height_threshold\n";
   }
   catch (const boost::system::system_error &e)
   {
+    std::cout << e.what() << std::endl;
   }
 
   try
   {
-    MultiAircraft::DetectMiss::VELOCITY_SCALE_MS = j.at("velocity_scale").as_int64();
+    MultiAircraft::DetectMiss::VELOCITY_SCALE_MS = j.at("velocity_scale").to_number<double>();
+    std::cout << "velocity_scale\n";
   }
   catch (const boost::system::system_error &e)
   {
+    std::cout << e.what() << std::endl;
   }
 
   try
   {
     MultiAircraft::EncounterMapStore::TYP_TRAIL = j.at("typical_trail").as_int64();
+    std::cout << "typical_trail\n";
   }
   catch (const boost::system::system_error &e)
   {
+  }
+
+  try
+  {
+    MultiAircraft::AircraftModel::MIX_BARO = j.at("mix_baro").to_number<double>();
+  }
+  catch (const boost::system::system_error &e)
+  {
+  }
+
+  try
+  {
+    MultiAircraft::AircraftModel::filter_type = j.at("filter_type").to_number<unsigned>();
+  }
+  catch (const boost::system::system_error &e)
+  {
+    std::cout << e.what() << std::endl;
   }
 
   try

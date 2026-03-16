@@ -6,6 +6,12 @@ namespace FlightReconstruction
 {
     static constexpr double DEGTORAD = M_PI / 180.0;
 
+    template <typename T>
+    int sign(T val)
+    {
+        return (T(0) < val) - (val < T(0));
+    }
+
     // x,y, z, u, w, q, q0, q1, q2, q3
     enum StateElements
     {
@@ -41,6 +47,17 @@ namespace FlightReconstruction
         double rho = 1.225; // air density kg/m^3
     };
 
+    struct AeroLoad
+    {
+        double V;
+        double alpha;
+        double ax;
+        double az;
+        double load_factor;
+
+        AeroLoad(const DerivState &state, const GliderAero &parms);
+    };
+
     // {'LD_best': 55,
     //  'V_LDbest': 30.8641975308642,
     //  'V_cruise': 20.5761316872428,
@@ -65,6 +82,8 @@ namespace FlightReconstruction
         void initialise(const State &initial_state_estimate, const double DT);
         void limit_state(State &state) const;
         const State &get_state() const { return ukf.get_state(); };
+        const AeroLoad get_aero() const;
+        const Eigen::Vector3d get_euler() const;
 
     private:
         UKF ukf;

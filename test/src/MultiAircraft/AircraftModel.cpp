@@ -14,7 +14,8 @@ using namespace MultiAircraft;
 
 int AircraftModel::num_aircraft = 0;
 TimeStamp AircraftModel::first_launch = TimeStamp::Undefined();
-
+double AircraftModel::MIX_BARO = 0.5;
+int AircraftModel::filter_type = 1;
 GlidePolar AircraftModel::glide_polar(0);
 WindSettings AircraftModel::wind_settings;
 CirclingSettings AircraftModel::circling_settings;
@@ -375,39 +376,47 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
         {"alt_gps", p.pos.gps_altitude},
         {"v_ias", p.v_ias},
         {"v_tas", p.v_tas},
-        {"load_factor", p.load_factor},
         {"v", p.v_wind.norm},
         {"hdg", p.v_wind.bearing.Degrees()},
-        {"bank", p.bank_angle.Degrees()},
-        {"pitch", p.pitch_angle.Degrees()},
-        {"yaw", p.yaw_angle.AsBearing().Degrees()},
     };
 
-    if (count == 1)
+    if (filter_type == 1)
     {
-      auto state = FlightReconstruction::get_initial_state_estimate(fp.y, fp.x,
-                                                                    -p.pos.gps_altitude,
-                                                                    p.v_tas,
-                                                                    p.bank_angle.Radians(),
-                                                                    p.pitch_angle.Radians(),
-                                                                    p.yaw_angle.AsBearing().Radians());
-      filter.initialise(state, 1.0);
-      // FlightReconstruction::write(filter.get_state());
+      if (count == 0)
+      {
+        auto state = FlightReconstruction::get_initial_state_estimate(fp.y, fp.x,
+                                                                      -p.pos.gps_altitude,
+                                                                      p.v_tas,
+                                                                      p.bank_angle.Radians(),
+                                                                      p.pitch_angle.Radians(),
+                                                                      p.yaw_angle.AsBearing().Radians());
+        filter.initialise(state, 1.0);
+        // FlightReconstruction::write(filter.get_state());
+      }
+      {
+        FlightReconstruction::Measurement measurement;
+        auto &[y, x, z, U] = measurement.data;
+        x.value = fp.x;
+        y.value = fp.y;
+        z.value = -p.pos.gps_altitude;
+        U.value = p.v_tas;
+        filter.update(measurement, 1.0);
+        // FlightReconstruction::write(filter.get_state());
+        auto &euler = FlightReconstruction::get_euler(filter.get_state());
+        auto &aero = filter.get_aero();
+        step.emplace("bank", euler[0]);
+        step.emplace("pitch", euler[1]);
+        step.emplace("yaw", euler[2]);
+        step.emplace("load_factor", aero.load_factor);
+        // TODO: update other outputs
+      }
     }
-    else if (count > 1)
+    else
     {
-      FlightReconstruction::Measurement measurement;
-      auto &[y, x, z, U] = measurement.data;
-      x.value = fp.x;
-      y.value = fp.y;
-      z.value = -p.pos.gps_altitude;
-      U.value = p.v_tas;
-      filter.update(measurement, 1.0);
-      // FlightReconstruction::write(filter.get_state());
-      auto &euler = FlightReconstruction::get_euler(filter.get_state());
-      step.emplace("kf_bank", euler[0]);
-      step.emplace("kf_pitch", euler[1]);
-      step.emplace("kf_yaw", euler[2]);
+      step.emplace("bank", p.bank_angle.Degrees());
+      step.emplace("pitch", p.pitch_angle.Degrees());
+      step.emplace("yaw", p.yaw_angle.AsBearing().Degrees());
+      step.emplace("load_factor", p.load_factor);
     }
 
     if (detailed)
