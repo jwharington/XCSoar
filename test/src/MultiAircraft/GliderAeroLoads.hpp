@@ -34,6 +34,14 @@ namespace FlightReconstruction
         };
     };
 
+    struct Environment
+    {
+        double g;
+        double rho;
+        double rho_rat;
+        Environment(const DerivState &state);
+    };
+
     struct AeroLoad
     {
         double V_tas;
@@ -42,8 +50,7 @@ namespace FlightReconstruction
         double ax;
         double az;
         double load_factor;
-        double g;
-        double rho;
+        Environment env;
 
         AeroLoad(const DerivState &state, const GliderAero &parms);
     };

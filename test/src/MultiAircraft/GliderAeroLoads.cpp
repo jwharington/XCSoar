@@ -17,21 +17,24 @@ namespace FlightReconstruction
         return std::pow(T / T0, (g0 / (L * R)) - 1.0);
     };
 
-    AeroLoad::AeroLoad(const DerivState &state, const GliderAero &parms)
+    Environment::Environment(const DerivState &state)
     {
         // local gravity
         g = g0;
 
         // density
         auto &z = state[POS_Z];
-        const double rho_rat = getISADensity(-z);
+        rho_rat = getISADensity(-z);
         rho = rho0 * rho_rat;
+    }
 
+    AeroLoad::AeroLoad(const DerivState &state, const GliderAero &parms) : env(state)
+    {
         // airspeeds
         auto &u = state[VEL_U];
         auto &w = state[VEL_W];
         V_tas = hypot(u, w);
-        V_ias = V_tas * sqrt(rho_rat);
+        V_ias = V_tas * sqrt(env.rho_rat);
 
         // angle of attack and aero model
         alpha = atan2(w, u);
@@ -39,13 +42,13 @@ namespace FlightReconstruction
         parms.calc_CLCD(alpha, CL, CD);
 
         // resolve aero forces in body axes
-        const double QS_mV = 0.5 * V_tas * parms.S / parms.m;
+        const double QS_mV = 0.5 * env.rho * V_tas * parms.S / parms.m;
         const auto sa = w * QS_mV; // sin(alpha) QS/m
         const auto ca = u * QS_mV; // cos(alpha) QS/m
         ax = CL * sa - CD * ca;
         az = -CL * ca - CD * sa;
 
         // utility
-        load_factor = -sign(az) * hypot(ax, az) / g;
+        load_factor = -sign(az) * hypot(ax, az) / env.g;
     };
 };

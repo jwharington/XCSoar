@@ -27,11 +27,11 @@ namespace FlightReconstruction
     const auto p = 0.0;
     const auto qdot = 0;
     // vdot = -r * u + g * b3 = 0  (balanced turn)
-    const auto r = aero.g * R(2, 1) / u;
+    const auto r = aero.env.g * R(2, 1) / u;
 
     // accelerations
-    const auto udot = -q * w + R(2, 0) * aero.g + aero.ax;
-    const auto wdot = q * u + R(2, 2) * aero.g + aero.az;
+    const auto udot = -q * w + R(2, 0) * aero.env.g + aero.ax;
+    const auto wdot = q * u + R(2, 2) * aero.env.g + aero.az;
 
     // orientation rates (quaternions)
     const auto qmag = q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3;
