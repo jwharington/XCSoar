@@ -19,7 +19,7 @@ HOST_OPTIMIZE := -g
 # IEEE/ISO semantics, for example it is not interested in "errno" or
 # the difference between -0 and +0.  This allows using non-conforming
 # vector units on some platforms, e.g. ARM NEON.
-OPTIMIZE += -ffast-math
+# OPTIMIZE += -ffast-math
 
 ifeq ($(CLANG)$(DEBUG),nn)
   # Enable gcc auto-vectorisation on some architectures (e.g. ARM
