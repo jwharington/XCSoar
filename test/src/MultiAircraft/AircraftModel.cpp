@@ -369,15 +369,12 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
 
     boost::json::object step = {
         {"t", (p.pos.time - info.time_start).count()},
-        {"x", fp.x},
-        {"y", fp.y},
         {"alt_baro", p.pos.baro_altitude},
-        {"alt_gps", p.pos.gps_altitude},
         {"v", p.v_wind.norm},
         {"hdg", p.v_wind.bearing.Degrees()},
     };
 
-    if (filter_type == 1)
+    if (filter_type > 0)
     {
       if (trace.empty())
       {
@@ -409,6 +406,12 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
       step.emplace("yaw", p.yaw_angle.AsBearing().Degrees());
       step.emplace("load_factor", p.load_factor);
     }
+    if (filter_type < 2)
+    {
+      step.emplace("x", fp.x);
+      step.emplace("y", fp.y);
+      step.emplace("alt_gps", p.pos.gps_altitude);
+    }
 
     if (detailed)
     {
@@ -434,7 +437,7 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
     trace.emplace_back(step);
   }
 
-  if (filter_type == 1)
+  if (filter_type > 0)
   {
     int count = 0;
     const auto &smoothed_states = filter.get_smoothed_states();
@@ -444,12 +447,19 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
       auto &state = smoothed_states[count];
       auto &euler = FlightReconstruction::get_euler(state);
       auto &aero = filter.get_aero(state);
+      auto &dstate = FlightReconstruction::convert_state(state);
       _step.emplace("bank", euler[0]);
       _step.emplace("pitch", euler[1]);
       _step.emplace("yaw", euler[2]);
       _step.emplace("load_factor", aero.load_factor);
       _step.emplace("v_ias", aero.V_ias);
       _step.emplace("v_tas", aero.V_tas);
+      if (filter_type == 2)
+      {
+        _step.emplace("y", dstate[FlightReconstruction::POS_X]);
+        _step.emplace("x", dstate[FlightReconstruction::POS_Y]);
+        _step.emplace("alt_gps", -dstate[FlightReconstruction::POS_Z]);
+      }
       count++;
     }
   }
