@@ -110,7 +110,7 @@ namespace FlightReconstruction
         std::vector<Measurement> measurements;
         try
         {
-            std::string filename = "/home/jmw/XCSoar/xcsoar/encounter_00008.json";
+            std::string filename = "encounter_00000.json";
             // Read the file into a string
             auto const json_data = read_file(filename.c_str());
 
