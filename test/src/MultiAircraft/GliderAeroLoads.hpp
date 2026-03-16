@@ -36,7 +36,8 @@ namespace FlightReconstruction
 
     struct AeroLoad
     {
-        double V;
+        double V_tas;
+        double V_ias;
         double alpha;
         double ax;
         double az;

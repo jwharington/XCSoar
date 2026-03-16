@@ -26,8 +26,13 @@ namespace FlightReconstruction
 
     const AeroLoad Filter::get_aero() const
     {
-        auto state = convert_state(get_state());
-        return AeroLoad(state, parms);
+        return get_aero(get_state());
+    }
+
+    const AeroLoad Filter::get_aero(const State &state) const
+    {
+        auto _state = convert_state(state);
+        return AeroLoad(_state, parms);
     }
 
     void set_state(State &state,
@@ -59,7 +64,7 @@ namespace FlightReconstruction
                      unscented::UnitQuaternion(init_quaternion));
     }
 
-    const Eigen::Vector3d get_euler(const State &state)
+    const Euler get_euler(const State &state)
     {
         auto &[y, quaternion] = state.data;
         const Eigen::Matrix3d R = quaternion.get_q().toRotationMatrix();
@@ -70,7 +75,7 @@ namespace FlightReconstruction
         {
             psi += 2 * M_PI;
         }
-        return Eigen::Vector3d(phi, theta, psi) / DEGTORAD;
+        return Euler(phi, theta, psi) / DEGTORAD;
         //  * 180.0f / M_PI;
     }
 

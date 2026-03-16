@@ -342,7 +342,6 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
   bool plausible = true;
   Averager visibility_avg;
   FlightReconstruction::Filter filter;
-  int count = 0;
 
   for (auto &&p : trail)
   {
@@ -374,15 +373,13 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
         {"y", fp.y},
         {"alt_baro", p.pos.baro_altitude},
         {"alt_gps", p.pos.gps_altitude},
-        {"v_ias", p.v_ias},
-        {"v_tas", p.v_tas},
         {"v", p.v_wind.norm},
         {"hdg", p.v_wind.bearing.Degrees()},
     };
 
     if (filter_type == 1)
     {
-      if (count == 0)
+      if (trace.empty())
       {
         auto state = FlightReconstruction::get_initial_state_estimate(fp.y, fp.x,
                                                                       -p.pos.gps_altitude,
@@ -401,18 +398,12 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
         z.value = -p.pos.gps_altitude;
         U.value = p.v_tas;
         filter.update(measurement, 1.0);
-        // FlightReconstruction::write(filter.get_state());
-        auto &euler = FlightReconstruction::get_euler(filter.get_state());
-        auto &aero = filter.get_aero();
-        step.emplace("bank", euler[0]);
-        step.emplace("pitch", euler[1]);
-        step.emplace("yaw", euler[2]);
-        step.emplace("load_factor", aero.load_factor);
-        // TODO: update other outputs
       }
     }
     else
     {
+      step.emplace("v_tas", p.v_tas);
+      step.emplace("v_ias", p.v_ias);
       step.emplace("bank", p.bank_angle.Degrees());
       step.emplace("pitch", p.pitch_angle.Degrees());
       step.emplace("yaw", p.yaw_angle.AsBearing().Degrees());
@@ -441,8 +432,28 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
     }
 
     trace.emplace_back(step);
-    count++;
   }
+
+  if (filter_type == 1)
+  {
+    int count = 0;
+    const auto &smoothed_states = filter.get_smoothed_states();
+    for (auto &step : trace)
+    {
+      auto &_step = step.as_object();
+      auto &state = smoothed_states[count];
+      auto &euler = FlightReconstruction::get_euler(state);
+      auto &aero = filter.get_aero(state);
+      _step.emplace("bank", euler[0]);
+      _step.emplace("pitch", euler[1]);
+      _step.emplace("yaw", euler[2]);
+      _step.emplace("load_factor", aero.load_factor);
+      _step.emplace("v_ias", aero.V_ias);
+      _step.emplace("v_tas", aero.V_tas);
+      count++;
+    }
+  }
+  // TODO: update other outputs
 
   visibility_avg.calculate();
 

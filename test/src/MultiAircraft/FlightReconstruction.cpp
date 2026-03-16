@@ -86,9 +86,11 @@ namespace FlightReconstruction
     ukf.correct([this](const State &state)
                 { return this->measurement_model(state); }, meas);
     ukf.smooth();
-    State state = ukf.get_state();
-    limit_state(state);
-    ukf.set_state(state);
+    {
+      State state = ukf.get_state();
+      limit_state(state);
+      ukf.set_state(state);
+    }
   }
 
   void Filter::initialise(const State &initial_state_estimate,
@@ -111,7 +113,7 @@ namespace FlightReconstruction
     ukf.set_state_covariance(P);
   }
 
-  const Eigen::Vector3d Filter::get_euler() const
+  const Euler Filter::get_euler() const
   {
     return FlightReconstruction::get_euler(get_state());
   };

@@ -21,6 +21,7 @@ namespace FlightReconstruction
     using Measurement = unscented::Compound<Pos, Pos, Pos, Vel>;
 
     using UKF = unscented::UKF<State, Measurement>;
+    using Euler = Eigen::Vector3d;
 
     class Filter
     {
@@ -33,7 +34,9 @@ namespace FlightReconstruction
         void limit_state(State &state) const;
         const State &get_state() const { return ukf.get_state(); };
         const AeroLoad get_aero() const;
-        const Eigen::Vector3d get_euler() const;
+        const AeroLoad get_aero(const State &state) const;
+        const Euler get_euler() const;
+        const std::vector<State> &get_smoothed_states() const { return ukf.get_smoothed_states(); };
 
     private:
         UKF ukf;
