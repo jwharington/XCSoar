@@ -333,6 +333,11 @@ bool AircraftModel::other_visible(const EncounterMapStore::EncounterInfo &info,
   return false;
 }
 
+static void update_visibility_avg(Averager &visibility_avg, const Visibility &visibility)
+{
+  visibility_avg.add(visibility.focus_factor * (1 - visibility.occlusion));
+}
+
 boost::json::object AircraftModel::write_encounter(const EncounterMapStore::EncounterInfo &info,
                                                    const unsigned id_target,
                                                    const bool detailed) const
@@ -342,6 +347,7 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
   bool plausible = true;
   Averager visibility_avg;
   FlightReconstruction::Filter filter;
+  std::vector<DetectMiss> misses;
 
   for (auto &&p : trail)
   {
@@ -353,19 +359,17 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
     }
 
     const FlatPoint fp = info.project_loc_wind(p);
-    const AuxiliaryPair &auxiliary = p.lookup_auxiliary(id_target);
-    const Aspect &aspect = auxiliary.first;
+    const AuxiliaryPair &auxiliary = p.get_auxiliary(id_target);
     const DetectMiss &miss = auxiliary.second;
-    const Visibility visibility(aspect);
+
+    // TODO: update aspect, visibility if using smoothing filter
 
     if (detailed)
     {
       plausible &= p.plausible;
-      if (p.pos.time <= info.time_start)
-      {
-        visibility_avg.add(visibility.focus_factor * (1 - visibility.occlusion));
-      }
+      misses.push_back(miss);
     }
+    bool proc_visible = (p.pos.time <= info.time_start);
 
     boost::json::object step = {
         {"t", (p.pos.time - info.time_start).count()},
@@ -415,18 +419,29 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
 
     if (detailed)
     {
+      const Aspect &aspect = auxiliary.first;
+      const Visibility visibility(aspect);
       step.emplace("turnrate", p.turn_rate_wind.Degrees());
       step.emplace("turn_mode", TurnModeList::to_string(p.turn_mode));
       step.emplace("actual", p.actual);
       step.emplace("plausible", p.plausible);
       step.emplace("fix_acc", p.fix_acc);
-      step.emplace("range", aspect.range);
-      step.emplace("elevation_angle", aspect.elevation_angle.Degrees());
-      step.emplace("azimuth_angle", aspect.azimuth_angle.Degrees());
-      step.emplace("inclination_angle", aspect.inclination_angle.Degrees());
-      step.emplace("ang_size", visibility.angular_size.Degrees());
-      step.emplace("occlusion", visibility.occlusion);
-      step.emplace("focus_factor", visibility.focus_factor);
+
+      if (filter_type == 0)
+      {
+        step.emplace("range", aspect.range);
+        step.emplace("elevation_angle", aspect.elevation_angle.Degrees());
+        step.emplace("azimuth_angle", aspect.azimuth_angle.Degrees());
+        step.emplace("inclination_angle", aspect.inclination_angle.Degrees());
+        step.emplace("ang_size", visibility.angular_size.Degrees());
+        step.emplace("occlusion", visibility.occlusion);
+        step.emplace("focus_factor", visibility.focus_factor);
+        if (proc_visible)
+        {
+          update_visibility_avg(visibility_avg, visibility);
+        }
+      }
+
       step.emplace("roc", p.roc);
       step.emplace("miss_TCA", miss.TCA);
       step.emplace("miss_d", miss.miss_d_mag);
@@ -437,6 +452,8 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
     trace.emplace_back(step);
   }
 
+  ///////////////////////////////
+
   if (filter_type > 0)
   {
     int count = 0;
@@ -445,12 +462,12 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
     {
       auto &_step = step.as_object();
       auto &state = smoothed_states[count];
-      auto &euler = FlightReconstruction::get_euler(state);
+      auto &seuler = FlightReconstruction::get_euler(state);
       auto &aero = filter.get_aero(state);
       auto &dstate = FlightReconstruction::convert_state(state);
-      _step.emplace("bank", euler[0]);
-      _step.emplace("pitch", euler[1]);
-      _step.emplace("yaw", euler[2]);
+      _step.emplace("bank", seuler[0]);
+      _step.emplace("pitch", seuler[1]);
+      _step.emplace("yaw", seuler[2]);
       _step.emplace("load_factor", aero.load_factor);
       _step.emplace("v_ias", aero.V_ias);
       _step.emplace("v_tas", aero.V_tas);
@@ -459,6 +476,27 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
         _step.emplace("y", dstate[FlightReconstruction::POS_X]);
         _step.emplace("x", dstate[FlightReconstruction::POS_Y]);
         _step.emplace("alt_gps", -dstate[FlightReconstruction::POS_Z]);
+      }
+      if (detailed)
+      {
+        const EulerAngles _euler(Angle::Degrees(seuler[0]),
+                                 Angle::Degrees(seuler[1]),
+                                 Angle::Degrees(seuler[2]));
+        const auto &miss = misses[count];
+        const Aspect aspect = _euler.get_aspect(miss.xrel);
+        const Visibility visibility(aspect);
+
+        _step.emplace("range", aspect.range);
+        _step.emplace("elevation_angle", aspect.elevation_angle.Degrees());
+        _step.emplace("azimuth_angle", aspect.azimuth_angle.Degrees());
+        _step.emplace("inclination_angle", aspect.inclination_angle.Degrees());
+        _step.emplace("ang_size", visibility.angular_size.Degrees());
+        _step.emplace("occlusion", visibility.occlusion);
+        _step.emplace("focus_factor", visibility.focus_factor);
+        if (_step.at("t").to_number<double>() <= 0)
+        {
+          update_visibility_avg(visibility_avg, visibility);
+        }
       }
       count++;
     }
@@ -502,7 +540,7 @@ void AircraftModel::calc_auxiliary(const AircraftModel &target)
   const TrailPoint &p1 = target.trail.back();
   const DetectMiss miss(p0, p1);
   const AuxiliaryPair auxiliary(euler.get_aspect(miss.xrel), miss);
-  trail.back().add_auxiliary(target.idi, auxiliary);
+  trail.back().set_auxiliary(target.idi, auxiliary);
 }
 
 void AircraftModel::reset()
@@ -529,7 +567,7 @@ std::string AircraftModel::get_trace_filename() const
   return oss.str();
 }
 
-const AuxiliaryPair &AircraftModel::lookup_latest_auxiliary(const AircraftModel &target) const
+const AuxiliaryPair &AircraftModel::get_latest_auxiliary(const AircraftModel &target) const
 {
-  return trail.back().lookup_auxiliary(target.idi);
+  return trail.back().get_auxiliary(target.idi);
 }

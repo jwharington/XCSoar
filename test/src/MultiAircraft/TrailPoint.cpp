@@ -93,7 +93,7 @@ bool TrailPoint::present(const unsigned id_target) const
   return (auxiliaries.find(id_target) != auxiliaries.end());
 }
 
-const AuxiliaryPair &TrailPoint::lookup_auxiliary(const unsigned id_target) const
+const AuxiliaryPair &TrailPoint::get_auxiliary(const unsigned id_target) const
 {
   auto i = auxiliaries.find(id_target);
   if (i != auxiliaries.end())
@@ -104,7 +104,7 @@ const AuxiliaryPair &TrailPoint::lookup_auxiliary(const unsigned id_target) cons
   return def;
 }
 
-void TrailPoint::add_auxiliary(const unsigned id_target, const AuxiliaryPair &p)
+void TrailPoint::set_auxiliary(const unsigned id_target, const AuxiliaryPair &p)
 {
   auxiliaries[id_target] = p;
 }

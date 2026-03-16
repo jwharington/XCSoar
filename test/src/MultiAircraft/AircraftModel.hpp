@@ -83,7 +83,7 @@ namespace MultiAircraft
     static TimeStamp first_launch;
     BrokenDate flight_date_utc_start;
 
-    const AuxiliaryPair &lookup_latest_auxiliary(const AircraftModel &target) const;
+    const AuxiliaryPair &get_latest_auxiliary(const AircraftModel &target) const;
 
   private:
     AircraftModel(const AircraftModel &) = delete;
