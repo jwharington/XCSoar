@@ -79,13 +79,20 @@ void TrailPoint::update_reconstruction(const TrailPoint &prev, const SpeedVector
     load_factor = 1.0;
   }
 
-  Angle load_angle = Angle::Native(0);
-  if (fabs(nv) < 1.0)
+  if (v_tas > 10.0)
   {
-    load_angle = Angle::asin(-nv);
+    Angle load_angle = Angle::Native(0);
+    if (fabs(nv) < 1.0)
+    {
+      load_angle = Angle::asin(-nv);
+    }
+    load_angle = Angle::Radians((load_factor - 1.0) / 6.0) * bank_angle.cos();
+    pitch_angle = (Angle::Radians(atan(roc / v_tas)) + load_angle).Fraction(prev.pitch_angle, 0.5);
   }
-  load_angle = Angle::Radians((load_factor - 1.0) / 6.0) * bank_angle.cos();
-  pitch_angle = (Angle::Radians(atan(roc / v_tas)) + load_angle).Fraction(prev.pitch_angle, 0.5);
+  else
+  {
+    pitch_angle = Angle::Radians(0.0);
+  }
 }
 
 bool TrailPoint::present(const unsigned id_target) const

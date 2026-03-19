@@ -115,7 +115,8 @@ static void DecodeOptions(const boost::json::value &_j,
     {
       typedef const char *ccs;
       ccs *files = new ccs[n + 1];
-      files[0] = nullptr;
+      const char *ignored = "ignored";
+      files[0] = ignored;
       for (size_t i = 0; i < n; ++i)
       {
         files[i + 1] = igc_file_array.at(i).as_string().c_str();

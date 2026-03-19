@@ -190,7 +190,10 @@ void AircraftModel::Interpolate(const TimeStamp t, const SpeedVector &wind)
                           {"longitude", interp_loc.location.longitude.Degrees()},
                           {"latitude", interp_loc.location.latitude.Degrees()},
                           {"gps_altitude", interp_loc.gps_altitude}});
-  json_trace.at("trace").as_array().emplace_back(tp);
+  if (json_trace.find("trace") != json_trace.end())
+  {
+    json_trace.at("trace").as_array().emplace_back(tp);
+  }
 }
 
 bool AircraftModel::flight_present(const bool first_pass) const
@@ -348,6 +351,7 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
   Averager visibility_avg;
   FlightReconstruction::Filter filter;
   std::vector<DetectMiss> misses;
+  bool kf_valid = filter_type > 0;
 
   for (auto &&p : trail)
   {
@@ -398,10 +402,19 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
         y.value = fp.y;
         z.value = -p.pos.gps_altitude;
         U.value = p.v_tas;
-        filter.update(measurement, 1.0);
+        try
+        {
+          filter.update(measurement, 1.0);
+        }
+        catch (const std::exception &e)
+        {
+          std::cerr << "Filter update failed: " << e.what() << "\n";
+          kf_valid = false;
+        }
       }
     }
-    else
+
+    if (!kf_valid)
     {
       step.emplace("v_tas", p.v_tas);
       step.emplace("v_ias", p.v_ias);
@@ -410,7 +423,7 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
       step.emplace("yaw", p.yaw_angle.AsBearing().Degrees());
       step.emplace("load_factor", p.load_factor);
     }
-    if (filter_type < 2)
+    if ((!kf_valid) || (filter_type < 2))
     {
       step.emplace("x", fp.x);
       step.emplace("y", fp.y);
@@ -427,7 +440,7 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
       step.emplace("plausible", p.plausible);
       step.emplace("fix_acc", p.fix_acc);
 
-      if (filter_type == 0)
+      if (!kf_valid)
       {
         step.emplace("range", aspect.range);
         step.emplace("elevation_angle", aspect.elevation_angle.Degrees());
@@ -454,7 +467,7 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
 
   ///////////////////////////////
 
-  if (filter_type > 0)
+  if (kf_valid)
   {
     int count = 0;
     const auto &smoothed_states = filter.get_smoothed_states();
