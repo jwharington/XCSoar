@@ -3,7 +3,7 @@
 
 namespace FlightReconstruction
 {
-    // x,y, z, u, w, q, q0, q1, q2, q3
+    // x, y, z, u, w, q, q0, q1, q2, q3
     enum StateElements
     {
         POS_X = 0,

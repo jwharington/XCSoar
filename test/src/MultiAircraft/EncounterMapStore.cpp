@@ -3,6 +3,7 @@
 
 #include "EncounterMapStore.hpp"
 #include "AircraftModel.hpp"
+#include "Geo/Geoid.hpp"
 #include <set>
 #include <sstream>
 #include <iomanip> // std::setprecision
@@ -140,6 +141,7 @@ FloatDuration EncounterMapStore::erase_expired(const TimeStamp time, std::list<A
 
       {
         std::ofstream json_encounter_file(info.get_encounter_filename());
+        const double geoid_offset = EGM96::LookupSeparation(info.origin);
         boost::json::object json_info = {
             {"d_threshold", distance_threshold},
             {"time_start", (int)info.time_start.ToDuration().count()},
@@ -150,6 +152,7 @@ FloatDuration EncounterMapStore::erase_expired(const TimeStamp time, std::list<A
             {"v_max", info.v_max},
             {"latitude", info.origin.latitude.Degrees()},
             {"longitude", info.origin.longitude.Degrees()},
+            {"geoid_offset", geoid_offset},
             {"v_max", info.v_max},
             {"p_close", 1 - info.p_free},
             {"aircraft", json_aircraft}};
