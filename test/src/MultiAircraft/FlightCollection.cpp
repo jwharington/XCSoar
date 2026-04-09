@@ -24,6 +24,9 @@ bool FlightCollection::load_files(Args &args)
 bool FlightCollection::advance_to_start()
 {
   num_flightsecs = 0;
+  overall_wind_x = 0;
+  overall_wind_y = 0;
+  overall_wind_samples = 0;
 
   for (auto &&a : group)
   {
@@ -69,6 +72,9 @@ void FlightCollection::advance_to_time(const TimeStamp t)
   {
     wind_acc.x /= num_wind;
     wind_acc.y /= num_wind;
+    overall_wind_x += wind_acc.x;
+    overall_wind_y += wind_acc.y;
+    ++overall_wind_samples;
     const SpeedVector wind_avg = SpeedVector(wind_acc.y, wind_acc.x);
     for (auto &&a : group)
     {
@@ -172,6 +178,11 @@ boost::json::object FlightCollection::record_summary() const
 {
   const double geoid_sep = EGM96::LookupSeparation(loc_general);
   Averager baro_error;
+  const bool wind_available = overall_wind_samples > 0;
+  const SpeedVector overall_wind = wind_available
+                                       ? SpeedVector(overall_wind_y / overall_wind_samples,
+                                                     overall_wind_x / overall_wind_samples)
+                                       : SpeedVector();
 
   boost::json::array flight_summary;
   for (auto &&a : group)
@@ -186,6 +197,8 @@ boost::json::object FlightCollection::record_summary() const
       {"alt_start_av", alt_start_av},
       {"t_start", (int)t_start.ToDuration().count()},
       {"t_end", (int)t_end.ToDuration().count()},
+      {"wind_speed", wind_available ? boost::json::value(overall_wind.norm) : boost::json::value(nullptr)},
+      {"wind_bearing", wind_available ? boost::json::value(overall_wind.bearing.Degrees()) : boost::json::value(nullptr)},
       {"geoid_sep", geoid_sep},
   };
   if (!baro_error.empty())

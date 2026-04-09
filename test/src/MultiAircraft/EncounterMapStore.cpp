@@ -4,12 +4,48 @@
 #include "EncounterMapStore.hpp"
 #include "AircraftModel.hpp"
 #include "Geo/Geoid.hpp"
+#include "Math/Vector.hpp"
 #include <set>
 #include <sstream>
 #include <iomanip> // std::setprecision
 #include <fstream>
+#include <vector>
 
 using namespace MultiAircraft;
+
+namespace
+{
+
+  bool AverageAircraftWind(const std::vector<const AircraftModel *> &aircraft,
+                           const TimeStamp t_min,
+                           const TimeStamp t_max,
+                           SpeedVector &wind)
+  {
+    Vector wind_acc(0, 0);
+    unsigned num_aircraft = 0;
+
+    for (const auto *aircraft_model : aircraft)
+    {
+      SpeedVector aircraft_wind;
+      if (!aircraft_model->get_average_wind(t_min, t_max, aircraft_wind))
+      {
+        continue;
+      }
+
+      wind_acc += Vector(aircraft_wind);
+      ++num_aircraft;
+    }
+
+    if (num_aircraft == 0)
+    {
+      return false;
+    }
+
+    wind = SpeedVector(wind_acc.y / num_aircraft, wind_acc.x / num_aircraft);
+    return true;
+  }
+
+} // namespace
 
 unsigned EncounterMapStore::encounter_num = 0;
 size_t EncounterMapStore::TYP_TRAIL = 20;
@@ -96,6 +132,7 @@ FloatDuration EncounterMapStore::erase_expired(const TimeStamp time, std::list<A
       index_split(i->first, id1, id2);
 
       boost::json::array json_aircraft;
+      std::vector<const AircraftModel *> included_aircraft;
 
       // iterate over aircraft, write primary encounter aircraft
       for (auto &&a : group)
@@ -103,6 +140,7 @@ FloatDuration EncounterMapStore::erase_expired(const TimeStamp time, std::list<A
         if ((a.idi == id1) || (a.idi == id2))
         {
           json_aircraft.emplace_back(a.write_encounter(info, a.idi == id1 ? id2 : id1, true));
+          included_aircraft.push_back(&a);
           a.penalty += penalty;
           a.n_encounters++;
           a.mark = true;
@@ -135,6 +173,7 @@ FloatDuration EncounterMapStore::erase_expired(const TimeStamp time, std::list<A
           if (a.idi == id)
           {
             json_aircraft.emplace_back(a.write_encounter(info, -1));
+            included_aircraft.push_back(&a);
           }
         }
       }
@@ -142,6 +181,10 @@ FloatDuration EncounterMapStore::erase_expired(const TimeStamp time, std::list<A
       {
         std::ofstream json_encounter_file(info.get_encounter_filename());
         const double geoid_offset = EGM96::LookupSeparation(info.origin);
+        const TimeStamp t_min = info.time_start - FloatDuration{EncounterMapStore::TYP_TRAIL};
+        const TimeStamp t_max = info.time_end + FloatDuration{EncounterMapStore::HYS_TRAIL};
+        SpeedVector wind;
+        const bool wind_available = AverageAircraftWind(included_aircraft, t_min, t_max, wind);
         boost::json::object json_info = {
             {"d_threshold", distance_threshold},
             {"time_start", (int)info.time_start.ToDuration().count()},
@@ -153,6 +196,8 @@ FloatDuration EncounterMapStore::erase_expired(const TimeStamp time, std::list<A
             {"latitude", info.origin.latitude.Degrees()},
             {"longitude", info.origin.longitude.Degrees()},
             {"geoid_offset", geoid_offset},
+            {"wind_speed", wind_available ? boost::json::value(wind.norm) : boost::json::value(nullptr)},
+            {"wind_bearing", wind_available ? boost::json::value(wind.bearing.Degrees()) : boost::json::value(nullptr)},
             {"v_max", info.v_max},
             {"p_close", 1 - info.p_free},
             {"aircraft", json_aircraft}};

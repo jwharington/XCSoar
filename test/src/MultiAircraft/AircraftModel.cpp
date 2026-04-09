@@ -4,6 +4,7 @@
 #include "AircraftModel.hpp"
 #include "DetectMiss.hpp"
 #include "Formatter/TimeFormatter.hpp"
+#include "Math/Vector.hpp"
 #include <fstream>
 #include <iomanip> // std::setprecision
 #include <iostream>
@@ -258,6 +259,8 @@ boost::json::object AircraftModel::record_summary(const double alt_start_av, con
   {
     const double alt_anomaly = geoid_sep != 0 ? (alt_start.get_avg() - alt_start_av) / geoid_sep : 0;
     const double avg_timestep = flight_num_records > 1 ? std::max(0.0, (flight_time_end - flight_time_start - FloatDuration{1.0}).count() / (flight_num_records - 1)) : 0;
+    const bool wind_available = Calculated().estimated_wind_available.IsValid();
+    const auto &wind = Calculated().estimated_wind;
     all_baro_error.add(baro_error);
 
     return {
@@ -271,6 +274,8 @@ boost::json::object AircraftModel::record_summary(const double alt_start_av, con
         {"fr_info", fr_info},
         {"fr_id", fr_id},
         {"alt_anomaly", alt_anomaly},
+        {"wind_speed", wind_available ? boost::json::value(wind.norm) : boost::json::value(nullptr)},
+        {"wind_bearing", wind_available ? boost::json::value(wind.bearing.Degrees()) : boost::json::value(nullptr)},
         {"avg_timestep", avg_timestep},
     };
   }
@@ -676,6 +681,35 @@ bool AircraftModel::within_horizontal_distance(const AircraftModel &other,
   }
 
   return false;
+}
+
+bool AircraftModel::get_average_wind(const TimeStamp t_min,
+                                     const TimeStamp t_max,
+                                     SpeedVector &wind) const
+{
+  Vector wind_acc(0, 0);
+  unsigned num_samples = 0;
+
+  for (auto &&p : trail)
+  {
+    if (!p.within_time(t_min, t_max) || !p.v_wind.norm)
+    {
+      continue;
+    }
+
+    const Vector airspeed = Vector(p.v_wind);
+    const Vector groundspeed = Vector(SpeedVector(p.trk.bearing, p.trk.distance));
+    wind_acc += airspeed - groundspeed;
+    ++num_samples;
+  }
+
+  if (num_samples == 0)
+  {
+    return false;
+  }
+
+  wind = SpeedVector(wind_acc.y / num_samples, wind_acc.x / num_samples);
+  return true;
 }
 
 double AircraftModel::update_baro_altitude(double &mix)

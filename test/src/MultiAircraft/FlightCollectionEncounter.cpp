@@ -4,6 +4,7 @@
 #include "FlightCollectionEncounter.hpp"
 #include "Geo/GeoBounds.hpp"
 #include "Geo/Geoid.hpp"
+#include "Math/Vector.hpp"
 #include <unordered_set>
 #include <algorithm>
 #include <fstream>
@@ -12,94 +13,128 @@
 using namespace MultiAircraft;
 
 ////////////////////////////////////////////////////////////////////////////
-struct iterator_hash
+namespace
 {
-  size_t operator()(std::list<AircraftModel>::const_iterator it) const
+
+  bool AverageAircraftWind(const std::vector<const AircraftModel *> &aircraft,
+                           const TimeStamp t_min,
+                           const TimeStamp t_max,
+                           SpeedVector &wind)
   {
-    return it->idi;
+    Vector wind_acc(0, 0);
+    unsigned num_aircraft = 0;
+
+    for (const auto *aircraft_model : aircraft)
+    {
+      SpeedVector aircraft_wind;
+      if (!aircraft_model->get_average_wind(t_min, t_max, aircraft_wind))
+      {
+        continue;
+      }
+
+      wind_acc += Vector(aircraft_wind);
+      ++num_aircraft;
+    }
+
+    if (num_aircraft == 0)
+    {
+      return false;
+    }
+
+    wind = SpeedVector(wind_acc.y / num_aircraft, wind_acc.x / num_aircraft);
+    return true;
   }
-};
 
-typedef std::unordered_set<std::list<AircraftModel>::const_iterator, iterator_hash> CandidateFlockPoints;
-
-static SpeedVector average_wind(const AircraftModel &a, const AircraftModel &b)
-{
-  const Vector wind_acc = Vector(a.Calculated().estimated_wind) + Vector(b.Calculated().estimated_wind);
-  return SpeedVector(wind_acc.y / 2, wind_acc.x / 2);
-}
-
-static GeoPoint center(const AircraftModel &a, const AircraftModel &b)
-{
-  return a.interp_loc.location.Interpolate(b.interp_loc.location, 0.5);
-}
-
-////////////////////////////////////////////////////////////////////////////
-
-static double distance_horiz(const CatmullRomInterpolator::Record &a,
-                             const CatmullRomInterpolator::Record &b)
-{
-  return a.location.Distance(b.location);
-}
-
-static double distance_vert(const CatmullRomInterpolator::Record &a,
-                            const CatmullRomInterpolator::Record &b)
-{
-  return fabs((a.gps_altitude) - (b.gps_altitude));
-}
-
-static double distance(const CatmullRomInterpolator::Record &a,
-                       const CatmullRomInterpolator::Record &b)
-{
-  const double d_horiz = distance_horiz(a, b);
-  const double d_vert = distance_vert(a, b);
-  return sqrt(d_horiz * d_horiz + d_vert * d_vert);
-}
-
-////////////////////////////////////////////////////////////////////////////
-
-static constexpr double sqr(const double x)
-{
-  return x * x;
-}
-
-static constexpr double z_normal(const double x, const double mu, const double sigma)
-{
-  return (x - mu) / sigma;
-}
-
-static double cdf_normal(const double z)
-{
-  return 0.5 * (1 + erf(z - 0.707106781188));
-}
-
-static double pdf_normal(const double z, const double sigma)
-{
-  return exp(-z * z) / (sqrt(2 * M_PI) * sigma);
-}
-
-static double expected_distance(const double D, const double d, const double sigma)
-{
-  double h_acc = 0;
-  double p_acc = 0;
-  for (double x = -D; x <= D; x += 0.5)
+  struct iterator_hash
   {
-    const double z = z_normal(x, d, sigma);
-    const double p = pdf_normal(z, sigma);
-    const double h = abs(x);
-    h_acc += h * p;
-    p_acc += p;
+    size_t operator()(std::list<AircraftModel>::const_iterator it) const
+    {
+      return it->idi;
+    }
+  };
+
+  typedef std::unordered_set<std::list<AircraftModel>::const_iterator, iterator_hash> CandidateFlockPoints;
+
+  static SpeedVector average_wind(const AircraftModel &a, const AircraftModel &b)
+  {
+    const Vector wind_acc = Vector(a.Calculated().estimated_wind) + Vector(b.Calculated().estimated_wind);
+    return SpeedVector(wind_acc.y / 2, wind_acc.x / 2);
   }
-  h_acc /= p_acc;
-  return h_acc;
-}
 
-////////////////////////////////////////////////////////////////////////////
+  static GeoPoint center(const AircraftModel &a, const AircraftModel &b)
+  {
+    return a.interp_loc.location.Interpolate(b.interp_loc.location, 0.5);
+  }
 
-static GeoPoint calc_ll_delta(const GeoPoint &loc, const double range)
-{
-  const GeoVector v(range, Angle::Degrees(-45));
-  return v.EndPoint(loc) - loc;
-}
+  ////////////////////////////////////////////////////////////////////////////
+
+  static double distance_horiz(const CatmullRomInterpolator::Record &a,
+                               const CatmullRomInterpolator::Record &b)
+  {
+    return a.location.Distance(b.location);
+  }
+
+  static double distance_vert(const CatmullRomInterpolator::Record &a,
+                              const CatmullRomInterpolator::Record &b)
+  {
+    return fabs((a.gps_altitude) - (b.gps_altitude));
+  }
+
+  static double distance(const CatmullRomInterpolator::Record &a,
+                         const CatmullRomInterpolator::Record &b)
+  {
+    const double d_horiz = distance_horiz(a, b);
+    const double d_vert = distance_vert(a, b);
+    return sqrt(d_horiz * d_horiz + d_vert * d_vert);
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+
+  static constexpr double sqr(const double x)
+  {
+    return x * x;
+  }
+
+  static constexpr double z_normal(const double x, const double mu, const double sigma)
+  {
+    return (x - mu) / sigma;
+  }
+
+  static double cdf_normal(const double z)
+  {
+    return 0.5 * (1 + erf(z - 0.707106781188));
+  }
+
+  static double pdf_normal(const double z, const double sigma)
+  {
+    return exp(-z * z) / (sqrt(2 * M_PI) * sigma);
+  }
+
+  static double expected_distance(const double D, const double d, const double sigma)
+  {
+    double h_acc = 0;
+    double p_acc = 0;
+    for (double x = -D; x <= D; x += 0.5)
+    {
+      const double z = z_normal(x, d, sigma);
+      const double p = pdf_normal(z, sigma);
+      const double h = abs(x);
+      h_acc += h * p;
+      p_acc += p;
+    }
+    h_acc /= p_acc;
+    return h_acc;
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+
+  static GeoPoint calc_ll_delta(const GeoPoint &loc, const double range)
+  {
+    const GeoVector v(range, Angle::Degrees(-45));
+    return v.EndPoint(loc) - loc;
+  }
+
+} // namespace
 
 bool FlightCollectionEncounter::process(const TimeStamp t)
 {
@@ -389,6 +424,7 @@ void FlightCollectionEncounter::write_vignette_file()
   std::sort(selected_ids.begin() + 1, selected_ids.end());
 
   boost::json::array json_aircraft;
+  std::vector<const AircraftModel *> included_aircraft;
   for (const auto idi : selected_ids)
   {
     auto aircraft_it = std::find_if(group.begin(), group.end(),
@@ -405,6 +441,7 @@ void FlightCollectionEncounter::write_vignette_file()
     clipped.time_end = std::min(clipped.time_end, t_end);
     clipped.finalise();
     json_aircraft.emplace_back(aircraft_it->write_vignette(clipped));
+    included_aircraft.push_back(&*aircraft_it);
   }
 
   if (json_aircraft.empty())
@@ -421,6 +458,8 @@ void FlightCollectionEncounter::write_vignette_file()
 
   const Vignette &subject_vignette = subject_vignette_it->second;
   const double geoid_offset = EGM96::LookupSeparation(subject_vignette.origin);
+  SpeedVector wind;
+  const bool wind_available = AverageAircraftWind(included_aircraft, t_start, t_end, wind);
 
   boost::json::object json_info = {
       {"time_start", vignette_options.start_time},
@@ -430,6 +469,8 @@ void FlightCollectionEncounter::write_vignette_file()
       {"latitude", subject_vignette.origin.latitude.Degrees()},
       {"longitude", subject_vignette.origin.longitude.Degrees()},
       {"geoid_offset", geoid_offset},
+      {"wind_speed", wind_available ? boost::json::value(wind.norm) : boost::json::value(nullptr)},
+      {"wind_bearing", wind_available ? boost::json::value(wind.bearing.Degrees()) : boost::json::value(nullptr)},
       {"aircraft", json_aircraft}};
 
   std::ofstream file(filename.str());

@@ -52,6 +52,9 @@ namespace MultiAircraft
                                     const TimeStamp t_min,
                                     const TimeStamp t_max,
                                     const double distance_m) const;
+    bool get_average_wind(const TimeStamp t_min,
+                          const TimeStamp t_max,
+                          SpeedVector &wind) const;
 
     boost::json::object record_summary(const double alt_start_av, const double geoid_sep,
                                        Averager &all_baro_error) const;
