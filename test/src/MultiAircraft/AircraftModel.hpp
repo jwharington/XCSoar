@@ -132,10 +132,16 @@ namespace MultiAircraft
     static double MIX_BARO;
     static int filter_type;
     static bool write_trace_files;
+    static bool keep_full_trail;
 
     static void SetWriteTraceFiles(const bool enabled)
     {
       write_trace_files = enabled;
+    }
+
+    static void SetKeepFullTrail(const bool enabled)
+    {
+      keep_full_trail = enabled;
     }
 
     void reset();

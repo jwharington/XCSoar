@@ -18,6 +18,7 @@ TimeStamp AircraftModel::first_launch = TimeStamp::Undefined();
 double AircraftModel::MIX_BARO = 0.5;
 int AircraftModel::filter_type = 1;
 bool AircraftModel::write_trace_files = true;
+bool AircraftModel::keep_full_trail = false;
 GlidePolar AircraftModel::glide_polar(0);
 WindSettings AircraftModel::wind_settings;
 CirclingSettings AircraftModel::circling_settings;
@@ -181,7 +182,7 @@ void AircraftModel::Interpolate(const TimeStamp t, const SpeedVector &wind)
   now.update_reconstruction(prev, wind);
   euler = EulerAngles(now.bank_angle, now.pitch_angle, now.yaw_angle);
 
-  while (trail.size() > EncounterMapStore::MAX_TRAIL_FACTOR * EncounterMapStore::TYP_TRAIL + 2)
+  while (!keep_full_trail && trail.size() > EncounterMapStore::MAX_TRAIL_FACTOR * EncounterMapStore::TYP_TRAIL + 2)
   {
     trail.pop_front();
   }

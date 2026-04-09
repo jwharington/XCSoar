@@ -181,6 +181,7 @@ int main(int argc, char **argv)
   auto json_data = ParseJsonFile(path);
   DecodeOptions(json_data, flights, vignette);
   MultiAircraft::AircraftModel::SetWriteTraceFiles(!vignette.enabled);
+  MultiAircraft::AircraftModel::SetKeepFullTrail(vignette.enabled);
   MultiAircraft::FlightFlock::SetWriteJsonFile(!vignette.enabled);
   if (vignette.enabled)
   {
