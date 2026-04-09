@@ -579,6 +579,105 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
   return data;
 }
 
+boost::json::object AircraftModel::write_vignette(const Vignette &info) const
+{
+  boost::json::array trace;
+
+  bool plausible = true;
+  FlightReconstruction::Filter filter;
+  const bool filter_enabled = filter_type > 0;
+  bool kf_valid = filter_enabled;
+  Averager visibility_avg;
+  std::vector<DetectMiss> misses;
+
+  for (auto &&p : trail)
+  {
+    if (!p.within_time(info.time_start, info.time_end))
+    {
+      continue;
+    }
+
+    const FlatPoint fp = info.project_loc_wind(p);
+
+    boost::json::object step = {
+        {"t", (p.pos.time - info.time_start).count()},
+        {"alt_baro", p.pos.baro_altitude},
+        {"v", p.v_wind.norm},
+        {"hdg", p.v_wind.bearing.Degrees()},
+    };
+    append_raw_attitude_fields(step, p);
+
+    if (filter_enabled)
+      kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
+
+    const bool need_raw_flight = !kf_valid;
+    const bool need_raw_position = need_raw_flight || filter_type < 2;
+
+    if (need_raw_flight)
+      append_raw_flight_fields(step, p);
+    if (need_raw_position)
+      append_position_fields(step, fp, p);
+
+    plausible &= p.plausible;
+    trace.emplace_back(step);
+  }
+
+  if (kf_valid)
+    append_smoothed_fields(trace, filter, filter_type, false, misses, visibility_avg);
+
+  char date_buffer[32];
+  FormatISO8601(date_buffer, flight_date_utc_start);
+
+  boost::json::object data = {
+      {"id", id},
+      {"fr_info", fr_info},
+      {"fr_id", fr_id},
+      {"in_flock", in_flock},
+      {"plausible", plausible},
+      {"date_start", date_buffer},
+      {"trace", trace}};
+
+  return data;
+}
+
+bool AircraftModel::within_horizontal_distance(const AircraftModel &other,
+                                               const TimeStamp t_min,
+                                               const TimeStamp t_max,
+                                               const double distance_m) const
+{
+  auto i = trail.begin();
+  auto j = other.trail.begin();
+
+  while (i != trail.end() && i->pos.time < t_min)
+    ++i;
+  while (j != other.trail.end() && j->pos.time < t_min)
+    ++j;
+
+  while (i != trail.end() && j != other.trail.end())
+  {
+    if (i->pos.time > t_max || j->pos.time > t_max)
+      break;
+
+    if (i->pos.time == j->pos.time)
+    {
+      if (i->pos.location.Distance(j->pos.location) <= distance_m)
+      {
+        return true;
+      }
+      ++i;
+      ++j;
+      continue;
+    }
+
+    if (i->pos.time < j->pos.time)
+      ++i;
+    else
+      ++j;
+  }
+
+  return false;
+}
+
 double AircraftModel::update_baro_altitude(double &mix)
 {
   const MoreData &basic = replay->Basic();

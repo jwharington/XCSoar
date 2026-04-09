@@ -47,6 +47,11 @@ namespace MultiAircraft
     boost::json::object write_encounter(const EncounterMapStore::EncounterInfo &info,
                                         const unsigned id_target,
                                         const bool detailed = false) const;
+    boost::json::object write_vignette(const Vignette &info) const;
+    bool within_horizontal_distance(const AircraftModel &other,
+                                    const TimeStamp t_min,
+                                    const TimeStamp t_max,
+                                    const double distance_m) const;
 
     boost::json::object record_summary(const double alt_start_av, const double geoid_sep,
                                        Averager &all_baro_error) const;

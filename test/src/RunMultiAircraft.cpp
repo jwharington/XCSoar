@@ -11,6 +11,14 @@
 
 bool debug = false;
 
+struct VignetteConfig
+{
+  bool enabled = false;
+  std::string subject;
+  unsigned start_time = 0;
+  unsigned end_time = 0;
+};
+
 static auto
 ParseJsonFile(Path path)
 {
@@ -19,7 +27,8 @@ ParseJsonFile(Path path)
 }
 
 static void DecodeOptions(const boost::json::value &_j,
-                          MultiAircraft::FlightCollectionEncounter &flights)
+                          MultiAircraft::FlightCollectionEncounter &flights,
+                          VignetteConfig &vignette)
 {
   const auto &j = _j.as_object();
   std::string root;
@@ -109,6 +118,22 @@ static void DecodeOptions(const boost::json::value &_j,
 
   try
   {
+    const auto &v = j.at("vignette").as_object();
+    vignette.subject = std::string(v.at("subject").as_string());
+    vignette.start_time = v.at("start_time").to_number<unsigned>();
+    vignette.end_time = v.at("end_time").to_number<unsigned>();
+    if (vignette.end_time < vignette.start_time)
+    {
+      throw std::invalid_argument{"vignette.end_time < vignette.start_time"};
+    }
+    vignette.enabled = true;
+  }
+  catch (const boost::system::system_error &e)
+  {
+  }
+
+  try
+  {
     auto igc_file_array = j.at("igc_files").as_array();
     const size_t n = igc_file_array.size();
     if (n > 0)
@@ -145,6 +170,7 @@ static void DecodeOptions(const boost::json::value &_j,
 int main(int argc, char **argv)
 {
   MultiAircraft::FlightCollectionEncounter flights;
+  VignetteConfig vignette;
 
   Args args(argc, argv, "options.json");
   Path path = Path("options.json");
@@ -153,7 +179,15 @@ int main(int argc, char **argv)
     path = args.ExpectNextPath();
   }
   auto json_data = ParseJsonFile(path);
-  DecodeOptions(json_data, flights);
+  DecodeOptions(json_data, flights, vignette);
+  if (vignette.enabled)
+  {
+    MultiAircraft::FlightCollectionEncounter::VignetteOptions options;
+    options.subject = vignette.subject;
+    options.start_time = vignette.start_time;
+    options.end_time = vignette.end_time;
+    flights.SetVignetteOptions(options);
+  }
   args.ExpectEnd();
 
   flights.run();
