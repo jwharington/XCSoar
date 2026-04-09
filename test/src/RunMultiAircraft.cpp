@@ -180,6 +180,8 @@ int main(int argc, char **argv)
   }
   auto json_data = ParseJsonFile(path);
   DecodeOptions(json_data, flights, vignette);
+  MultiAircraft::AircraftModel::SetWriteTraceFiles(!vignette.enabled);
+  MultiAircraft::FlightFlock::SetWriteJsonFile(!vignette.enabled);
   if (vignette.enabled)
   {
     MultiAircraft::FlightCollectionEncounter::VignetteOptions options;
@@ -191,6 +193,11 @@ int main(int argc, char **argv)
   args.ExpectEnd();
 
   flights.run();
+
+  if (vignette.enabled)
+  {
+    exit(0);
+  }
 
   {
     std::ofstream file_summary("summary.json");

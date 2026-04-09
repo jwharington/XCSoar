@@ -21,6 +21,7 @@ namespace MultiAircraft
   public:
     static constexpr int epsilon_distance_m = 1000;
     static constexpr int min_duration_s = 150;
+    static bool write_json_file;
 
     FlightFlock(const FlatProjection &_proj) : Flock::PSIAlgorithm(epsilon_distance_m, 4, min_duration_s), proj(_proj)
     {
@@ -32,6 +33,10 @@ namespace MultiAircraft
     void process_time(const int t, std::list<Flock::IndexPoint> &P);
     bool find_flock(const int index) const;
     void finalise();
+    static void SetWriteJsonFile(const bool enabled)
+    {
+      write_json_file = enabled;
+    }
     void mark_in_flock(std::list<AircraftModel> &aircraft) const;
     std::vector<std::string> ids;
 

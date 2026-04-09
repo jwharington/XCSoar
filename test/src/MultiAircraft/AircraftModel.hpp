@@ -131,6 +131,12 @@ namespace MultiAircraft
   public:
     static double MIX_BARO;
     static int filter_type;
+    static bool write_trace_files;
+
+    static void SetWriteTraceFiles(const bool enabled)
+    {
+      write_trace_files = enabled;
+    }
 
     void reset();
     GeoPoint get_flight_loc_start() const

@@ -17,6 +17,7 @@ int AircraftModel::num_aircraft = 0;
 TimeStamp AircraftModel::first_launch = TimeStamp::Undefined();
 double AircraftModel::MIX_BARO = 0.5;
 int AircraftModel::filter_type = 1;
+bool AircraftModel::write_trace_files = true;
 GlidePolar AircraftModel::glide_polar(0);
 WindSettings AircraftModel::wind_settings;
 CirclingSettings AircraftModel::circling_settings;
@@ -286,13 +287,16 @@ void AircraftModel::finalise(Averager &all_alt_start)
 {
   if (!live)
     return;
-  std::ofstream json_file(get_trace_filename());
+  if (write_trace_files)
+  {
+    std::ofstream json_file(get_trace_filename());
 
-  char date_buffer[32];
-  FormatISO8601(date_buffer, flight_date_utc_start);
-  json_trace.emplace("date", date_buffer);
+    char date_buffer[32];
+    FormatISO8601(date_buffer, flight_date_utc_start);
+    json_trace.emplace("date", date_buffer);
 
-  json_file << boost::json::serialize(json_trace);
+    json_file << boost::json::serialize(json_trace);
+  }
 
   alt_start.calculate();
   alt_end.calculate();
