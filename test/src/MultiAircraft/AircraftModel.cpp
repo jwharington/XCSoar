@@ -336,10 +336,154 @@ bool AircraftModel::other_visible(const EncounterMapStore::EncounterInfo &info,
   return false;
 }
 
-static void update_visibility_avg(Averager &visibility_avg, const Visibility &visibility)
+namespace
 {
-  visibility_avg.add(visibility.focus_factor * (1 - visibility.occlusion));
-}
+
+  void update_visibility_avg(Averager &visibility_avg, const Visibility &visibility)
+  {
+    visibility_avg.add(visibility.focus_factor * (1 - visibility.occlusion));
+  }
+
+  void append_visibility_fields(boost::json::object &step,
+                                const Aspect &aspect,
+                                const Visibility &visibility)
+  {
+    step.emplace("range", aspect.range);
+    step.emplace("elevation_angle", aspect.elevation_angle.Degrees());
+    step.emplace("azimuth_angle", aspect.azimuth_angle.Degrees());
+    step.emplace("inclination_angle", aspect.inclination_angle.Degrees());
+    step.emplace("ang_size", visibility.angular_size.Degrees());
+    step.emplace("occlusion", visibility.occlusion);
+    step.emplace("focus_factor", visibility.focus_factor);
+  }
+
+  void append_raw_attitude_fields(boost::json::object &step, const TrailPoint &p)
+  {
+    step.emplace("bank", p.bank_angle.Degrees());
+    step.emplace("pitch", p.pitch_angle.Degrees());
+    step.emplace("yaw", p.yaw_angle.AsBearing().Degrees());
+  }
+
+  void append_raw_flight_fields(boost::json::object &step, const TrailPoint &p)
+  {
+    step.emplace("v_tas", p.v_tas);
+    step.emplace("v_ias", p.v_ias);
+    append_raw_attitude_fields(step, p);
+    step.emplace("load_factor", p.load_factor);
+  }
+
+  void append_position_fields(boost::json::object &step, const FlatPoint &fp,
+                              const TrailPoint &p)
+  {
+    step.emplace("x", fp.x);
+    step.emplace("y", fp.y);
+    step.emplace("alt_gps", p.pos.gps_altitude);
+  }
+
+  void append_common_detailed_fields(boost::json::object &step,
+                                     const TrailPoint &p,
+                                     const DetectMiss &miss)
+  {
+    step.emplace("turnrate", p.turn_rate_wind.Degrees());
+    step.emplace("turn_mode", TurnModeList::to_string(p.turn_mode));
+    step.emplace("actual", p.actual);
+    step.emplace("plausible", p.plausible);
+    step.emplace("fix_acc", p.fix_acc);
+    step.emplace("roc", p.roc);
+    step.emplace("miss_TCA", miss.TCA);
+    step.emplace("d_mag", miss.d_mag);
+    step.emplace("miss_d", miss.miss_d_mag);
+    step.emplace("miss_vrel", miss.vrel_mag);
+    step.emplace("distance_scale", miss.distance_scale);
+  }
+
+  bool update_encounter_filter(FlightReconstruction::Filter &filter,
+                               const bool initialise,
+                               const FlatPoint &fp,
+                               const TrailPoint &p)
+  {
+    if (initialise)
+    {
+      auto state = FlightReconstruction::get_initial_state_estimate(fp.y, fp.x,
+                                                                    -p.pos.gps_altitude,
+                                                                    p.v_tas,
+                                                                    p.bank_angle.Radians(),
+                                                                    p.pitch_angle.Radians(),
+                                                                    p.yaw_angle.AsBearing().Radians());
+      filter.initialise(state, 1.0);
+      // FlightReconstruction::write(filter.get_state());
+    }
+
+    FlightReconstruction::Measurement measurement;
+    auto &[y, x, z, U] = measurement.data;
+    x.value = fp.x;
+    y.value = fp.y;
+    z.value = -p.pos.gps_altitude;
+    U.value = p.v_tas;
+
+    try
+    {
+      filter.update(measurement, 1.0);
+      return true;
+    }
+    catch (const std::exception &e)
+    {
+      std::cerr << "Filter update failed: " << e.what() << "\n";
+      return false;
+    }
+  }
+
+  void append_smoothed_fields(boost::json::array &trace,
+                              const FlightReconstruction::Filter &filter,
+                              const int filter_type,
+                              const bool detailed,
+                              const std::vector<DetectMiss> &misses,
+                              Averager &visibility_avg)
+  {
+    const auto &smoothed_states = filter.get_smoothed_states();
+    const size_t n = std::min(trace.size(), smoothed_states.size());
+
+    for (size_t i = 0; i < n; ++i)
+    {
+      auto &_step = trace[i].as_object();
+      const auto &state = smoothed_states[i];
+      const auto &seuler = FlightReconstruction::get_euler(state);
+      const auto &aero = filter.get_aero(state);
+      const auto &dstate = FlightReconstruction::convert_state(state);
+      _step["bank"] = seuler[0];
+      _step["pitch"] = seuler[1];
+      _step["yaw"] = seuler[2];
+      _step["load_factor"] = aero.load_factor;
+      _step["v_ias"] = aero.V_ias;
+      _step["v_tas"] = aero.V_tas;
+
+      if (filter_type == 2)
+      {
+        _step["y"] = dstate[FlightReconstruction::POS_X];
+        _step["x"] = dstate[FlightReconstruction::POS_Y];
+        _step["alt_gps"] = -dstate[FlightReconstruction::POS_Z];
+      }
+
+      if (!detailed)
+        continue;
+
+      const EulerAngles euler(Angle::Degrees(seuler[0]),
+                              Angle::Degrees(seuler[1]),
+                              Angle::Degrees(seuler[2]));
+      if (i >= misses.size())
+        continue;
+
+      const auto &miss = misses[i];
+      const Aspect aspect = euler.get_aspect(miss.xrel);
+      const Visibility visibility(aspect);
+
+      append_visibility_fields(_step, aspect, visibility);
+      if (_step.at("t").to_number<double>() <= 0)
+        update_visibility_avg(visibility_avg, visibility);
+    }
+  }
+
+} // namespace
 
 boost::json::object AircraftModel::write_encounter(const EncounterMapStore::EncounterInfo &info,
                                                    const unsigned id_target,
@@ -351,13 +495,15 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
   Averager visibility_avg;
   FlightReconstruction::Filter filter;
   std::vector<DetectMiss> misses;
-  bool kf_valid = filter_type > 0;
+  const bool filter_enabled = filter_type > 0;
+  bool kf_valid = filter_enabled;
+
+  const TimeStamp t_min = info.time_start - FloatDuration{EncounterMapStore::TYP_TRAIL};
+  const TimeStamp t_max = info.time_end + FloatDuration{EncounterMapStore::HYS_TRAIL};
 
   for (auto &&p : trail)
   {
-
-    if (!p.within_time(info.time_start - FloatDuration{EncounterMapStore::TYP_TRAIL},
-                       info.time_end + FloatDuration{EncounterMapStore::HYS_TRAIL}))
+    if (!p.within_time(t_min, t_max))
     {
       continue;
     }
@@ -366,14 +512,12 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
     const AuxiliaryPair &auxiliary = p.get_auxiliary(id_target);
     const DetectMiss &miss = auxiliary.second;
 
-    // TODO: update aspect, visibility if using smoothing filter
-
     if (detailed)
     {
       plausible &= p.plausible;
       misses.push_back(miss);
     }
-    bool proc_visible = (p.pos.time <= info.time_start);
+    const bool proc_visible = p.pos.time <= info.time_start;
 
     boost::json::object step = {
         {"t", (p.pos.time - info.time_start).count()},
@@ -381,141 +525,40 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
         {"v", p.v_wind.norm},
         {"hdg", p.v_wind.bearing.Degrees()},
     };
+    append_raw_attitude_fields(step, p);
 
-    if (filter_type > 0)
-    {
-      if (trace.empty())
-      {
-        auto state = FlightReconstruction::get_initial_state_estimate(fp.y, fp.x,
-                                                                      -p.pos.gps_altitude,
-                                                                      p.v_tas,
-                                                                      p.bank_angle.Radians(),
-                                                                      p.pitch_angle.Radians(),
-                                                                      p.yaw_angle.AsBearing().Radians());
-        filter.initialise(state, 1.0);
-        // FlightReconstruction::write(filter.get_state());
-      }
-      {
-        FlightReconstruction::Measurement measurement;
-        auto &[y, x, z, U] = measurement.data;
-        x.value = fp.x;
-        y.value = fp.y;
-        z.value = -p.pos.gps_altitude;
-        U.value = p.v_tas;
-        try
-        {
-          filter.update(measurement, 1.0);
-        }
-        catch (const std::exception &e)
-        {
-          std::cerr << "Filter update failed: " << e.what() << "\n";
-          kf_valid = false;
-        }
-      }
-    }
+    if (filter_enabled)
+      kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
 
-    if (!kf_valid)
-    {
-      step.emplace("v_tas", p.v_tas);
-      step.emplace("v_ias", p.v_ias);
-      step.emplace("bank", p.bank_angle.Degrees());
-      step.emplace("pitch", p.pitch_angle.Degrees());
-      step.emplace("yaw", p.yaw_angle.AsBearing().Degrees());
-      step.emplace("load_factor", p.load_factor);
-    }
-    if ((!kf_valid) || (filter_type < 2))
-    {
-      step.emplace("x", fp.x);
-      step.emplace("y", fp.y);
-      step.emplace("alt_gps", p.pos.gps_altitude);
-    }
+    const bool need_raw_flight = !kf_valid;
+    const bool need_raw_position = need_raw_flight || filter_type < 2;
+
+    if (need_raw_flight)
+      append_raw_flight_fields(step, p);
+    if (need_raw_position)
+      append_position_fields(step, fp, p);
 
     if (detailed)
     {
       const Aspect &aspect = auxiliary.first;
       const Visibility visibility(aspect);
-      step.emplace("turnrate", p.turn_rate_wind.Degrees());
-      step.emplace("turn_mode", TurnModeList::to_string(p.turn_mode));
-      step.emplace("actual", p.actual);
-      step.emplace("plausible", p.plausible);
-      step.emplace("fix_acc", p.fix_acc);
+      append_common_detailed_fields(step, p, miss);
 
-      if (!kf_valid)
+      if (need_raw_flight)
       {
-        step.emplace("range", aspect.range);
-        step.emplace("elevation_angle", aspect.elevation_angle.Degrees());
-        step.emplace("azimuth_angle", aspect.azimuth_angle.Degrees());
-        step.emplace("inclination_angle", aspect.inclination_angle.Degrees());
-        step.emplace("ang_size", visibility.angular_size.Degrees());
-        step.emplace("occlusion", visibility.occlusion);
-        step.emplace("focus_factor", visibility.focus_factor);
+        append_visibility_fields(step, aspect, visibility);
         if (proc_visible)
         {
           update_visibility_avg(visibility_avg, visibility);
         }
       }
-
-      step.emplace("roc", p.roc);
-      step.emplace("miss_TCA", miss.TCA);
-      step.emplace("d_mag", miss.d_mag);
-      step.emplace("miss_d", miss.miss_d_mag);
-      step.emplace("miss_vrel", miss.vrel_mag);
-      step.emplace("distance_scale", miss.distance_scale);
     }
 
     trace.emplace_back(step);
   }
 
-  ///////////////////////////////
-
   if (kf_valid)
-  {
-    int count = 0;
-    const auto &smoothed_states = filter.get_smoothed_states();
-    for (auto &step : trace)
-    {
-      auto &_step = step.as_object();
-      auto &state = smoothed_states[count];
-      auto &seuler = FlightReconstruction::get_euler(state);
-      auto &aero = filter.get_aero(state);
-      auto &dstate = FlightReconstruction::convert_state(state);
-      _step.emplace("bank", seuler[0]);
-      _step.emplace("pitch", seuler[1]);
-      _step.emplace("yaw", seuler[2]);
-      _step.emplace("load_factor", aero.load_factor);
-      _step.emplace("v_ias", aero.V_ias);
-      _step.emplace("v_tas", aero.V_tas);
-      if (filter_type == 2)
-      {
-        _step.emplace("y", dstate[FlightReconstruction::POS_X]);
-        _step.emplace("x", dstate[FlightReconstruction::POS_Y]);
-        _step.emplace("alt_gps", -dstate[FlightReconstruction::POS_Z]);
-      }
-      if (detailed)
-      {
-        const EulerAngles _euler(Angle::Degrees(seuler[0]),
-                                 Angle::Degrees(seuler[1]),
-                                 Angle::Degrees(seuler[2]));
-        const auto &miss = misses[count];
-        const Aspect aspect = _euler.get_aspect(miss.xrel);
-        const Visibility visibility(aspect);
-
-        _step.emplace("range", aspect.range);
-        _step.emplace("elevation_angle", aspect.elevation_angle.Degrees());
-        _step.emplace("azimuth_angle", aspect.azimuth_angle.Degrees());
-        _step.emplace("inclination_angle", aspect.inclination_angle.Degrees());
-        _step.emplace("ang_size", visibility.angular_size.Degrees());
-        _step.emplace("occlusion", visibility.occlusion);
-        _step.emplace("focus_factor", visibility.focus_factor);
-        if (_step.at("t").to_number<double>() <= 0)
-        {
-          update_visibility_avg(visibility_avg, visibility);
-        }
-      }
-      count++;
-    }
-  }
-  // TODO: update other outputs
+    append_smoothed_fields(trace, filter, filter_type, detailed, misses, visibility_avg);
 
   visibility_avg.calculate();
 

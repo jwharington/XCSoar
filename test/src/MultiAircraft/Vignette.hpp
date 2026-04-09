@@ -11,45 +11,45 @@
 #include "time/BrokenDate.hpp"
 #include "time/Stamp.hpp"
 
-namespace MultiAircraft {
+namespace MultiAircraft
+{
 
-struct TrailPoint;
+  struct TrailPoint;
 
-struct Vignette {
-  Vignette(const int _id,
-           const TimeStamp _t,
-           const BrokenDate _dt,
-           const GeoPoint &_origin, const double _alt,
-           const SpeedVector &_wind):
-      id(_id),
-      time_start(_t),
-      time_end(_t),
-      date_utc(_dt),
-      origin(_origin),
-      alt(_alt),
-      wind(_wind),
-      wind_acc(Vector(wind)) {}
+  struct Vignette
+  {
+    Vignette(const int _id,
+             const TimeStamp _t,
+             const BrokenDate _dt,
+             const GeoPoint &_origin, const double _alt,
+             const SpeedVector &_wind) : id(_id),
+                                         time_start(_t),
+                                         time_end(_t),
+                                         date_utc(_dt),
+                                         origin(_origin),
+                                         alt(_alt),
+                                         wind(_wind),
+                                         wind_acc(Vector(wind)) {}
 
-  void finalise();
+    void finalise();
 
-  const FlatPoint project_loc_wind(const TrailPoint& p) const;
-  unsigned id;
-  TimeStamp time_start;
-  TimeStamp time_end;
-  BrokenDate date_utc;
-  GeoPoint origin;
-  double alt;
-  SpeedVector wind;
-  Vector wind_acc;
-  int num_wind = 1;
+    const FlatPoint project_loc_wind(const TrailPoint &p) const;
+    unsigned id;
+    TimeStamp time_start;
+    TimeStamp time_end;
+    BrokenDate date_utc;
+    GeoPoint origin;
+    double alt;
+    SpeedVector wind;
+    Vector wind_acc;
+    int num_wind = 1;
 
- private:
-  FlatProjection proj;
-  double scale;
-  GeoPoint traildrift;
+  private:
+    FlatProjection proj;
+    double scale;
+    GeoPoint traildrift;
 
-  const GeoPoint calc_traildrift() const;
-};
-
+    const GeoPoint calc_traildrift() const;
+  };
 
 }
