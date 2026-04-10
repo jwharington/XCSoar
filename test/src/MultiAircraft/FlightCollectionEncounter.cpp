@@ -425,6 +425,7 @@ void FlightCollectionEncounter::write_vignette_file()
 
   boost::json::array json_aircraft;
   std::vector<const AircraftModel *> included_aircraft;
+  GeoPoint subject_origin = subject_vignette_it->second.origin;
   for (const auto idi : selected_ids)
   {
     auto aircraft_it = std::find_if(group.begin(), group.end(),
@@ -439,7 +440,19 @@ void FlightCollectionEncounter::write_vignette_file()
     Vignette clipped = v_it->second;
     clipped.time_start = std::max(clipped.time_start, t_start);
     clipped.time_end = std::min(clipped.time_end, t_end);
+    GeoPoint clipped_origin;
+    TimeStamp clipped_origin_time;
+    if (aircraft_it->get_first_location(clipped.time_start, clipped.time_end,
+                                        clipped_origin, clipped_origin_time))
+    {
+      clipped.origin = clipped_origin;
+      clipped.origin_time = clipped_origin_time;
+    }
     clipped.finalise();
+
+    if (idi == subject_it->idi)
+      subject_origin = clipped.origin;
+
     json_aircraft.emplace_back(aircraft_it->write_vignette(clipped));
     included_aircraft.push_back(&*aircraft_it);
   }
@@ -456,8 +469,7 @@ void FlightCollectionEncounter::write_vignette_file()
            << "-" << vignette_options.end_time
            << ".json";
 
-  const Vignette &subject_vignette = subject_vignette_it->second;
-  const double geoid_offset = EGM96::LookupSeparation(subject_vignette.origin);
+  const double geoid_offset = EGM96::LookupSeparation(subject_origin);
   SpeedVector wind;
   const bool wind_available = AverageAircraftWind(included_aircraft, t_start, t_end, wind);
 
@@ -466,8 +478,8 @@ void FlightCollectionEncounter::write_vignette_file()
       {"time_end", vignette_options.end_time},
       {"subject", vignette_options.subject},
       {"distance_threshold", FlightFlock::epsilon_distance_m},
-      {"latitude", subject_vignette.origin.latitude.Degrees()},
-      {"longitude", subject_vignette.origin.longitude.Degrees()},
+      {"latitude", subject_origin.latitude.Degrees()},
+      {"longitude", subject_origin.longitude.Degrees()},
       {"geoid_offset", geoid_offset},
       {"wind_speed", wind_available ? boost::json::value(wind.norm) : boost::json::value(nullptr)},
       {"wind_bearing", wind_available ? boost::json::value(wind.bearing.Degrees()) : boost::json::value(nullptr)},

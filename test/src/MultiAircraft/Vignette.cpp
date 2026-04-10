@@ -10,7 +10,7 @@ using namespace MultiAircraft;
 const GeoPoint Vignette::calc_traildrift() const
 {
   const GeoPoint tp1 = FindLatitudeLongitude(origin, wind.bearing, wind.norm);
-  return tp1 - origin;
+  return origin - tp1;
 }
 
 void Vignette::finalise()
@@ -20,8 +20,8 @@ void Vignette::finalise()
   scale = proj.GetApproximateScale();
 }
 
-const FlatPoint Vignette::project_loc_wind(const TrailPoint& p) const
+const FlatPoint Vignette::project_loc_wind(const TrailPoint &p) const
 {
-  const GeoPoint loc_drift = p.pos.location.Parametric(traildrift, ToFloatSeconds(p.pos.time-time_start));
-  return proj.ProjectFloat(loc_drift)*scale;
+  const GeoPoint loc_drift = p.pos.location.Parametric(traildrift, ToFloatSeconds(p.pos.time - origin_time));
+  return proj.ProjectFloat(loc_drift) * scale;
 }

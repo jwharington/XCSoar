@@ -717,6 +717,24 @@ bool AircraftModel::get_average_wind(const TimeStamp t_min,
   return true;
 }
 
+bool AircraftModel::get_first_location(const TimeStamp t_min,
+                                       const TimeStamp t_max,
+                                       GeoPoint &location,
+                                       TimeStamp &time) const
+{
+  for (auto &&p : trail)
+  {
+    if (!p.within_time(t_min, t_max))
+      continue;
+
+    location = p.pos.location;
+    time = p.pos.time;
+    return true;
+  }
+
+  return false;
+}
+
 double AircraftModel::update_baro_altitude(double &mix)
 {
   const MoreData &basic = replay->Basic();

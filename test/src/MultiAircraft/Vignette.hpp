@@ -25,6 +25,7 @@ namespace MultiAircraft
              const SpeedVector &_wind) : id(_id),
                                          time_start(_t),
                                          time_end(_t),
+                                         origin_time(_t),
                                          date_utc(_dt),
                                          origin(_origin),
                                          alt(_alt),
@@ -37,6 +38,7 @@ namespace MultiAircraft
     unsigned id;
     TimeStamp time_start;
     TimeStamp time_end;
+    TimeStamp origin_time;
     BrokenDate date_utc;
     GeoPoint origin;
     double alt;

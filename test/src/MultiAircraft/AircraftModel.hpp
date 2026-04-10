@@ -55,6 +55,10 @@ namespace MultiAircraft
     bool get_average_wind(const TimeStamp t_min,
                           const TimeStamp t_max,
                           SpeedVector &wind) const;
+    bool get_first_location(const TimeStamp t_min,
+                            const TimeStamp t_max,
+                            GeoPoint &location,
+                            TimeStamp &time) const;
 
     boost::json::object record_summary(const double alt_start_av, const double geoid_sep,
                                        Averager &all_baro_error) const;
