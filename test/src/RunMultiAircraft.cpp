@@ -119,7 +119,19 @@ static void DecodeOptions(const boost::json::value &_j,
 
   try
   {
-    FlightReconstruction::SetRTSWindowSize(j.at("rts_window_size").to_number<unsigned>());
+    const unsigned rts_window_size = j.at("rts_window_size").to_number<unsigned>();
+    if (MultiAircraft::AircraftModel::filter_type == 1 ||
+        MultiAircraft::AircraftModel::filter_type == 2)
+    {
+      FlightReconstruction::SetRTSWindowSize(rts_window_size);
+    }
+    else
+    {
+      FlightReconstruction::SetRTSWindowSize(0);
+      std::cout << "Ignoring rts_window_size for filter_type="
+                << MultiAircraft::AircraftModel::filter_type
+                << " (valid only for 1 or 2)\n";
+    }
   }
   catch (const boost::system::system_error &e)
   {
