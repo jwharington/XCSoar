@@ -563,7 +563,7 @@ namespace
       const Visibility visibility(aspect);
 
       append_visibility_fields(_step, aspect, visibility);
-      if (_step.at("t").to_number<double>() <= 0)
+      if (_step.find("t") != _step.end() && _step.at("t").to_number<double>() <= 0)
         update_visibility_avg(visibility_avg, visibility);
     }
   }
