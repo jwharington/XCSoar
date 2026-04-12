@@ -3,15 +3,105 @@
 #include "ReconstructionUtility.hpp"
 
 #include "DOP853.h"
+#include <array>
+#include <string_view>
+
 using namespace tableau::integration;
 
 namespace FlightReconstruction
 {
+  namespace
+  {
+    template <size_t N>
+    bool SetNamedDefault(
+        std::array<std::pair<std::string_view, double>, N> &defaults,
+        const std::string_view name,
+        const double value)
+    {
+      for (auto &entry : defaults)
+      {
+        if (entry.first == name)
+        {
+          entry.second = value;
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    template <typename Matrix, size_t N>
+    void SetDiagonalFromNamedDefaults(
+        Matrix &matrix,
+        const std::array<std::pair<std::string_view, double>, N> &defaults)
+    {
+      matrix.setZero();
+      for (size_t i = 0; i < N; ++i)
+      {
+        (void)defaults[i].first;
+        matrix(static_cast<Eigen::Index>(i), static_cast<Eigen::Index>(i)) =
+            defaults[i].second;
+      }
+    }
+
+    std::array<std::pair<std::string_view, double>, 9>
+        PROCESS_COVARIANCE_DEFAULTS{{
+            {"x", 1.0},
+            {"y", 1.0},
+            {"z", 1.0},
+            {"u", 1.0},
+            {"w", 1.0},
+            {"q", 0.01},
+            {"attitude_x", 0.01},
+            {"attitude_y", 0.01},
+            {"attitude_z", 0.01},
+        }};
+
+    std::array<std::pair<std::string_view, double>, 4>
+        MEASUREMENT_COVARIANCE_DEFAULTS{{
+            {"x", 4.0},
+            {"y", 4.0},
+            {"z", 4.0},
+            {"v_tas", 1.0},
+        }};
+
+    std::array<std::pair<std::string_view, double>, 9>
+        STATE_COVARIANCE_DEFAULTS{{
+            {"x", 10.0},
+            {"y", 10.0},
+            {"z", 10.0},
+            {"u", 1.0},
+            {"w", 1.0},
+            {"q", 0.1},
+            {"attitude_x", 1.0},
+            {"attitude_y", 1.0},
+            {"attitude_z", 1.0},
+        }};
+  }
+
   unsigned Filter::RTS_WINDOW_SIZE = 20;
 
   void SetRTSWindowSize(unsigned value)
   {
     Filter::RTS_WINDOW_SIZE = value;
+  }
+
+  bool SetProcessCovarianceDefault(const std::string_view name,
+                                   const double value)
+  {
+    return SetNamedDefault(PROCESS_COVARIANCE_DEFAULTS, name, value);
+  }
+
+  bool SetMeasurementCovarianceDefault(const std::string_view name,
+                                       const double value)
+  {
+    return SetNamedDefault(MEASUREMENT_COVARIANCE_DEFAULTS, name, value);
+  }
+
+  bool SetStateCovarianceDefault(const std::string_view name,
+                                 const double value)
+  {
+    return SetNamedDefault(STATE_COVARIANCE_DEFAULTS, name, value);
   }
 
   DerivState Filter::system_ode(const DerivState &state) const
@@ -109,16 +199,16 @@ namespace FlightReconstruction
     ukf.set_weight_coefficients(0.1, 2.0, -1.0);
 
     UKF::N_by_N Q;
-    Q.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01, 0.01, 0.01, 0.01;
+    SetDiagonalFromNamedDefaults(Q, PROCESS_COVARIANCE_DEFAULTS);
     ukf.set_process_covariance(Q);
 
     UKF::M_by_M R;
-    R.diagonal() << 4.0, 4.0, 4.0, 1.0;
+    SetDiagonalFromNamedDefaults(R, MEASUREMENT_COVARIANCE_DEFAULTS);
     ukf.set_measurement_covariance(R);
 
     ukf.set_state(initial_state_estimate);
     UKF::N_by_N P;
-    P.diagonal() << 10.0, 10.0, 10.0, 1.0, 1.0, 0.1, 1.0, 1.0, 1.0;
+    SetDiagonalFromNamedDefaults(P, STATE_COVARIANCE_DEFAULTS);
     ukf.set_state_covariance(P);
   }
 
