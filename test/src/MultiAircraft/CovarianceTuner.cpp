@@ -342,10 +342,6 @@ namespace MultiAircraft
             "Q.x", "Q.y", "Q.z", "Q.u", "Q.w", "Q.q", "Q.attitude_x", "Q.attitude_y", "Q.attitude_z"};
         const std::array<const char *, 9> state_labels{
             "P.x", "P.y", "P.z", "P.u", "P.w", "P.q", "P.attitude_x", "P.attitude_y", "P.attitude_z"};
-        const std::array<const char *, 10> process_labels_gust{
-            "Q.x", "Q.y", "Q.z", "Q.u", "Q.w", "Q.q", "Q.w_g", "Q.attitude_x", "Q.attitude_y", "Q.attitude_z"};
-        const std::array<const char *, 10> state_labels_gust{
-            "P.x", "P.y", "P.z", "P.u", "P.w", "P.q", "P.w_g", "P.attitude_x", "P.attitude_y", "P.attitude_z"};
 
         auto fit_current = [&]()
         {
