@@ -296,3 +296,12 @@ endif
 ifneq ($(wildcard $(ABI_OUTPUT_DIR)/test/src/*.d),)
 include $(wildcard $(ABI_OUTPUT_DIR)/test/src/*.d)
 endif
+ifneq ($(wildcard $(ABI_OUTPUT_DIR)/test/src/*/*.d),)
+include $(wildcard $(ABI_OUTPUT_DIR)/test/src/*/*.d)
+endif
+ifneq ($(wildcard $(ABI_OUTPUT_DIR)/test/src/*/*/*.d),)
+include $(wildcard $(ABI_OUTPUT_DIR)/test/src/*/*/*.d)
+endif
+ifneq ($(wildcard $(ABI_OUTPUT_DIR)/test/src/*/*/*/*.d),)
+include $(wildcard $(ABI_OUTPUT_DIR)/test/src/*/*/*/*.d)
+endif
