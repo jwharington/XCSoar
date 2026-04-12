@@ -388,6 +388,7 @@ int main(int argc, char **argv)
   DecodeOptions(json_data, flights, vignette, covariance_tuning);
   MultiAircraft::AircraftModel::SetWriteTraceFiles(!vignette.enabled);
   MultiAircraft::AircraftModel::SetKeepFullTrail(vignette.enabled || covariance_tuning.enabled);
+  MultiAircraft::FlightCollectionEncounter::SetSkipEncounterProcessing(covariance_tuning.enabled);
   MultiAircraft::FlightFlock::SetWriteJsonFile(!vignette.enabled);
   if (vignette.enabled)
   {

@@ -46,36 +46,36 @@ namespace FlightReconstruction
 
     std::array<std::pair<std::string_view, double>, 9>
         PROCESS_COVARIANCE_DEFAULTS{{
-            {"x", 1.0},
-            {"y", 1.0},
-            {"z", 1.0},
-            {"u", 1.0},
-            {"w", 1.0},
-            {"q", 0.01},
-            {"attitude_x", 0.01},
-            {"attitude_y", 0.01},
-            {"attitude_z", 0.01},
+            {"x", 26.67661425205121},
+            {"y", 26.67661425205121},
+            {"z", 19.666237154594292},
+            {"u", 3.2850785347472344},
+            {"w", 6.2971599083626435},
+            {"q", 0.008530629313465607},
+            {"attitude_x", 0.050611278774201296},
+            {"attitude_y", 0.050611278774201296},
+            {"attitude_z", 0.050611278774201296},
         }};
 
     std::array<std::pair<std::string_view, double>, 4>
         MEASUREMENT_COVARIANCE_DEFAULTS{{
-            {"x", 4.0},
-            {"y", 4.0},
-            {"z", 4.0},
-            {"v_tas", 1.0},
+            {"x", 60.51591102303236},
+            {"y", 60.51591102303236},
+            {"z", 14.134884115532778},
+            {"v_tas", 8.953594805548526},
         }};
 
     std::array<std::pair<std::string_view, double>, 9>
         STATE_COVARIANCE_DEFAULTS{{
-            {"x", 10.0},
-            {"y", 10.0},
-            {"z", 10.0},
-            {"u", 1.0},
-            {"w", 1.0},
-            {"q", 0.1},
-            {"attitude_x", 1.0},
-            {"attitude_y", 1.0},
-            {"attitude_z", 1.0},
+            {"x", 521.9737739447792},
+            {"y", 521.9737739447792},
+            {"z", 10.625837776224621},
+            {"u", 1.3237789663859476},
+            {"w", 0.8328378128113141},
+            {"q", 0.03},
+            {"attitude_x", 0.3},
+            {"attitude_y", 0.3},
+            {"attitude_z", 0.3},
         }};
   }
 
@@ -211,7 +211,8 @@ namespace FlightReconstruction
   {
     (void)DT; // unused
     ukf.set_max_smoothing_points(RTS_WINDOW_SIZE);
-    ukf.set_weight_coefficients(0.1, 2.0, -1.0);
+    // Use conservative UKF weights to avoid extreme negative central weights.
+    ukf.set_weight_coefficients(1.0, 2.0, 0.0);
 
     UKF::N_by_N Q;
     SetDiagonalFromNamedDefaults(Q, PROCESS_COVARIANCE_DEFAULTS);

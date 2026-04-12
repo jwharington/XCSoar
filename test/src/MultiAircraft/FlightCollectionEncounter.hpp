@@ -40,6 +40,11 @@ namespace MultiAircraft
       vignette_options.enabled = !vignette_options.subject.empty();
     }
 
+    static void SetSkipEncounterProcessing(bool value)
+    {
+      skip_encounter_processing = value;
+    }
+
     virtual boost::json::object record_summary() const override;
 
   protected:
@@ -64,6 +69,8 @@ namespace MultiAircraft
     GeoPoint delta_flock;
 
     FlightFlock flock_algorithm;
+
+    static bool skip_encounter_processing;
   };
 
 }

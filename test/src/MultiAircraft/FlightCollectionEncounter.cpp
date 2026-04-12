@@ -12,6 +12,8 @@
 
 using namespace MultiAircraft;
 
+bool FlightCollectionEncounter::skip_encounter_processing = false;
+
 ////////////////////////////////////////////////////////////////////////////
 namespace
 {
@@ -140,6 +142,12 @@ bool FlightCollectionEncounter::process(const TimeStamp t)
 {
   const bool was_first = first;
   const bool ok = FlightCollection::process(t);
+
+  if (skip_encounter_processing)
+  {
+    return ok;
+  }
+
   if (first)
   {
     // populate id list

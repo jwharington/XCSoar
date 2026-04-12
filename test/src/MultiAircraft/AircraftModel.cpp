@@ -438,7 +438,7 @@ namespace
     }
     catch (const std::exception &e)
     {
-      std::cerr << "Filter update failed: " << e.what() << "\n";
+      // std::cerr << "Filter update failed: " << e.what() << "\n";
       return false;
     }
   }
