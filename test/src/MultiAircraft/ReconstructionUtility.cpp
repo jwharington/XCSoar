@@ -1,4 +1,5 @@
 #include "ReconstructionUtility.hpp"
+#include "FlightReconstructionInternal.hpp"
 #include <boost/json.hpp>
 #include <fstream>
 #include <string>
@@ -10,44 +11,13 @@ namespace FlightReconstruction
 {
     const DerivState convert_state(const State &state)
     {
-        auto &[y, quaternion] = state.data;
-        DerivState vstate;
-        for (int i = 0; i < 6; ++i)
-        {
-            vstate.push_back(y[i]);
-        }
-        auto &q = quaternion.get_q();
-        vstate.push_back(q.w());
-        vstate.push_back(q.x());
-        vstate.push_back(q.y());
-        vstate.push_back(q.z());
-        return vstate;
-    }
-
-    const AeroLoad Filter::get_aero() const
-    {
-        return get_aero(get_state());
-    }
-
-    const AeroLoad Filter::get_aero(const State &state) const
-    {
-        auto _state = convert_state(state);
-        return AeroLoad(_state, parms);
+        return detail::ConvertState<6, QUATERNION>(state);
     }
 
     void set_state(State &state,
                    const DerivState &vstate)
     {
-        auto &[y, quaternion] = state.data;
-        for (int i = 0; i < 6; ++i)
-        {
-            y[i] = vstate[i];
-        }
-        quaternion = unscented::UnitQuaternion(
-            Eigen::Quaterniond(vstate[QUATERNION + 0],
-                               vstate[QUATERNION + 1],
-                               vstate[QUATERNION + 2],
-                               vstate[QUATERNION + 3]));
+        detail::SetState<6, QUATERNION>(state, vstate);
     }
 
     State get_initial_state_estimate(const double x, const double y, const double z,
@@ -66,17 +36,7 @@ namespace FlightReconstruction
 
     const Euler get_euler(const State &state)
     {
-        auto &[y, quaternion] = state.data;
-        const Eigen::Matrix3d R = quaternion.get_q().toRotationMatrix();
-        double theta = asin(-R(2, 0));
-        double psi = acos(R(0, 0) / cos(theta)) * sign(R(1, 0));
-        double phi = acos(R(2, 2) / cos(theta)) * sign(R(2, 1));
-        if (psi < 0)
-        {
-            psi += 2 * M_PI;
-        }
-        return Euler(phi, theta, psi) / DEGTORAD;
-        //  * 180.0f / M_PI;
+        return detail::GetEuler(state);
     }
 
     void write(const State &state)

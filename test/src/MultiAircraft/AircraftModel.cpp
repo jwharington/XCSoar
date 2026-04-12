@@ -349,6 +349,16 @@ bool AircraftModel::other_visible(const EncounterMapStore::EncounterInfo &info,
 
 namespace
 {
+  constexpr bool uses_updraft_gust_filter(const int filter_type)
+  {
+    return filter_type == 3 || filter_type == 4;
+  }
+
+  constexpr bool uses_smoothed_position(const int filter_type)
+  {
+    return filter_type == 2 || filter_type == 4;
+  }
+
   void update_visibility_avg(Averager &visibility_avg, const Visibility &visibility)
   {
     visibility_avg.add(visibility.focus_factor * (1 - visibility.occlusion));
@@ -407,21 +417,42 @@ namespace
     step.emplace("distance_scale", miss.distance_scale);
   }
 
-  bool update_encounter_filter(FlightReconstruction::Filter &filter,
+  inline void initialise_filter_state(FlightReconstruction::Filter &filter,
+                                      const FlatPoint &fp,
+                                      const TrailPoint &p)
+  {
+    auto state = FlightReconstruction::get_initial_state_estimate(fp.y, fp.x,
+                                                                  -p.pos.gps_altitude,
+                                                                  p.v_tas,
+                                                                  p.bank_angle.Radians(),
+                                                                  p.pitch_angle.Radians(),
+                                                                  p.yaw_angle.AsBearing().Radians());
+    filter.initialise(state, 1.0);
+  }
+
+  inline void initialise_filter_state(FlightReconstruction::FilterWithUpdraftGust &filter,
+                                      const FlatPoint &fp,
+                                      const TrailPoint &p)
+  {
+    auto state = FlightReconstruction::get_initial_state_estimate_with_updraft_gust(
+        fp.y, fp.x,
+        -p.pos.gps_altitude,
+        p.v_tas,
+        p.bank_angle.Radians(),
+        p.pitch_angle.Radians(),
+        p.yaw_angle.AsBearing().Radians());
+    filter.initialise(state, 1.0);
+  }
+
+  template <typename FilterType>
+  bool update_encounter_filter(FilterType &filter,
                                const bool initialise,
                                const FlatPoint &fp,
                                const TrailPoint &p)
   {
     if (initialise)
     {
-      auto state = FlightReconstruction::get_initial_state_estimate(fp.y, fp.x,
-                                                                    -p.pos.gps_altitude,
-                                                                    p.v_tas,
-                                                                    p.bank_angle.Radians(),
-                                                                    p.pitch_angle.Radians(),
-                                                                    p.yaw_angle.AsBearing().Radians());
-      filter.initialise(state, 1.0);
-      // FlightReconstruction::write(filter.get_state());
+      initialise_filter_state(filter, fp, p);
     }
 
     FlightReconstruction::Measurement measurement;
@@ -443,8 +474,41 @@ namespace
     }
   }
 
+  template <typename StateType>
+  FlightReconstruction::Euler get_state_euler(const StateType &state)
+  {
+    auto &[states, quaternion] = state.data;
+    (void)states;
+    const Eigen::Matrix3d R = quaternion.get_q().toRotationMatrix();
+    double theta = asin(-R(2, 0));
+    double psi = acos(R(0, 0) / cos(theta)) * FlightReconstruction::sign(R(1, 0));
+    double phi = acos(R(2, 2) / cos(theta)) * FlightReconstruction::sign(R(2, 1));
+    if (psi < 0)
+      psi += 2 * M_PI;
+
+    return FlightReconstruction::Euler(phi, theta, psi) / FlightReconstruction::DEGTORAD;
+  }
+
+  template <typename StateType>
+  FlightReconstruction::DerivState get_state_vector(const StateType &state)
+  {
+    auto &[states, quaternion] = state.data;
+    FlightReconstruction::DerivState dstate;
+    dstate.reserve(states.size() + 4);
+    for (Eigen::Index i = 0; i < states.size(); ++i)
+      dstate.push_back(states[i]);
+
+    const auto &q = quaternion.get_q();
+    dstate.push_back(q.w());
+    dstate.push_back(q.x());
+    dstate.push_back(q.y());
+    dstate.push_back(q.z());
+    return dstate;
+  }
+
+  template <typename FilterType>
   void append_smoothed_fields(boost::json::array &trace,
-                              const FlightReconstruction::Filter &filter,
+                              const FilterType &filter,
                               const size_t trace_offset,
                               const int filter_type,
                               const bool detailed,
@@ -461,9 +525,9 @@ namespace
     {
       auto &_step = trace[i].as_object();
       const auto &state = smoothed_states[i + trace_offset];
-      const auto &seuler = FlightReconstruction::get_euler(state);
+      const auto seuler = get_state_euler(state);
       const auto &aero = filter.get_aero(state);
-      const auto &dstate = FlightReconstruction::convert_state(state);
+      const auto dstate = get_state_vector(state);
       _step["bank"] = seuler[0];
       _step["pitch"] = seuler[1];
       _step["yaw"] = seuler[2];
@@ -471,7 +535,7 @@ namespace
       _step["v_ias"] = aero.V_ias;
       _step["v_tas"] = aero.V_tas;
 
-      if (filter_type == 2)
+      if (uses_smoothed_position(filter_type))
       {
         _step["y"] = dstate[FlightReconstruction::POS_X];
         _step["x"] = dstate[FlightReconstruction::POS_Y];
@@ -497,6 +561,135 @@ namespace
     }
   }
 
+  template <typename FilterType>
+  void populate_encounter_trace(const AircraftModel &aircraft,
+                                const EncounterMapStore::EncounterInfo &info,
+                                const unsigned id_target,
+                                const bool detailed,
+                                FilterType &filter,
+                                boost::json::array &trace,
+                                bool &plausible,
+                                Averager &visibility_avg,
+                                std::vector<DetectMiss> &misses,
+                                bool &kf_valid,
+                                size_t &reconstruction_warmup_samples)
+  {
+    const TimeStamp t_min = info.time_start - FloatDuration{EncounterMapStore::TYP_TRAIL};
+    const TimeStamp t_max = info.time_end + FloatDuration{EncounterMapStore::HYS_TRAIL};
+    const TimeStamp t_reconstruction_min = t_min - AircraftModel::reconstruction_pre_buffer;
+    const bool filter_enabled = AircraftModel::filter_type > 0;
+
+    for (auto &&p : aircraft.GetTrail())
+    {
+      if (!p.within_time(t_reconstruction_min, t_max))
+        continue;
+
+      const FlatPoint fp = info.project_loc_wind(p);
+
+      if (filter_enabled)
+        kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
+
+      if (p.pos.time < t_min)
+      {
+        if (filter_enabled)
+          ++reconstruction_warmup_samples;
+        continue;
+      }
+
+      const AuxiliaryPair &auxiliary = p.get_auxiliary(id_target);
+      const DetectMiss &miss = auxiliary.second;
+
+      if (detailed)
+      {
+        plausible &= p.plausible;
+        misses.push_back(miss);
+      }
+      const bool proc_visible = p.pos.time <= info.time_start;
+
+      boost::json::object step = {
+          {"t", (p.pos.time - info.time_start).count()},
+          {"alt_baro", p.pos.baro_altitude},
+          {"v", p.v_wind.norm},
+          {"hdg", p.v_wind.bearing.Degrees()},
+      };
+      append_raw_attitude_fields(step, p);
+
+      const bool need_raw_flight = !kf_valid;
+      const bool need_raw_position = need_raw_flight || !uses_smoothed_position(AircraftModel::filter_type);
+
+      if (need_raw_flight)
+        append_raw_flight_fields(step, p);
+      if (need_raw_position)
+        append_position_fields(step, fp, p);
+
+      if (detailed)
+      {
+        const Aspect &aspect = auxiliary.first;
+        const Visibility visibility(aspect);
+        append_common_detailed_fields(step, p, miss);
+
+        if (need_raw_flight)
+        {
+          append_visibility_fields(step, aspect, visibility);
+          if (proc_visible)
+            update_visibility_avg(visibility_avg, visibility);
+        }
+      }
+
+      trace.emplace_back(step);
+    }
+  }
+
+  template <typename FilterType>
+  void populate_vignette_trace(const AircraftModel &aircraft,
+                               const Vignette &info,
+                               FilterType &filter,
+                               boost::json::array &trace,
+                               bool &plausible,
+                               bool &kf_valid,
+                               size_t &reconstruction_warmup_samples)
+  {
+    const TimeStamp t_reconstruction_min = info.time_start - AircraftModel::reconstruction_pre_buffer;
+    const bool filter_enabled = AircraftModel::filter_type > 0;
+
+    for (auto &&p : aircraft.GetTrail())
+    {
+      if (!p.within_time(t_reconstruction_min, info.time_end))
+        continue;
+
+      const FlatPoint fp = info.project_loc_wind(p);
+
+      if (filter_enabled)
+        kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
+
+      if (p.pos.time < info.time_start)
+      {
+        if (filter_enabled)
+          ++reconstruction_warmup_samples;
+        continue;
+      }
+
+      boost::json::object step = {
+          {"t", (p.pos.time - info.time_start).count()},
+          {"alt_baro", p.pos.baro_altitude},
+          {"v", p.v_wind.norm},
+          {"hdg", p.v_wind.bearing.Degrees()},
+      };
+      append_raw_attitude_fields(step, p);
+
+      const bool need_raw_flight = !kf_valid;
+      const bool need_raw_position = need_raw_flight || !uses_smoothed_position(AircraftModel::filter_type);
+
+      if (need_raw_flight)
+        append_raw_flight_fields(step, p);
+      if (need_raw_position)
+        append_position_fields(step, fp, p);
+
+      plausible &= p.plausible;
+      trace.emplace_back(step);
+    }
+  }
+
 } // namespace
 
 boost::json::object AircraftModel::write_encounter(const EncounterMapStore::EncounterInfo &info,
@@ -507,83 +700,32 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
 
   bool plausible = true;
   Averager visibility_avg;
-  FlightReconstruction::Filter filter;
   std::vector<DetectMiss> misses;
   const bool filter_enabled = filter_type > 0;
+  const bool use_updraft_filter = uses_updraft_gust_filter(filter_type);
   bool kf_valid = filter_enabled;
   size_t reconstruction_warmup_samples = 0;
 
-  const TimeStamp t_min = info.time_start - FloatDuration{EncounterMapStore::TYP_TRAIL};
-  const TimeStamp t_max = info.time_end + FloatDuration{EncounterMapStore::HYS_TRAIL};
-  const TimeStamp t_reconstruction_min = t_min - reconstruction_pre_buffer;
-
-  for (auto &&p : trail)
+  if (use_updraft_filter)
   {
-    if (!p.within_time(t_reconstruction_min, t_max))
-    {
-      continue;
-    }
-
-    const FlatPoint fp = info.project_loc_wind(p);
-
-    if (filter_enabled)
-      kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
-
-    if (p.pos.time < t_min)
-    {
-      if (filter_enabled)
-        ++reconstruction_warmup_samples;
-      continue;
-    }
-
-    const AuxiliaryPair &auxiliary = p.get_auxiliary(id_target);
-    const DetectMiss &miss = auxiliary.second;
-
-    if (detailed)
-    {
-      plausible &= p.plausible;
-      misses.push_back(miss);
-    }
-    const bool proc_visible = p.pos.time <= info.time_start;
-
-    boost::json::object step = {
-        {"t", (p.pos.time - info.time_start).count()},
-        {"alt_baro", p.pos.baro_altitude},
-        {"v", p.v_wind.norm},
-        {"hdg", p.v_wind.bearing.Degrees()},
-    };
-    append_raw_attitude_fields(step, p);
-
-    const bool need_raw_flight = !kf_valid;
-    const bool need_raw_position = need_raw_flight || filter_type < 2;
-
-    if (need_raw_flight)
-      append_raw_flight_fields(step, p);
-    if (need_raw_position)
-      append_position_fields(step, fp, p);
-
-    if (detailed)
-    {
-      const Aspect &aspect = auxiliary.first;
-      const Visibility visibility(aspect);
-      append_common_detailed_fields(step, p, miss);
-
-      if (need_raw_flight)
-      {
-        append_visibility_fields(step, aspect, visibility);
-        if (proc_visible)
-        {
-          update_visibility_avg(visibility_avg, visibility);
-        }
-      }
-    }
-
-    trace.emplace_back(step);
+    FlightReconstruction::FilterWithUpdraftGust filter;
+    populate_encounter_trace(*this, info, id_target, detailed, filter, trace,
+                             plausible, visibility_avg, misses,
+                             kf_valid, reconstruction_warmup_samples);
+    if (kf_valid)
+      append_smoothed_fields(trace, filter, reconstruction_warmup_samples,
+                             filter_type, detailed, misses, visibility_avg);
   }
-
-  if (kf_valid)
-    append_smoothed_fields(trace, filter, reconstruction_warmup_samples,
-                           filter_type, detailed, misses, visibility_avg);
+  else
+  {
+    FlightReconstruction::Filter filter;
+    populate_encounter_trace(*this, info, id_target, detailed, filter, trace,
+                             plausible, visibility_avg, misses,
+                             kf_valid, reconstruction_warmup_samples);
+    if (kf_valid)
+      append_smoothed_fields(trace, filter, reconstruction_warmup_samples,
+                             filter_type, detailed, misses, visibility_avg);
+  }
 
   visibility_avg.calculate();
 
@@ -609,56 +751,33 @@ boost::json::object AircraftModel::write_vignette(const Vignette &info) const
   boost::json::array trace;
 
   bool plausible = true;
-  FlightReconstruction::Filter filter;
   const bool filter_enabled = filter_type > 0;
+  const bool use_updraft_filter = uses_updraft_gust_filter(filter_type);
   bool kf_valid = filter_enabled;
   Averager visibility_avg;
   std::vector<DetectMiss> misses;
   size_t reconstruction_warmup_samples = 0;
-  const TimeStamp t_reconstruction_min = info.time_start - reconstruction_pre_buffer;
 
-  for (auto &&p : trail)
+  if (use_updraft_filter)
   {
-    if (!p.within_time(t_reconstruction_min, info.time_end))
-    {
-      continue;
-    }
+    FlightReconstruction::FilterWithUpdraftGust filter;
+    populate_vignette_trace(*this, info, filter, trace, plausible,
+                            kf_valid, reconstruction_warmup_samples);
 
-    const FlatPoint fp = info.project_loc_wind(p);
-
-    if (filter_enabled)
-      kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
-
-    if (p.pos.time < info.time_start)
-    {
-      if (filter_enabled)
-        ++reconstruction_warmup_samples;
-      continue;
-    }
-
-    boost::json::object step = {
-        {"t", (p.pos.time - info.time_start).count()},
-        {"alt_baro", p.pos.baro_altitude},
-        {"v", p.v_wind.norm},
-        {"hdg", p.v_wind.bearing.Degrees()},
-    };
-    append_raw_attitude_fields(step, p);
-
-    const bool need_raw_flight = !kf_valid;
-    const bool need_raw_position = need_raw_flight || filter_type < 2;
-
-    if (need_raw_flight)
-      append_raw_flight_fields(step, p);
-    if (need_raw_position)
-      append_position_fields(step, fp, p);
-
-    plausible &= p.plausible;
-    trace.emplace_back(step);
+    if (kf_valid)
+      append_smoothed_fields(trace, filter, reconstruction_warmup_samples,
+                             filter_type, false, misses, visibility_avg);
   }
+  else
+  {
+    FlightReconstruction::Filter filter;
+    populate_vignette_trace(*this, info, filter, trace, plausible,
+                            kf_valid, reconstruction_warmup_samples);
 
-  if (kf_valid)
-    append_smoothed_fields(trace, filter, reconstruction_warmup_samples,
-                           filter_type, false, misses, visibility_avg);
+    if (kf_valid)
+      append_smoothed_fields(trace, filter, reconstruction_warmup_samples,
+                             filter_type, false, misses, visibility_avg);
+  }
 
   char date_buffer[32];
   FormatISO8601(date_buffer, flight_date_utc_start);

@@ -34,6 +34,7 @@ BuildOptionsSchema()
                            {"u", number_object()},
                            {"w", number_object()},
                            {"q", number_object()},
+                           {"w_g", number_object()},
                            {"attitude_x", number_object()},
                            {"attitude_y", number_object()},
                            {"attitude_z", number_object()},
@@ -243,6 +244,12 @@ static void DecodeOptions(const boost::json::value &_j,
     }
   };
 
+  const auto uses_updraft_gust_filter = []()
+  {
+    const int filter_type = MultiAircraft::AircraftModel::filter_type;
+    return filter_type == 3 || filter_type == 4;
+  };
+
   std::string root;
   if (!try_apply("root", [&](const boost::json::value &v)
                  { root = std::string(v.as_string()); }))
@@ -292,19 +299,23 @@ static void DecodeOptions(const boost::json::value &_j,
 
   ApplyCovarianceOverrides(
       j, "process_covariance",
-      &FlightReconstruction::SetProcessCovarianceDefault);
+      uses_updraft_gust_filter()
+          ? &FlightReconstruction::SetProcessCovarianceDefaultWithUpdraftGust
+          : &FlightReconstruction::SetProcessCovarianceDefault);
   ApplyCovarianceOverrides(
       j, "measurement_covariance",
       &FlightReconstruction::SetMeasurementCovarianceDefault);
   ApplyCovarianceOverrides(
       j, "state_covariance",
-      &FlightReconstruction::SetStateCovarianceDefault);
+      uses_updraft_gust_filter()
+          ? &FlightReconstruction::SetStateCovarianceDefaultWithUpdraftGust
+          : &FlightReconstruction::SetStateCovarianceDefault);
 
   try_apply("rts_window_size", [&](const boost::json::value &v)
             {
               const unsigned rts_window_size = v.to_number<unsigned>();
-              if (MultiAircraft::AircraftModel::filter_type == 1 ||
-                  MultiAircraft::AircraftModel::filter_type == 2)
+              if (MultiAircraft::AircraftModel::filter_type >= 1 &&
+                  MultiAircraft::AircraftModel::filter_type <= 4)
               {
                 FlightReconstruction::SetRTSWindowSize(rts_window_size);
               }
@@ -313,7 +324,7 @@ static void DecodeOptions(const boost::json::value &_j,
                 FlightReconstruction::SetRTSWindowSize(0);
                 std::cout << "Ignoring rts_window_size for filter_type="
                           << MultiAircraft::AircraftModel::filter_type
-                          << " (valid only for 1 or 2)\n";
+                          << " (valid only for 1..4)\n";
               } });
 
   try_apply("vignette", [&](const boost::json::value &v)
