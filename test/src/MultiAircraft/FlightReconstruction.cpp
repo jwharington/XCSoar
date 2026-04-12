@@ -7,7 +7,7 @@ using namespace tableau::integration;
 
 namespace FlightReconstruction
 {
-  unsigned Filter::RTS_WINDOW_SIZE = 0;
+  unsigned Filter::RTS_WINDOW_SIZE = 20;
 
   void SetRTSWindowSize(unsigned value)
   {
