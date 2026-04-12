@@ -26,6 +26,8 @@ namespace FlightReconstruction
     class Filter
     {
     public:
+        static unsigned RTS_WINDOW_SIZE;
+
         void update(const Measurement &meas, const double DT);
         DerivState system_ode(const DerivState &state) const;
         void system_model(State &state, double dt) const;

@@ -7,3 +7,9 @@
 [submodule "android/UsbSerial"]
 	path = android/UsbSerial
 	url = https://github.com/XCSoar/UsbSerial.git
+[submodule "test/src/MultiAircraft/unscented"]
+	path = test/src/MultiAircraft/unscented
+	url = http://github.com/jwharington/unscented.git
+[submodule "test/src/MultiAircraft/Tableau"]
+	path = test/src/MultiAircraft/Tableau
+	url = https://github.com/jwharington/Tableau.git

@@ -10,7 +10,7 @@ using namespace MultiAircraft;
 const GeoPoint Vignette::calc_traildrift() const
 {
   const GeoPoint tp1 = FindLatitudeLongitude(origin, wind.bearing, wind.norm);
-  return origin - tp1;
+  return tp1 - origin;
 }
 
 void Vignette::finalise()

@@ -4,6 +4,7 @@
 #include "system/Args.hpp"
 #include <stdio.h>
 #include "MultiAircraft/FlightCollectionEncounter.hpp"
+#include "MultiAircraft/FlightReconstructionOptions.hpp"
 #include "IGC/IGCFRInfo.hpp"
 #include "io/FileReader.hxx"
 #include "json/Parse.hxx"
@@ -114,6 +115,14 @@ static void DecodeOptions(const boost::json::value &_j,
   catch (const boost::system::system_error &e)
   {
     std::cout << e.what() << std::endl;
+  }
+
+  try
+  {
+    FlightReconstruction::SetRTSWindowSize(j.at("rts_window_size").to_number<unsigned>());
+  }
+  catch (const boost::system::system_error &e)
+  {
   }
 
   try

@@ -1,4 +1,5 @@
 #include "FlightReconstruction.hpp"
+#include "FlightReconstructionOptions.hpp"
 #include "ReconstructionUtility.hpp"
 
 #include "DOP853.h"
@@ -6,6 +7,13 @@ using namespace tableau::integration;
 
 namespace FlightReconstruction
 {
+  unsigned Filter::RTS_WINDOW_SIZE = 0;
+
+  void SetRTSWindowSize(unsigned value)
+  {
+    Filter::RTS_WINDOW_SIZE = value;
+  }
+
   DerivState Filter::system_ode(const DerivState &state) const
   {
     const auto &u = state[VEL_U];
@@ -97,6 +105,7 @@ namespace FlightReconstruction
                           const double DT)
   {
     (void)DT; // unused
+    ukf.set_max_smoothing_points(RTS_WINDOW_SIZE);
     ukf.set_weight_coefficients(0.1, 2.0, -1.0);
 
     UKF::N_by_N Q;
