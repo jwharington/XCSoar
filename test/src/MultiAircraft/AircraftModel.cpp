@@ -532,8 +532,15 @@ namespace
       _step["pitch"] = seuler[1];
       _step["yaw"] = seuler[2];
       _step["load_factor"] = aero.load_factor;
+      _step["alpha"] = aero.alpha / FlightReconstruction::DEGTORAD;
       _step["v_ias"] = aero.V_ias;
       _step["v_tas"] = aero.V_tas;
+
+      if (uses_updraft_gust_filter(filter_type) &&
+          dstate.size() > FlightReconstruction::QUATERNION + 4)
+      {
+        _step["w_g"] = dstate[FlightReconstruction::QUATERNION];
+      }
 
       if (uses_smoothed_position(filter_type))
       {
