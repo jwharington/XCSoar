@@ -77,6 +77,11 @@ BuildOptionsSchema()
                                                                       {"bootstrap_iterations", boost::json::object{{"type", "integer"}}},
                                                                       {"bootstrap_fraction", number_object()},
                                                                       {"random_seed", boost::json::object{{"type", "integer"}}},
+                                                                      {"convergence_enabled", boost::json::object{{"type", "boolean"}}},
+                                                                      {"convergence_min_passes", boost::json::object{{"type", "integer"}}},
+                                                                      {"convergence_max_passes", boost::json::object{{"type", "integer"}}},
+                                                                      {"convergence_flights_per_pass", boost::json::object{{"type", "integer"}}},
+                                                                      {"convergence_rel_tolerance", number_object()},
                                                                   }},
                                                }},
                          {"vignette", boost::json::object{
@@ -156,6 +161,16 @@ DecodeCovarianceTuning(const boost::json::object &obj,
             { config.bootstrap_fraction = v.to_number<double>(); });
   try_apply("random_seed", [&](const boost::json::value &v)
             { config.random_seed = v.to_number<unsigned>(); });
+  try_apply("convergence_enabled", [&](const boost::json::value &v)
+            { config.convergence_enabled = v.as_bool(); });
+  try_apply("convergence_min_passes", [&](const boost::json::value &v)
+            { config.convergence_min_passes = v.to_number<std::size_t>(); });
+  try_apply("convergence_max_passes", [&](const boost::json::value &v)
+            { config.convergence_max_passes = v.to_number<std::size_t>(); });
+  try_apply("convergence_flights_per_pass", [&](const boost::json::value &v)
+            { config.convergence_flights_per_pass = v.to_number<std::size_t>(); });
+  try_apply("convergence_rel_tolerance", [&](const boost::json::value &v)
+            { config.convergence_rel_tolerance = v.to_number<double>(); });
 }
 
 static auto
@@ -415,7 +430,13 @@ int main(int argc, char **argv)
               << " max_restarts_per_flight=" << covariance_tuning.max_restarts_per_flight
               << " bootstrap_iterations=" << covariance_tuning.bootstrap_iterations
               << " bootstrap_fraction=" << covariance_tuning.bootstrap_fraction
-              << " random_seed=" << covariance_tuning.random_seed << "\n";
+              << " random_seed=" << covariance_tuning.random_seed
+              << " convergence_enabled=" << covariance_tuning.convergence_enabled
+              << " convergence_min_passes=" << covariance_tuning.convergence_min_passes
+              << " convergence_max_passes=" << covariance_tuning.convergence_max_passes
+              << " convergence_flights_per_pass=" << covariance_tuning.convergence_flights_per_pass
+              << " convergence_rel_tolerance=" << covariance_tuning.convergence_rel_tolerance
+              << "\n";
 
     const auto tuned = MultiAircraft::TuneFlightReconstructionCovariances(
         flights.GetAircraft(), covariance_tuning);

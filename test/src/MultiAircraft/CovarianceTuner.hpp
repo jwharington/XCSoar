@@ -28,6 +28,12 @@ namespace MultiAircraft
         std::size_t bootstrap_iterations = 200;
         double bootstrap_fraction = 0.35;
         unsigned random_seed = 1337;
+
+        bool convergence_enabled = true;
+        std::size_t convergence_min_passes = 2;
+        std::size_t convergence_max_passes = 8;
+        std::size_t convergence_flights_per_pass = 0;
+        double convergence_rel_tolerance = 0.02;
     };
 
     struct CovarianceTuningResult
