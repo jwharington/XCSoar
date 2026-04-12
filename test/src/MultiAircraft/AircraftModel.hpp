@@ -135,8 +135,14 @@ namespace MultiAircraft
   public:
     static double MIX_BARO;
     static int filter_type;
+    static FloatDuration reconstruction_pre_buffer;
     static bool write_trace_files;
     static bool keep_full_trail;
+
+    static void SetReconstructionPreBuffer(const double seconds)
+    {
+      reconstruction_pre_buffer = FloatDuration(seconds);
+    }
 
     static void SetWriteTraceFiles(const bool enabled)
     {

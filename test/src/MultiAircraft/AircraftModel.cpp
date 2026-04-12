@@ -17,6 +17,7 @@ int AircraftModel::num_aircraft = 0;
 TimeStamp AircraftModel::first_launch = TimeStamp::Undefined();
 double AircraftModel::MIX_BARO = 0.5;
 int AircraftModel::filter_type = 1;
+FloatDuration AircraftModel::reconstruction_pre_buffer{5};
 bool AircraftModel::write_trace_files = true;
 bool AircraftModel::keep_full_trail = false;
 GlidePolar AircraftModel::glide_polar(0);
@@ -348,7 +349,6 @@ bool AircraftModel::other_visible(const EncounterMapStore::EncounterInfo &info,
 
 namespace
 {
-
   void update_visibility_avg(Averager &visibility_avg, const Visibility &visibility)
   {
     visibility_avg.add(visibility.focus_factor * (1 - visibility.occlusion));
@@ -445,18 +445,22 @@ namespace
 
   void append_smoothed_fields(boost::json::array &trace,
                               const FlightReconstruction::Filter &filter,
+                              const size_t trace_offset,
                               const int filter_type,
                               const bool detailed,
                               const std::vector<DetectMiss> &misses,
                               Averager &visibility_avg)
   {
     const auto &smoothed_states = filter.get_smoothed_states();
-    const size_t n = std::min(trace.size(), smoothed_states.size());
+    if (trace_offset >= smoothed_states.size())
+      return;
+
+    const size_t n = std::min(trace.size(), smoothed_states.size() - trace_offset);
 
     for (size_t i = 0; i < n; ++i)
     {
       auto &_step = trace[i].as_object();
-      const auto &state = smoothed_states[i];
+      const auto &state = smoothed_states[i + trace_offset];
       const auto &seuler = FlightReconstruction::get_euler(state);
       const auto &aero = filter.get_aero(state);
       const auto &dstate = FlightReconstruction::convert_state(state);
@@ -507,18 +511,31 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
   std::vector<DetectMiss> misses;
   const bool filter_enabled = filter_type > 0;
   bool kf_valid = filter_enabled;
+  size_t reconstruction_warmup_samples = 0;
 
   const TimeStamp t_min = info.time_start - FloatDuration{EncounterMapStore::TYP_TRAIL};
   const TimeStamp t_max = info.time_end + FloatDuration{EncounterMapStore::HYS_TRAIL};
+  const TimeStamp t_reconstruction_min = t_min - reconstruction_pre_buffer;
 
   for (auto &&p : trail)
   {
-    if (!p.within_time(t_min, t_max))
+    if (!p.within_time(t_reconstruction_min, t_max))
     {
       continue;
     }
 
     const FlatPoint fp = info.project_loc_wind(p);
+
+    if (filter_enabled)
+      kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
+
+    if (p.pos.time < t_min)
+    {
+      if (filter_enabled)
+        ++reconstruction_warmup_samples;
+      continue;
+    }
+
     const AuxiliaryPair &auxiliary = p.get_auxiliary(id_target);
     const DetectMiss &miss = auxiliary.second;
 
@@ -536,9 +553,6 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
         {"hdg", p.v_wind.bearing.Degrees()},
     };
     append_raw_attitude_fields(step, p);
-
-    if (filter_enabled)
-      kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
 
     const bool need_raw_flight = !kf_valid;
     const bool need_raw_position = need_raw_flight || filter_type < 2;
@@ -568,7 +582,8 @@ boost::json::object AircraftModel::write_encounter(const EncounterMapStore::Enco
   }
 
   if (kf_valid)
-    append_smoothed_fields(trace, filter, filter_type, detailed, misses, visibility_avg);
+    append_smoothed_fields(trace, filter, reconstruction_warmup_samples,
+                           filter_type, detailed, misses, visibility_avg);
 
   visibility_avg.calculate();
 
@@ -599,15 +614,27 @@ boost::json::object AircraftModel::write_vignette(const Vignette &info) const
   bool kf_valid = filter_enabled;
   Averager visibility_avg;
   std::vector<DetectMiss> misses;
+  size_t reconstruction_warmup_samples = 0;
+  const TimeStamp t_reconstruction_min = info.time_start - reconstruction_pre_buffer;
 
   for (auto &&p : trail)
   {
-    if (!p.within_time(info.time_start, info.time_end))
+    if (!p.within_time(t_reconstruction_min, info.time_end))
     {
       continue;
     }
 
     const FlatPoint fp = info.project_loc_wind(p);
+
+    if (filter_enabled)
+      kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
+
+    if (p.pos.time < info.time_start)
+    {
+      if (filter_enabled)
+        ++reconstruction_warmup_samples;
+      continue;
+    }
 
     boost::json::object step = {
         {"t", (p.pos.time - info.time_start).count()},
@@ -616,9 +643,6 @@ boost::json::object AircraftModel::write_vignette(const Vignette &info) const
         {"hdg", p.v_wind.bearing.Degrees()},
     };
     append_raw_attitude_fields(step, p);
-
-    if (filter_enabled)
-      kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
 
     const bool need_raw_flight = !kf_valid;
     const bool need_raw_position = need_raw_flight || filter_type < 2;
@@ -633,7 +657,8 @@ boost::json::object AircraftModel::write_vignette(const Vignette &info) const
   }
 
   if (kf_valid)
-    append_smoothed_fields(trace, filter, filter_type, false, misses, visibility_avg);
+    append_smoothed_fields(trace, filter, reconstruction_warmup_samples,
+                           filter_type, false, misses, visibility_avg);
 
   char date_buffer[32];
   FormatISO8601(date_buffer, flight_date_utc_start);

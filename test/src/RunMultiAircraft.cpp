@@ -119,6 +119,15 @@ static void DecodeOptions(const boost::json::value &_j,
 
   try
   {
+    MultiAircraft::AircraftModel::SetReconstructionPreBuffer(
+        j.at("reconstruction_pre_buffer").to_number<double>());
+  }
+  catch (const boost::system::system_error &e)
+  {
+  }
+
+  try
+  {
     const unsigned rts_window_size = j.at("rts_window_size").to_number<unsigned>();
     if (MultiAircraft::AircraftModel::filter_type == 1 ||
         MultiAircraft::AircraftModel::filter_type == 2)
