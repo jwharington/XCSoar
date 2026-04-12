@@ -275,33 +275,18 @@ clean:
 
 .PHONY: all everything clean FORCE
 
-ifneq ($(wildcard $(ABI_OUTPUT_DIR)/src/*.d),)
-include $(wildcard $(ABI_OUTPUT_DIR)/src/*.d)
-endif
-ifneq ($(wildcard $(ABI_OUTPUT_DIR)/src/*/*.d),)
-include $(wildcard $(ABI_OUTPUT_DIR)/src/*/*.d)
-endif
-ifneq ($(wildcard $(ABI_OUTPUT_DIR)/src/*/*/*.d),)
-include $(wildcard $(ABI_OUTPUT_DIR)/src/*/*/*.d)
-endif
-ifneq ($(wildcard $(ABI_OUTPUT_DIR)/src/*/*/*/*.d),)
-include $(wildcard $(ABI_OUTPUT_DIR)/src/*/*/*/*.d)
-endif
-ifneq ($(wildcard $(ABI_OUTPUT_DIR)/src/*/*/*/*/*.d),)
-include $(wildcard $(ABI_OUTPUT_DIR)/src/*/*/*/*/*.d)
-endif
-ifneq ($(wildcard $(ABI_OUTPUT_DIR)/src/*/*/*/*/*/*.d),)
-include $(wildcard $(ABI_OUTPUT_DIR)/src/*/*/*/*/*/*.d)
-endif
-ifneq ($(wildcard $(ABI_OUTPUT_DIR)/test/src/*.d),)
-include $(wildcard $(ABI_OUTPUT_DIR)/test/src/*.d)
-endif
-ifneq ($(wildcard $(ABI_OUTPUT_DIR)/test/src/*/*.d),)
-include $(wildcard $(ABI_OUTPUT_DIR)/test/src/*/*.d)
-endif
-ifneq ($(wildcard $(ABI_OUTPUT_DIR)/test/src/*/*/*.d),)
-include $(wildcard $(ABI_OUTPUT_DIR)/test/src/*/*/*.d)
-endif
-ifneq ($(wildcard $(ABI_OUTPUT_DIR)/test/src/*/*/*/*.d),)
-include $(wildcard $(ABI_OUTPUT_DIR)/test/src/*/*/*/*.d)
+DEPFILES = \
+	$(ABI_OUTPUT_DIR)/src/*.d \
+	$(ABI_OUTPUT_DIR)/src/*/*.d \
+	$(ABI_OUTPUT_DIR)/src/*/*/*.d \
+	$(ABI_OUTPUT_DIR)/src/*/*/*/*.d \
+	$(ABI_OUTPUT_DIR)/src/*/*/*/*/*.d \
+	$(ABI_OUTPUT_DIR)/src/*/*/*/*/*/*.d \
+	$(ABI_OUTPUT_DIR)/test/src/*.d \
+	$(ABI_OUTPUT_DIR)/test/src/*/*.d \
+	$(ABI_OUTPUT_DIR)/test/src/*/*/*.d \
+	$(ABI_OUTPUT_DIR)/test/src/*/*/*/*.d
+
+ifneq ($(wildcard $(DEPFILES)),)
+include $(wildcard $(DEPFILES))
 endif
