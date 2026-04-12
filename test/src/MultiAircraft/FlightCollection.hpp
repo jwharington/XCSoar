@@ -14,6 +14,10 @@ namespace MultiAircraft
     bool load_files(Args &args);
     bool run();
     virtual boost::json::object record_summary() const;
+    const std::list<AircraftModel> &GetAircraft() const
+    {
+      return group;
+    }
 
   protected:
     virtual std::string get_symbol(const AircraftModel &m) const;

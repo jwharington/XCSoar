@@ -39,6 +39,7 @@ namespace FlightReconstruction
         const AeroLoad get_aero(const State &state) const;
         const Euler get_euler() const;
         const std::vector<State> &get_smoothed_states() const { return ukf.get_smoothed_states(); };
+        const UKF::M_by_1 &get_innovation() const { return ukf.get_innovation(); }
 
     private:
         UKF ukf;

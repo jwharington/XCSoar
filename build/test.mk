@@ -1520,6 +1520,7 @@ RUN_MULTI_AIRCRAFT_SOURCES = \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightFlock.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/GliderAeroLoads.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightReconstruction.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/CovarianceTuner.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/ReconstructionUtility.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/Flock.cpp \
 	$(TEST_SRC_DIR)/RunMultiAircraft.cpp

@@ -91,6 +91,10 @@ namespace MultiAircraft
     void calc_auxiliary(const AircraftModel &target);
     bool aliased(const AircraftModel &other) const;
     bool flight_present(const bool first_pass) const;
+    const TrailPointList &GetTrail() const
+    {
+      return trail;
+    }
 
     static TimeStamp first_launch;
     BrokenDate flight_date_utc_start;

@@ -104,6 +104,21 @@ namespace FlightReconstruction
     return SetNamedDefault(STATE_COVARIANCE_DEFAULTS, name, value);
   }
 
+  std::array<std::pair<std::string_view, double>, 9> GetProcessCovarianceDefaults()
+  {
+    return PROCESS_COVARIANCE_DEFAULTS;
+  }
+
+  std::array<std::pair<std::string_view, double>, 4> GetMeasurementCovarianceDefaults()
+  {
+    return MEASUREMENT_COVARIANCE_DEFAULTS;
+  }
+
+  std::array<std::pair<std::string_view, double>, 9> GetStateCovarianceDefaults()
+  {
+    return STATE_COVARIANCE_DEFAULTS;
+  }
+
   DerivState Filter::system_ode(const DerivState &state) const
   {
     const auto &u = state[VEL_U];

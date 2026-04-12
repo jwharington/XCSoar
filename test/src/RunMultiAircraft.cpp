@@ -3,6 +3,7 @@
 
 #include "system/Args.hpp"
 #include <stdio.h>
+#include "MultiAircraft/CovarianceTuner.hpp"
 #include "MultiAircraft/FlightCollectionEncounter.hpp"
 #include "MultiAircraft/FlightReconstructionOptions.hpp"
 #include "IGC/IGCFRInfo.hpp"
@@ -10,6 +11,7 @@
 #include "json/Parse.hxx"
 #include "util/StringCompare.hxx"
 
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -58,6 +60,25 @@ BuildOptionsSchema()
                          {"process_covariance", covariance_schema()},
                          {"measurement_covariance", covariance_schema()},
                          {"state_covariance", covariance_schema()},
+                         {"covariance_tuning", boost::json::object{
+                                                   {"type", "object"},
+                                                   {"additionalProperties", false},
+                                                   {"properties", boost::json::object{
+                                                                      {"enabled", boost::json::object{{"type", "boolean"}}},
+                                                                      {"output", boost::json::object{{"type", "string"}}},
+                                                                      {"min_samples", boost::json::object{{"type", "integer"}}},
+                                                                      {"blend", number_object()},
+                                                                      {"min_diagonal", number_object()},
+                                                                      {"max_flights", boost::json::object{{"type", "integer"}}},
+                                                                      {"max_points_per_flight", boost::json::object{{"type", "integer"}}},
+                                                                      {"max_failures_per_flight", boost::json::object{{"type", "integer"}}},
+                                                                      {"max_consecutive_failures", boost::json::object{{"type", "integer"}}},
+                                                                      {"max_restarts_per_flight", boost::json::object{{"type", "integer"}}},
+                                                                      {"bootstrap_iterations", boost::json::object{{"type", "integer"}}},
+                                                                      {"bootstrap_fraction", number_object()},
+                                                                      {"random_seed", boost::json::object{{"type", "integer"}}},
+                                                                  }},
+                                               }},
                          {"vignette", boost::json::object{
                                           {"type", "object"},
                                           {"additionalProperties", false},
@@ -93,6 +114,49 @@ struct VignetteConfig
   unsigned start_time = 0;
   unsigned end_time = 0;
 };
+
+static void
+DecodeCovarianceTuning(const boost::json::object &obj,
+                       MultiAircraft::CovarianceTuningConfig &config)
+{
+  auto try_apply = [&](const char *key, auto &&fn)
+  {
+    try
+    {
+      fn(obj.at(key));
+    }
+    catch (const boost::system::system_error &)
+    {
+    }
+  };
+
+  try_apply("enabled", [&](const boost::json::value &v)
+            { config.enabled = v.as_bool(); });
+  try_apply("output", [&](const boost::json::value &v)
+            { config.output_path = std::string(v.as_string()); });
+  try_apply("min_samples", [&](const boost::json::value &v)
+            { config.min_samples = v.to_number<std::size_t>(); });
+  try_apply("blend", [&](const boost::json::value &v)
+            { config.blend = v.to_number<double>(); });
+  try_apply("min_diagonal", [&](const boost::json::value &v)
+            { config.min_diagonal = v.to_number<double>(); });
+  try_apply("max_flights", [&](const boost::json::value &v)
+            { config.max_flights = v.to_number<std::size_t>(); });
+  try_apply("max_points_per_flight", [&](const boost::json::value &v)
+            { config.max_points_per_flight = v.to_number<std::size_t>(); });
+  try_apply("max_failures_per_flight", [&](const boost::json::value &v)
+            { config.max_failures_per_flight = v.to_number<std::size_t>(); });
+  try_apply("max_consecutive_failures", [&](const boost::json::value &v)
+            { config.max_consecutive_failures = v.to_number<std::size_t>(); });
+  try_apply("max_restarts_per_flight", [&](const boost::json::value &v)
+            { config.max_restarts_per_flight = v.to_number<std::size_t>(); });
+  try_apply("bootstrap_iterations", [&](const boost::json::value &v)
+            { config.bootstrap_iterations = v.to_number<std::size_t>(); });
+  try_apply("bootstrap_fraction", [&](const boost::json::value &v)
+            { config.bootstrap_fraction = v.to_number<double>(); });
+  try_apply("random_seed", [&](const boost::json::value &v)
+            { config.random_seed = v.to_number<unsigned>(); });
+}
 
 static auto
 ParseJsonFile(Path path)
@@ -133,7 +197,8 @@ ApplyCovarianceOverrides(const boost::json::object &j,
 
 static void DecodeOptions(const boost::json::value &_j,
                           MultiAircraft::FlightCollectionEncounter &flights,
-                          VignetteConfig &vignette)
+                          VignetteConfig &vignette,
+                          MultiAircraft::CovarianceTuningConfig &covariance_tuning)
 {
   const auto &j = _j.as_object();
   auto try_apply = [&](const char *key, auto &&fn)
@@ -249,6 +314,9 @@ static void DecodeOptions(const boost::json::value &_j,
               }
               vignette.enabled = true; });
 
+  try_apply("covariance_tuning", [&](const boost::json::value &v)
+            { DecodeCovarianceTuning(v.as_object(), covariance_tuning); });
+
   try
   {
     const auto &igc_file_array = j.at("igc_files").as_array();
@@ -287,6 +355,7 @@ int main(int argc, char **argv)
 {
   MultiAircraft::FlightCollectionEncounter flights;
   VignetteConfig vignette;
+  MultiAircraft::CovarianceTuningConfig covariance_tuning;
 
   Args args(argc, argv, "options.json");
   Path path = Path("options.json");
@@ -316,9 +385,9 @@ int main(int argc, char **argv)
     throw;
   }
 
-  DecodeOptions(json_data, flights, vignette);
+  DecodeOptions(json_data, flights, vignette, covariance_tuning);
   MultiAircraft::AircraftModel::SetWriteTraceFiles(!vignette.enabled);
-  MultiAircraft::AircraftModel::SetKeepFullTrail(vignette.enabled);
+  MultiAircraft::AircraftModel::SetKeepFullTrail(vignette.enabled || covariance_tuning.enabled);
   MultiAircraft::FlightFlock::SetWriteJsonFile(!vignette.enabled);
   if (vignette.enabled)
   {
@@ -331,6 +400,42 @@ int main(int argc, char **argv)
   args.ExpectEnd();
 
   flights.run();
+
+  if (covariance_tuning.enabled)
+  {
+    std::cout << "[cov-tune] invoke output='" << covariance_tuning.output_path
+              << "' min_samples=" << covariance_tuning.min_samples
+              << " blend=" << covariance_tuning.blend
+              << " min_diagonal=" << covariance_tuning.min_diagonal
+              << " max_flights=" << covariance_tuning.max_flights
+              << " max_points_per_flight=" << covariance_tuning.max_points_per_flight
+              << " max_failures_per_flight=" << covariance_tuning.max_failures_per_flight
+              << " max_consecutive_failures=" << covariance_tuning.max_consecutive_failures
+              << " max_restarts_per_flight=" << covariance_tuning.max_restarts_per_flight
+              << " bootstrap_iterations=" << covariance_tuning.bootstrap_iterations
+              << " bootstrap_fraction=" << covariance_tuning.bootstrap_fraction
+              << " random_seed=" << covariance_tuning.random_seed << "\n";
+
+    const auto tuned = MultiAircraft::TuneFlightReconstructionCovariances(
+        flights.GetAircraft(), covariance_tuning);
+
+    if (!tuned.success)
+    {
+      std::cout << "Covariance tuning skipped: " << tuned.message
+                << " (measurement=" << tuned.measurement_samples
+                << ", process=" << tuned.process_samples
+                << ", initial_state=" << tuned.initial_state_samples << ")\n";
+    }
+    else
+    {
+      boost::json::object out;
+      out.emplace("covariance_tuning", tuned.covariances);
+
+      std::ofstream file(covariance_tuning.output_path);
+      file << boost::json::serialize(out) << "\n";
+      std::cout << "[cov-tune] wrote tuned covariance file: " << covariance_tuning.output_path << "\n";
+    }
+  }
 
   if (vignette.enabled)
   {
