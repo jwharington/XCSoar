@@ -14,6 +14,11 @@ namespace FlightReconstruction
         return detail::ConvertState<6, QUATERNION>(state);
     }
 
+    const DerivState convert_state(const StateWithUpdraftGust &state)
+    {
+        return detail::ConvertState<7, detail::QUATERNION_WITH_UPDRAFT_GUST>(state);
+    }
+
     void set_state(State &state,
                    const DerivState &vstate)
     {

@@ -40,6 +40,7 @@ namespace FlightReconstruction
     void set_state(State &state,
                    const DerivState &vstate);
     const DerivState convert_state(const State &state);
+    const DerivState convert_state(const StateWithUpdraftGust &state);
     const Eigen::Vector3d get_euler(const State &state);
 
     // loaders

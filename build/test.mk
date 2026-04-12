@@ -1537,6 +1537,16 @@ RUN_MULTI_AIRCRAFT_LDLIBS = -static-libstdc++ -static-libgcc -static
 RUN_MULTI_AIRCRAFT_DEPENDS = DRIVER LIBNET IO OS THREAD TIME DATA JSON
 $(eval $(call link-program,RunMultiAircraft,RUN_MULTI_AIRCRAFT))
 
+RUN_FLIGHT_RECONSTRUCTION_GUST_DEMO_SOURCES = \
+	$(TEST_SRC_DIR)/MultiAircraft/GliderAeroLoads.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/FlightReconstruction.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/FlightReconstructionFilterWithUpdraftGust.cpp \
+	$(TEST_SRC_DIR)/RunFlightReconstructionGustDemo.cpp
+RUN_FLIGHT_RECONSTRUCTION_GUST_DEMO_CPPFLAGS = $(RUN_MULTI_AIRCRAFT_CPPFLAGS)
+RUN_FLIGHT_RECONSTRUCTION_GUST_DEMO_LDLIBS = $(RUN_MULTI_AIRCRAFT_LDLIBS)
+RUN_FLIGHT_RECONSTRUCTION_GUST_DEMO_DEPENDS = MATH UTIL
+$(eval $(call link-program,RunFlightReconstructionGustDemo,RUN_FLIGHT_RECONSTRUCTION_GUST_DEMO))
+
 RUN_EXTERNAL_WIND_SOURCES = \
 	$(DEBUG_REPLAY_SOURCES) \
 	$(SRC)/Formatter/TimeFormatter.cpp \
