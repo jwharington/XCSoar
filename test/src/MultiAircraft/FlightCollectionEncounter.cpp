@@ -168,8 +168,78 @@ bool FlightCollectionEncounter::process(const TimeStamp t)
   visibility_update();
   encounter_update(t);
   update_vignettes(t);
+  update_airspace_incursions(t);
   time_close += encounter_store.erase_expired(t, group, DISTANCE, alt_start_av + HEIGHT_THRESHOLD_M);
   return ok;
+}
+
+void FlightCollectionEncounter::update_airspace_incursions(const TimeStamp t)
+{
+  if (!openaip_airspaces.IsEnabled())
+    return;
+
+  for (auto &[_, active] : active_incursions)
+    active.seen = false;
+
+  for (const auto &a : group)
+  {
+    if (!a.live || !a.valid)
+      continue;
+
+    auto ground_it = ground_reference_by_aircraft.find(a.idi);
+    if (ground_it == ground_reference_by_aircraft.end())
+      ground_it = ground_reference_by_aircraft.emplace(a.idi, a.interp_loc.baro_altitude).first;
+    else
+      ground_it->second = std::min(ground_it->second, a.interp_loc.baro_altitude);
+
+    const auto hits = openaip_airspaces.Query(a.interp_loc.location,
+                                              a.interp_loc.baro_altitude,
+                                              ground_it->second);
+    const auto wind = a.Calculated().estimated_wind;
+
+    for (const auto &hit : hits)
+    {
+      const IncursionKey key{(unsigned)a.idi, hit.airspace_index};
+      auto it = active_incursions.find(key);
+      if (it == active_incursions.end())
+      {
+        ActiveIncursion active{
+            hit.airspace_index,
+            Vignette(a.idi, t, a.flight_date_utc_start,
+                     a.interp_loc.location,
+                     a.interp_loc.baro_altitude,
+                     wind),
+            {},
+            hit.depth_m,
+            true};
+        active.depth_samples.emplace_back(t, hit.depth_m);
+        active_incursions.emplace(key, std::move(active));
+        continue;
+      }
+
+      auto &active = it->second;
+      active.vignette.time_end = t;
+      active.vignette.wind_acc += Vector(wind);
+      ++active.vignette.num_wind;
+      active.vignette.wind = SpeedVector(active.vignette.wind_acc.y / active.vignette.num_wind,
+                                         active.vignette.wind_acc.x / active.vignette.num_wind);
+      active.depth_samples.emplace_back(t, hit.depth_m);
+      active.max_depth = std::max(active.max_depth, hit.depth_m);
+      active.seen = true;
+    }
+  }
+
+  for (auto it = active_incursions.begin(); it != active_incursions.end();)
+  {
+    if (it->second.seen)
+    {
+      ++it;
+      continue;
+    }
+
+    completed_incursions[it->first.aircraft_id].push_back(std::move(it->second));
+    it = active_incursions.erase(it);
+  }
 }
 
 void FlightCollectionEncounter::update_vignettes(const TimeStamp t)
@@ -369,6 +439,10 @@ void FlightCollectionEncounter::finalise()
   flock_algorithm.finalise();
   time_close += encounter_store.erase_expired(TimeStamp::Undefined(), group, DISTANCE, alt_start_av + HEIGHT_THRESHOLD_M);
   write_vignette_file();
+  for (auto &[key, active] : active_incursions)
+    completed_incursions[key.aircraft_id].push_back(std::move(active));
+  active_incursions.clear();
+  write_incursion_files();
   FlightCollection::finalise();
 }
 
@@ -495,6 +569,57 @@ void FlightCollectionEncounter::write_vignette_file()
 
   std::ofstream file(filename.str());
   file << boost::json::serialize(json_info);
+}
+
+void FlightCollectionEncounter::write_incursion_files()
+{
+  if (!openaip_airspaces.IsEnabled())
+    return;
+
+  for (auto &[idi, incursions] : completed_incursions)
+  {
+    auto aircraft_it = std::find_if(group.begin(), group.end(),
+                                    [idi](const AircraftModel &a)
+                                    {
+                                      return a.idi == (int)idi;
+                                    });
+    if (aircraft_it == group.end())
+      continue;
+
+    for (std::size_t index = 0; index < incursions.size(); ++index)
+    {
+      auto &incursion = incursions[index];
+      incursion.vignette.finalise();
+      const auto &metadata = openaip_airspaces.GetMetadata(incursion.airspace_index);
+      const double geoid_offset = EGM96::LookupSeparation(incursion.vignette.origin);
+
+      boost::json::array aircraft_json;
+      aircraft_json.emplace_back(aircraft_it->write_incursion(incursion.vignette,
+                                                              incursion.depth_samples));
+
+      boost::json::object json_info = {
+          {"time_start", (int)incursion.vignette.time_start.ToDuration().count()},
+          {"time_end", (int)incursion.vignette.time_end.ToDuration().count()},
+          {"subject", aircraft_it->id},
+          {"airspace_name", metadata.name},
+          {"airspace_type", metadata.type},
+          {"airspace_class", metadata.icao_class},
+          {"lower_limit", metadata.lower_label},
+          {"upper_limit", metadata.upper_label},
+          {"depth_max", incursion.max_depth},
+          {"latitude", incursion.vignette.origin.latitude.Degrees()},
+          {"longitude", incursion.vignette.origin.longitude.Degrees()},
+          {"geoid_offset", geoid_offset},
+          {"wind_speed", incursion.vignette.wind.norm},
+          {"wind_bearing", incursion.vignette.wind.bearing.Degrees()},
+          {"aircraft", aircraft_json}};
+
+      std::ostringstream filename;
+      filename << "incursion-" << aircraft_it->id << "-" << index << ".json";
+      std::ofstream file(filename.str());
+      file << boost::json::serialize(json_info);
+    }
+  }
 }
 
 double FlightCollectionEncounter::get_effective_distance(const AircraftModel &a,

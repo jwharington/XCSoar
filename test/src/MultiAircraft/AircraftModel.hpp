@@ -48,6 +48,8 @@ namespace MultiAircraft
                                         const unsigned id_target,
                                         const bool detailed = false) const;
     boost::json::object write_vignette(const Vignette &info) const;
+    boost::json::object write_incursion(const Vignette &info,
+                                        const std::vector<std::pair<TimeStamp, double>> &depth_samples) const;
     bool within_horizontal_distance(const AircraftModel &other,
                                     const TimeStamp t_min,
                                     const TimeStamp t_max,

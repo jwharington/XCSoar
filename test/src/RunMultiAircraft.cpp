@@ -95,6 +95,14 @@ BuildOptionsSchema()
                                                          }},
                                           {"required", boost::json::array{"subject", "start_time", "end_time"}},
                                       }},
+                         {"airspace", boost::json::object{
+                                          {"type", "object"},
+                                          {"additionalProperties", false},
+                                          {"properties", boost::json::object{
+                                                             {"openaip", boost::json::object{{"type", "string"}}},
+                                                         }},
+                                          {"required", boost::json::array{"openaip"}},
+                                      }},
                          {"igc_files", boost::json::object{
                                            {"type", "array"},
                                            {"items", boost::json::object{{"type", "string"}}},
@@ -119,6 +127,16 @@ struct VignetteConfig
   std::string subject;
   unsigned start_time = 0;
   unsigned end_time = 0;
+};
+
+struct AirspaceConfig
+{
+  std::string openaip_path;
+
+  bool enabled() const noexcept
+  {
+    return !openaip_path.empty();
+  }
 };
 
 static void
@@ -214,6 +232,7 @@ ApplyCovarianceOverrides(const boost::json::object &j,
 static void DecodeOptions(const boost::json::value &_j,
                           MultiAircraft::FlightCollectionEncounter &flights,
                           VignetteConfig &vignette,
+                          AirspaceConfig &airspace,
                           MultiAircraft::CovarianceTuningConfig &covariance_tuning)
 {
   const auto &j = _j.as_object();
@@ -340,6 +359,11 @@ static void DecodeOptions(const boost::json::value &_j,
               }
               vignette.enabled = true; });
 
+  try_apply("airspace", [&](const boost::json::value &v)
+            {
+              const auto &obj = v.as_object();
+              airspace.openaip_path = std::string(obj.at("openaip").as_string()); });
+
   try_apply("covariance_tuning", [&](const boost::json::value &v)
             { DecodeCovarianceTuning(v.as_object(), covariance_tuning); });
 
@@ -381,6 +405,7 @@ int main(int argc, char **argv)
 {
   MultiAircraft::FlightCollectionEncounter flights;
   VignetteConfig vignette;
+  AirspaceConfig airspace;
   MultiAircraft::CovarianceTuningConfig covariance_tuning;
 
   Args args(argc, argv, "options.json");
@@ -411,11 +436,13 @@ int main(int argc, char **argv)
     throw;
   }
 
-  DecodeOptions(json_data, flights, vignette, covariance_tuning);
+  DecodeOptions(json_data, flights, vignette, airspace, covariance_tuning);
   MultiAircraft::AircraftModel::SetWriteTraceFiles(!vignette.enabled);
   MultiAircraft::AircraftModel::SetKeepFullTrail(vignette.enabled || covariance_tuning.enabled);
   MultiAircraft::FlightCollectionEncounter::SetSkipEncounterProcessing(covariance_tuning.enabled);
   MultiAircraft::FlightFlock::SetWriteJsonFile(!vignette.enabled);
+  if (airspace.enabled())
+    flights.LoadOpenAipAirspaces(Path(airspace.openaip_path.c_str()));
   if (vignette.enabled)
   {
     MultiAircraft::FlightCollectionEncounter::VignetteOptions options;

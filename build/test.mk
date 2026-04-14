@@ -1512,6 +1512,7 @@ RUN_MULTI_AIRCRAFT_SOURCES = \
 	$(TEST_SRC_DIR)/MultiAircraft/Visibility.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/DetectMiss.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/Vignette.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/OpenAipAirspaces.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/TrailPoint.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/EncounterMapStore.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/AircraftModel.cpp \

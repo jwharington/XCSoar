@@ -5,6 +5,7 @@
 
 #include "FlightCollection.hpp"
 #include "FlightFlock.hpp"
+#include "OpenAipAirspaces.hpp"
 #include "Vignette.hpp"
 
 #include <unordered_map>
@@ -40,6 +41,11 @@ namespace MultiAircraft
       vignette_options.enabled = !vignette_options.subject.empty();
     }
 
+    void LoadOpenAipAirspaces(const Path &path)
+    {
+      openaip_airspaces.Load(path);
+    }
+
     static void SetSkipEncounterProcessing(bool value)
     {
       skip_encounter_processing = value;
@@ -58,7 +64,9 @@ namespace MultiAircraft
     double get_effective_distance(const AircraftModel &a,
                                   const AircraftModel &b) const;
     void update_vignettes(const TimeStamp t);
+    void update_airspace_incursions(const TimeStamp t);
     void write_vignette_file();
+    void write_incursion_files();
 
     EncounterMapStore encounter_store;
     std::unordered_map<unsigned, Vignette> vignette_map;
@@ -69,6 +77,36 @@ namespace MultiAircraft
     GeoPoint delta_flock;
 
     FlightFlock flock_algorithm;
+    OpenAipAirspaces openaip_airspaces;
+
+    struct ActiveIncursion
+    {
+      unsigned airspace_index;
+      Vignette vignette;
+      std::vector<std::pair<TimeStamp, double>> depth_samples;
+      double max_depth = 0;
+      bool seen = false;
+    };
+
+    struct IncursionKey
+    {
+      unsigned aircraft_id;
+      unsigned airspace_index;
+
+      bool operator==(const IncursionKey &) const noexcept = default;
+    };
+
+    struct IncursionKeyHash
+    {
+      std::size_t operator()(const IncursionKey &key) const noexcept
+      {
+        return (std::size_t(key.aircraft_id) << 32) ^ key.airspace_index;
+      }
+    };
+
+    std::unordered_map<unsigned, double> ground_reference_by_aircraft;
+    std::unordered_map<IncursionKey, ActiveIncursion, IncursionKeyHash> active_incursions;
+    std::unordered_map<unsigned, std::vector<ActiveIncursion>> completed_incursions;
 
     static bool skip_encounter_processing;
   };
