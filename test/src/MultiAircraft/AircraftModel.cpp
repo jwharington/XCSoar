@@ -417,6 +417,14 @@ namespace
     step.emplace("distance_scale", miss.distance_scale);
   }
 
+  void append_common_zem_fields(boost::json::object &step, const DetectMiss &miss,
+                                const FlatPoint &fp, const TrailPoint &p)
+  {
+    step.emplace("miss_x", fp.x + p.vel[0] * miss.TCA);
+    step.emplace("miss_y", fp.y + p.vel[1] * miss.TCA);
+    step.emplace("miss_z", p.pos.gps_altitude + p.vel[2] * miss.TCA);
+  }
+
   inline void initialise_filter_state(FlightReconstruction::Filter &filter,
                                       const FlatPoint &fp,
                                       const TrailPoint &p)
@@ -634,6 +642,7 @@ namespace
         const Aspect &aspect = auxiliary.first;
         const Visibility visibility(aspect);
         append_common_detailed_fields(step, p, miss);
+        append_common_zem_fields(step, miss, fp, p);
 
         if (need_raw_flight)
         {
