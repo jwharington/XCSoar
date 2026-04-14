@@ -158,6 +158,7 @@ bool FlightCollectionEncounter::process(const TimeStamp t)
 
     return ok;
   }
+
   else if (was_first)
   {
     delta_proximity = calc_ll_delta(loc_general, DISTANCE * 2);
@@ -518,6 +519,7 @@ void FlightCollectionEncounter::finalise()
 {
   flock_algorithm.finalise();
   time_close += encounter_store.erase_expired(TimeStamp::Undefined(), group, DISTANCE, alt_start_av + HEIGHT_THRESHOLD_M);
+  encounter_store.write_files(group, DISTANCE);
   write_vignette_file();
   for (auto &[key, active] : active_incursions)
     completed_incursions[key.aircraft_id].push_back(std::move(active));

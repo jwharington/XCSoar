@@ -9,6 +9,7 @@
 #include <list>
 #include <cstdio>
 #include <string>
+#include <vector>
 
 namespace MultiAircraft
 {
@@ -61,15 +62,24 @@ namespace MultiAircraft
     FloatDuration erase_expired(const TimeStamp time, std::list<AircraftModel> &group,
                                 const double distance_threshold,
                                 const double height_threshold);
+    void write_files(const std::list<AircraftModel> &group,
+                     const double distance_threshold);
 
     static size_t TYP_TRAIL;
     static size_t MAX_TRAIL_FACTOR;
     static size_t HYS_TRAIL;
 
   private:
+    struct CompletedEncounter
+    {
+      KeyType key;
+      EncounterInfo info;
+    };
+
     static unsigned encounter_num;
 
     EncounterMap encounters;
+    std::vector<CompletedEncounter> completed_encounters;
 
     static constexpr KeyType make_index(const int id1, const int id2)
     {

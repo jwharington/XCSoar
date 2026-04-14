@@ -156,7 +156,7 @@ bool FlightCollection::run()
                              : 100;
     std::cout << "t=" << elapsed_seconds
               << "/" << total_seconds
-              << " (" << percent << "%) ";
+              << " (" << (int)percent << "%) ";
     for (auto &&a : group)
     {
       std::cout << get_symbol(a);
