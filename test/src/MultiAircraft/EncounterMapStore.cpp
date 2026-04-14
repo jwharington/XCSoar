@@ -215,6 +215,7 @@ void EncounterMapStore::write_files(const std::list<AircraftModel> &group,
     SpeedVector wind;
     const bool wind_available = AverageAircraftWind(included_aircraft, t_min, t_max, wind);
     boost::json::object json_info = {
+        {"type", "encounter"},
         {"d_threshold", distance_threshold},
         {"time_start", (int)info.time_start.ToDuration().count()},
         {"time_end", (int)info.time_end.ToDuration().count()},

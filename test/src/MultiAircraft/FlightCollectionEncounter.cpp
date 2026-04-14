@@ -684,6 +684,7 @@ void FlightCollectionEncounter::write_incursion_files()
                                                               incursion.depth_samples));
 
       boost::json::object json_info = {
+          {"type", "incursion"},
           {"time_start", (int)incursion.vignette.time_start.ToDuration().count()},
           {"time_end", (int)incursion.vignette.time_end.ToDuration().count()},
           {"subject", aircraft_it->id},
@@ -734,6 +735,7 @@ void FlightCollectionEncounter::write_terrain_files()
                                                             event.distance_samples));
 
       boost::json::object json_info = {
+          {"type", "terrain"},
           {"time_start", (int)event.vignette.time_start.ToDuration().count()},
           {"time_end", (int)event.vignette.time_end.ToDuration().count()},
           {"subject", aircraft_it->id},
