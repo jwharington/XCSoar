@@ -20,6 +20,20 @@ using namespace MultiAircraft;
 namespace
 {
 
+    static const boost::json::array &
+    GetAirspaceArray(const boost::json::value &json)
+    {
+        if (json.is_array())
+            return json.as_array();
+
+        const auto &object = json.as_object();
+        auto airspaces_it = object.find("airspaces");
+        if (airspaces_it == object.end() || !airspaces_it->value().is_array())
+            throw std::invalid_argument{"OpenAIP JSON must be an array or contain an 'airspaces' array"};
+
+        return airspaces_it->value().as_array();
+    }
+
     static GeoPoint
     ParsePoint(const boost::json::array &point)
     {
@@ -185,7 +199,7 @@ void OpenAipAirspaces::Load(const Path &path)
 {
     FileReader reader(path);
     const auto json = Json::Parse(reader);
-    const auto &array = json.as_array();
+    const auto &array = GetAirspaceArray(json);
 
     airspaces.clear();
     airspaces.reserve(array.size());
