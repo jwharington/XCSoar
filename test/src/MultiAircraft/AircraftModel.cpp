@@ -716,6 +716,8 @@ namespace
                                 bool &kf_valid,
                                 size_t &reconstruction_warmup_samples)
   {
+    const TimeStamp t_min = info.time_start - FloatDuration{EncounterMapStore::TYP_TRAIL};
+    const TimeStamp t_max = info.time_end + FloatDuration{EncounterMapStore::HYS_TRAIL};
     const TimeStamp t_reconstruction_min = info.time_start - AircraftModel::reconstruction_pre_buffer;
     const bool filter_enabled = AircraftModel::filter_type > 0;
     auto depth_it = depth_samples.begin();
@@ -723,7 +725,7 @@ namespace
 
     for (auto &&p : aircraft.GetTrail())
     {
-      if (!p.within_time(t_reconstruction_min, info.time_end))
+      if (!p.within_time(t_reconstruction_min, t_max))
         continue;
 
       const FlatPoint fp = info.project_loc_wind(p);
@@ -731,7 +733,7 @@ namespace
       if (filter_enabled)
         kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
 
-      if (p.pos.time < info.time_start)
+      if (p.pos.time < t_min)
       {
         if (filter_enabled)
           ++reconstruction_warmup_samples;
@@ -744,8 +746,10 @@ namespace
         ++depth_it;
       }
 
+      const bool within_event = p.pos.time >= info.time_start && p.pos.time <= info.time_end;
+
       boost::json::object incursion = {
-          {"depth", current_depth},
+          {"depth", within_event ? current_depth : 0.0},
       };
 
       boost::json::object step = {
@@ -780,6 +784,8 @@ namespace
                               bool &kf_valid,
                               size_t &reconstruction_warmup_samples)
   {
+    const TimeStamp t_min = info.time_start - FloatDuration{EncounterMapStore::TYP_TRAIL};
+    const TimeStamp t_max = info.time_end + FloatDuration{EncounterMapStore::HYS_TRAIL};
     const TimeStamp t_reconstruction_min = info.time_start - AircraftModel::reconstruction_pre_buffer;
     const bool filter_enabled = AircraftModel::filter_type > 0;
     auto distance_it = distance_samples.begin();
@@ -787,7 +793,7 @@ namespace
 
     for (auto &&p : aircraft.GetTrail())
     {
-      if (!p.within_time(t_reconstruction_min, info.time_end))
+      if (!p.within_time(t_reconstruction_min, t_max))
         continue;
 
       const FlatPoint fp = info.project_loc_wind(p);
@@ -795,7 +801,7 @@ namespace
       if (filter_enabled)
         kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
 
-      if (p.pos.time < info.time_start)
+      if (p.pos.time < t_min)
       {
         if (filter_enabled)
           ++reconstruction_warmup_samples;
