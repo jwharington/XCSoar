@@ -462,8 +462,7 @@ int main(int argc, char **argv)
 
   DecodeOptions(json_data, flights, vignette, airspace, covariance_tuning);
   MultiAircraft::AircraftModel::SetWriteTraceFiles(!vignette.enabled);
-  const bool terrain_enabled = flights.GetTerrain() != nullptr && !flights.GetTerrain()->empty();
-  MultiAircraft::AircraftModel::SetKeepFullTrail(vignette.enabled || airspace.enabled() || covariance_tuning.enabled || terrain_enabled);
+  MultiAircraft::AircraftModel::SetKeepFullTrail(vignette.enabled || covariance_tuning.enabled);
   MultiAircraft::FlightCollectionEncounter::SetSkipEncounterProcessing(covariance_tuning.enabled);
   MultiAircraft::FlightFlock::SetWriteJsonFile(!vignette.enabled);
   if (airspace.enabled())

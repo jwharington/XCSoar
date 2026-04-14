@@ -183,7 +183,10 @@ void AircraftModel::Interpolate(const TimeStamp t, const SpeedVector &wind)
   now.update_reconstruction(prev, wind);
   euler = EulerAngles(now.bank_angle, now.pitch_angle, now.yaw_angle);
 
-  while (!keep_full_trail && trail.size() > EncounterMapStore::MAX_TRAIL_FACTOR * EncounterMapStore::TYP_TRAIL + 2)
+  const size_t retained_trail =
+      (EncounterMapStore::MAX_TRAIL_FACTOR + 1) * EncounterMapStore::TYP_TRAIL +
+      EncounterMapStore::HYS_TRAIL + 2;
+  while (!keep_full_trail && trail.size() > retained_trail)
   {
     trail.pop_front();
   }
