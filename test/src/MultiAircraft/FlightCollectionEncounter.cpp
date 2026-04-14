@@ -191,7 +191,9 @@ void FlightCollectionEncounter::update_terrain_events(const TimeStamp t)
     if (!terrain_height.has_value())
       continue;
 
-    const double terrain_distance = a.interp_loc.gps_altitude - *terrain_height;
+    const double geoid_offset = EGM96::LookupSeparation(a.interp_loc.location);
+    const double orthometric_altitude = a.interp_loc.gps_altitude + geoid_offset;
+    const double terrain_distance = orthometric_altitude - *terrain_height;
     if (terrain_distance > TERRAIN_CLEARANCE_M)
       continue;
 

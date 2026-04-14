@@ -263,9 +263,13 @@ static void DecodeOptions(const boost::json::value &_j,
 
   auto try_apply_report = [&](const char *key, auto &&fn)
   {
+    const auto it = j.find(key);
+    if (it == j.end())
+      return false;
+
     try
     {
-      fn(j.at(key));
+      fn(it->value());
       return true;
     }
     catch (const boost::system::system_error &e)
