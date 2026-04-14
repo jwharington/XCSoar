@@ -290,20 +290,14 @@ static void DecodeOptions(const boost::json::value &_j,
                    { flights.SCORE_BUFFER = v.to_number<double>(); });
 
   try_apply_report("height_threshold", [&](const boost::json::value &v)
-                   {
-                     flights.HEIGHT_THRESHOLD_M = v.to_number<double>();
-                     std::cout << "height_threshold\n"; });
+                   { flights.HEIGHT_THRESHOLD_M = v.to_number<double>(); });
 
   try_apply_report("velocity_scale", [&](const boost::json::value &v)
-                   {
-                     MultiAircraft::DetectMiss::VELOCITY_SCALE_MS =
-                         v.to_number<double>();
-                     std::cout << "velocity_scale\n"; });
+                   { MultiAircraft::DetectMiss::VELOCITY_SCALE_MS =
+                         v.to_number<double>(); });
 
   try_apply("typical_trail", [&](const boost::json::value &v)
-            {
-              MultiAircraft::EncounterMapStore::TYP_TRAIL = v.as_int64();
-              std::cout << "typical_trail\n"; });
+            { MultiAircraft::EncounterMapStore::TYP_TRAIL = v.as_int64(); });
 
   try_apply("mix_baro", [&](const boost::json::value &v)
             { MultiAircraft::AircraftModel::MIX_BARO = v.to_number<double>(); });
@@ -438,7 +432,7 @@ int main(int argc, char **argv)
 
   DecodeOptions(json_data, flights, vignette, airspace, covariance_tuning);
   MultiAircraft::AircraftModel::SetWriteTraceFiles(!vignette.enabled);
-  MultiAircraft::AircraftModel::SetKeepFullTrail(vignette.enabled || covariance_tuning.enabled);
+  MultiAircraft::AircraftModel::SetKeepFullTrail(vignette.enabled || airspace.enabled() || covariance_tuning.enabled);
   MultiAircraft::FlightCollectionEncounter::SetSkipEncounterProcessing(covariance_tuning.enabled);
   MultiAircraft::FlightFlock::SetWriteJsonFile(!vignette.enabled);
   if (airspace.enabled())
