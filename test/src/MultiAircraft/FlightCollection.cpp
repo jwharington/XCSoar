@@ -137,6 +137,7 @@ bool FlightCollection::run()
 
   /////////////////
   first = true;
+  const auto total_seconds = (t_end - t_start).count();
   for (TimeStamp t = t_start; t <= t_end; t += FloatDuration(1))
   {
     if (!process(t))
@@ -149,6 +150,13 @@ bool FlightCollection::run()
       continue;
     }
 
+    const auto elapsed_seconds = (t - t_start).count();
+    const auto percent = total_seconds > 0
+                             ? (100 * elapsed_seconds) / total_seconds
+                             : 100;
+    std::cout << "t=" << elapsed_seconds
+              << "/" << total_seconds
+              << " (" << percent << "%) ";
     for (auto &&a : group)
     {
       std::cout << get_symbol(a);
@@ -156,7 +164,9 @@ bool FlightCollection::run()
     }
     std::cout << "\n";
   }
+  std::cout << "Finalising outputs...\n";
   finalise();
+  std::cout << "Done.\n";
   /////////////////
 
   return true;
