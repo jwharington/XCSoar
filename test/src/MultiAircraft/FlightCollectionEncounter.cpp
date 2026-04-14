@@ -520,7 +520,11 @@ void FlightCollectionEncounter::finalise()
   for (auto &[key, active] : active_incursions)
     completed_incursions[key.aircraft_id].push_back(std::move(active));
   active_incursions.clear();
+  for (auto &[idi, active] : active_terrain_events)
+    completed_terrain_events[idi].push_back(std::move(active));
+  active_terrain_events.clear();
   write_incursion_files();
+  write_terrain_files();
   FlightCollection::finalise();
 }
 
@@ -694,6 +698,51 @@ void FlightCollectionEncounter::write_incursion_files()
 
       std::ostringstream filename;
       filename << "incursion-" << aircraft_it->id << "-" << index << ".json";
+      std::ofstream file(filename.str());
+      file << boost::json::serialize(json_info);
+    }
+  }
+}
+
+void FlightCollectionEncounter::write_terrain_files()
+{
+  if (terrain == nullptr || terrain->empty())
+    return;
+
+  for (auto &[idi, events] : completed_terrain_events)
+  {
+    auto aircraft_it = std::find_if(group.begin(), group.end(),
+                                    [idi](const AircraftModel &a)
+                                    {
+                                      return a.idi == (int)idi;
+                                    });
+    if (aircraft_it == group.end())
+      continue;
+
+    for (std::size_t index = 0; index < events.size(); ++index)
+    {
+      auto &event = events[index];
+      event.vignette.finalise();
+      const double geoid_offset = EGM96::LookupSeparation(event.vignette.origin);
+
+      boost::json::array aircraft_json;
+      aircraft_json.emplace_back(aircraft_it->write_terrain(event.vignette,
+                                                            event.distance_samples));
+
+      boost::json::object json_info = {
+          {"time_start", (int)event.vignette.time_start.ToDuration().count()},
+          {"time_end", (int)event.vignette.time_end.ToDuration().count()},
+          {"subject", aircraft_it->id},
+          {"distance_min", event.min_distance},
+          {"latitude", event.vignette.origin.latitude.Degrees()},
+          {"longitude", event.vignette.origin.longitude.Degrees()},
+          {"geoid_offset", geoid_offset},
+          {"wind_speed", event.vignette.wind.norm},
+          {"wind_bearing", event.vignette.wind.bearing.Degrees()},
+          {"aircraft", aircraft_json}};
+
+      std::ostringstream filename;
+      filename << "terrain-" << aircraft_it->id << "-" << index << ".json";
       std::ofstream file(filename.str());
       file << boost::json::serialize(json_info);
     }
