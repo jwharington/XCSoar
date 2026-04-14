@@ -770,6 +770,70 @@ namespace
     }
   }
 
+  template <typename FilterType>
+  void populate_terrain_trace(const AircraftModel &aircraft,
+                              const Vignette &info,
+                              const std::vector<std::pair<TimeStamp, double>> &distance_samples,
+                              FilterType &filter,
+                              boost::json::array &trace,
+                              bool &plausible,
+                              bool &kf_valid,
+                              size_t &reconstruction_warmup_samples)
+  {
+    const TimeStamp t_reconstruction_min = info.time_start - AircraftModel::reconstruction_pre_buffer;
+    const bool filter_enabled = AircraftModel::filter_type > 0;
+    auto distance_it = distance_samples.begin();
+    double current_distance = 0;
+
+    for (auto &&p : aircraft.GetTrail())
+    {
+      if (!p.within_time(t_reconstruction_min, info.time_end))
+        continue;
+
+      const FlatPoint fp = info.project_loc_wind(p);
+
+      if (filter_enabled)
+        kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
+
+      if (p.pos.time < info.time_start)
+      {
+        if (filter_enabled)
+          ++reconstruction_warmup_samples;
+        continue;
+      }
+
+      while (distance_it != distance_samples.end() && distance_it->first <= p.pos.time)
+      {
+        current_distance = distance_it->second;
+        ++distance_it;
+      }
+
+      boost::json::object terrain = {
+          {"distance", current_distance},
+      };
+
+      boost::json::object step = {
+          {"t", (p.pos.time - info.time_start).count()},
+          {"alt_baro", p.pos.baro_altitude},
+          {"v", p.v_wind.norm},
+          {"hdg", p.v_wind.bearing.Degrees()},
+          {"terrain", std::move(terrain)},
+      };
+      append_raw_attitude_fields(step, p);
+
+      const bool need_raw_flight = !kf_valid;
+      const bool need_raw_position = need_raw_flight || !uses_smoothed_position(AircraftModel::filter_type);
+
+      if (need_raw_flight)
+        append_raw_flight_fields(step, p);
+      if (need_raw_position)
+        append_position_fields(step, fp, p);
+
+      plausible &= p.plausible;
+      trace.emplace_back(step);
+    }
+  }
+
 } // namespace
 
 boost::json::object AircraftModel::write_encounter(const EncounterMapStore::EncounterInfo &info,
@@ -924,6 +988,70 @@ boost::json::object AircraftModel::write_incursion(
       {"plausible", plausible},
       {"date_start", date_buffer},
       {"max_depth", max_depth},
+      {"trace", trace}};
+
+  return data;
+}
+
+boost::json::object AircraftModel::write_terrain(
+    const Vignette &info,
+    const std::vector<std::pair<TimeStamp, double>> &distance_samples) const
+{
+  boost::json::array trace;
+
+  bool plausible = true;
+  const bool filter_enabled = filter_type > 0;
+  const bool use_updraft_filter = uses_updraft_gust_filter(filter_type);
+  bool kf_valid = filter_enabled;
+  Averager visibility_avg;
+  std::vector<DetectMiss> misses;
+  size_t reconstruction_warmup_samples = 0;
+
+  if (use_updraft_filter)
+  {
+    FlightReconstruction::FilterWithUpdraftGust filter;
+    populate_terrain_trace(*this, info, distance_samples, filter, trace, plausible,
+                           kf_valid, reconstruction_warmup_samples);
+
+    if (kf_valid)
+      append_smoothed_fields(trace, filter, reconstruction_warmup_samples,
+                             filter_type, false, misses, visibility_avg);
+  }
+  else
+  {
+    FlightReconstruction::Filter filter;
+    populate_terrain_trace(*this, info, distance_samples, filter, trace, plausible,
+                           kf_valid, reconstruction_warmup_samples);
+
+    if (kf_valid)
+      append_smoothed_fields(trace, filter, reconstruction_warmup_samples,
+                             filter_type, false, misses, visibility_avg);
+  }
+
+  char date_buffer[32];
+  FormatISO8601(date_buffer, flight_date_utc_start);
+
+  double min_distance = 0;
+  bool has_distance = false;
+  for (const auto &[_, distance] : distance_samples)
+  {
+    if (!has_distance)
+    {
+      min_distance = distance;
+      has_distance = true;
+    }
+    else
+      min_distance = std::min(min_distance, distance);
+  }
+
+  boost::json::object data = {
+      {"id", id},
+      {"fr_info", fr_info},
+      {"fr_id", fr_id},
+      {"in_flock", in_flock},
+      {"plausible", plausible},
+      {"date_start", date_buffer},
+      {"distance_min", has_distance ? boost::json::value(min_distance) : boost::json::value(nullptr)},
       {"trace", trace}};
 
   return data;

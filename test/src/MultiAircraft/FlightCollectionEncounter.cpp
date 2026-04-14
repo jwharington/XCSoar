@@ -169,8 +169,71 @@ bool FlightCollectionEncounter::process(const TimeStamp t)
   encounter_update(t);
   update_vignettes(t);
   update_airspace_incursions(t);
+  update_terrain_events(t);
   time_close += encounter_store.erase_expired(t, group, DISTANCE, alt_start_av + HEIGHT_THRESHOLD_M);
   return ok;
+}
+
+void FlightCollectionEncounter::update_terrain_events(const TimeStamp t)
+{
+  if (terrain == nullptr || terrain->empty())
+    return;
+
+  for (auto &[_, active] : active_terrain_events)
+    active.seen = false;
+
+  for (const auto &a : group)
+  {
+    if (!a.live || !a.valid)
+      continue;
+
+    const auto terrain_height = terrain->GetHeight(a.interp_loc.location);
+    if (!terrain_height.has_value())
+      continue;
+
+    const double terrain_distance = a.interp_loc.gps_altitude - *terrain_height;
+    if (terrain_distance > TERRAIN_CLEARANCE_M)
+      continue;
+
+    const auto wind = a.Calculated().estimated_wind;
+    auto it = active_terrain_events.find(a.idi);
+    if (it == active_terrain_events.end())
+    {
+      ActiveTerrainEvent active{
+          Vignette(a.idi, t, a.flight_date_utc_start,
+                   a.interp_loc.location,
+                   a.interp_loc.baro_altitude,
+                   wind),
+          {},
+          terrain_distance,
+          true};
+      active.distance_samples.emplace_back(t, terrain_distance);
+      active_terrain_events.emplace(a.idi, std::move(active));
+      continue;
+    }
+
+    auto &active = it->second;
+    active.vignette.time_end = t;
+    active.vignette.wind_acc += Vector(wind);
+    ++active.vignette.num_wind;
+    active.vignette.wind = SpeedVector(active.vignette.wind_acc.y / active.vignette.num_wind,
+                                       active.vignette.wind_acc.x / active.vignette.num_wind);
+    active.distance_samples.emplace_back(t, terrain_distance);
+    active.min_distance = std::min(active.min_distance, terrain_distance);
+    active.seen = true;
+  }
+
+  for (auto it = active_terrain_events.begin(); it != active_terrain_events.end();)
+  {
+    if (it->second.seen)
+    {
+      ++it;
+      continue;
+    }
+
+    completed_terrain_events[it->first].push_back(std::move(it->second));
+    it = active_terrain_events.erase(it);
+  }
 }
 
 void FlightCollectionEncounter::update_airspace_incursions(const TimeStamp t)
@@ -547,7 +610,7 @@ void FlightCollectionEncounter::write_vignette_file()
     }
     clipped.finalise();
 
-    if (idi == subject_it->idi)
+    if (idi == (unsigned)subject_it->idi)
       subject_origin = clipped.origin;
 
     json_aircraft.emplace_back(aircraft_it->write_vignette(clipped));

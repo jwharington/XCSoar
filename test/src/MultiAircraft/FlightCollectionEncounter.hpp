@@ -6,8 +6,10 @@
 #include "FlightCollection.hpp"
 #include "FlightFlock.hpp"
 #include "OpenAipAirspaces.hpp"
+#include "SRTMTerrain.hpp"
 #include "Vignette.hpp"
 
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -35,6 +37,7 @@ namespace MultiAircraft
     int SCORE_BUFFER = 0;
     double P_THRESHOLD = 0.2;
     double HEIGHT_THRESHOLD_M = 100;
+    double TERRAIN_CLEARANCE_M = 100;
 
     void SetVignetteOptions(const VignetteOptions &options)
     {
@@ -45,6 +48,16 @@ namespace MultiAircraft
     void LoadOpenAipAirspaces(const Path &path)
     {
       openaip_airspaces.Load(path);
+    }
+
+    void LoadTerrain(const std::vector<std::string> &paths)
+    {
+      terrain = std::make_unique<SRTMTerrain>(paths);
+    }
+
+    const SRTMTerrain *GetTerrain() const noexcept
+    {
+      return terrain.get();
     }
 
     static void SetSkipEncounterProcessing(bool value)
@@ -66,8 +79,10 @@ namespace MultiAircraft
                                   const AircraftModel &b) const;
     void update_vignettes(const TimeStamp t);
     void update_airspace_incursions(const TimeStamp t);
+    void update_terrain_events(const TimeStamp t);
     void write_vignette_file();
     void write_incursion_files();
+    void write_terrain_files();
 
     EncounterMapStore encounter_store;
     std::unordered_map<unsigned, Vignette> vignette_map;
@@ -79,6 +94,7 @@ namespace MultiAircraft
 
     FlightFlock flock_algorithm;
     OpenAipAirspaces openaip_airspaces;
+    std::unique_ptr<SRTMTerrain> terrain;
 
     struct ActiveIncursion
     {
@@ -86,6 +102,14 @@ namespace MultiAircraft
       Vignette vignette;
       std::vector<std::pair<TimeStamp, double>> depth_samples;
       double max_depth = 0;
+      bool seen = false;
+    };
+
+    struct ActiveTerrainEvent
+    {
+      Vignette vignette;
+      std::vector<std::pair<TimeStamp, double>> distance_samples;
+      double min_distance = 0;
       bool seen = false;
     };
 
@@ -108,6 +132,8 @@ namespace MultiAircraft
     std::unordered_map<unsigned, double> ground_reference_by_aircraft;
     std::unordered_map<IncursionKey, ActiveIncursion, IncursionKeyHash> active_incursions;
     std::unordered_map<unsigned, std::vector<ActiveIncursion>> completed_incursions;
+    std::unordered_map<unsigned, ActiveTerrainEvent> active_terrain_events;
+    std::unordered_map<unsigned, std::vector<ActiveTerrainEvent>> completed_terrain_events;
     std::unordered_set<unsigned> previous_airspace_aircraft;
     std::unordered_set<IncursionKey, IncursionKeyHash> previous_incursion_hits;
 

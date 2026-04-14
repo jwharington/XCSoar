@@ -52,6 +52,7 @@ BuildOptionsSchema()
                          {"distance", number_object()},
                          {"score_buffer", number_object()},
                          {"height_threshold", number_object()},
+                         {"terrain_clearance", number_object()},
                          {"velocity_scale", number_object()},
                          {"typical_trail", boost::json::object{{"type", "integer"}}},
                          {"mix_baro", number_object()},
@@ -103,6 +104,17 @@ BuildOptionsSchema()
                                                          }},
                                           {"required", boost::json::array{"openaip"}},
                                       }},
+                         {"terrain", boost::json::object{
+                                         {"type", "object"},
+                                         {"additionalProperties", false},
+                                         {"properties", boost::json::object{
+                                                            {"files", boost::json::object{
+                                                                          {"type", "array"},
+                                                                          {"items", boost::json::object{{"type", "string"}}},
+                                                                      }},
+                                                        }},
+                                         {"required", boost::json::array{"files"}},
+                                     }},
                          {"igc_files", boost::json::object{
                                            {"type", "array"},
                                            {"items", boost::json::object{{"type", "string"}}},
@@ -292,6 +304,9 @@ static void DecodeOptions(const boost::json::value &_j,
   try_apply_report("height_threshold", [&](const boost::json::value &v)
                    { flights.HEIGHT_THRESHOLD_M = v.to_number<double>(); });
 
+  try_apply_report("terrain_clearance", [&](const boost::json::value &v)
+                   { flights.TERRAIN_CLEARANCE_M = v.to_number<double>(); });
+
   try_apply_report("velocity_scale", [&](const boost::json::value &v)
                    { MultiAircraft::DetectMiss::VELOCITY_SCALE_MS =
                          v.to_number<double>(); });
@@ -357,6 +372,17 @@ static void DecodeOptions(const boost::json::value &_j,
             {
               const auto &obj = v.as_object();
               airspace.openaip_path = std::string(obj.at("openaip").as_string()); });
+
+  try_apply("terrain", [&](const boost::json::value &v)
+            {
+              const auto &obj = v.as_object();
+              const auto &files_array = obj.at("files").as_array();
+              std::vector<std::string> files;
+              files.reserve(files_array.size());
+              for (const auto &entry : files_array)
+                files.emplace_back(entry.as_string());
+
+              flights.LoadTerrain(files); });
 
   try_apply("covariance_tuning", [&](const boost::json::value &v)
             { DecodeCovarianceTuning(v.as_object(), covariance_tuning); });
