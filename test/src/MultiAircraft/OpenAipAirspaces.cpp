@@ -20,6 +20,40 @@ using namespace MultiAircraft;
 namespace
 {
 
+    static const char *
+    GetIcaoClassName(const int icao_class) noexcept
+    {
+        switch (icao_class)
+        {
+        case 0:
+            return "A";
+
+        case 1:
+            return "B";
+
+        case 2:
+            return "C";
+
+        case 3:
+            return "D";
+
+        case 4:
+            return "E";
+
+        case 5:
+            return "F";
+
+        case 6:
+            return "G";
+
+        case 8:
+            return "Unclassified / Special Use Airspace (SUA)";
+
+        default:
+            return nullptr;
+        }
+    }
+
     static const boost::json::array &
     GetAirspaceArray(const boost::json::value &json)
     {
@@ -162,8 +196,27 @@ OpenAipAirspaces::ParsePolygon(const boost::json::array &rings)
     for (const auto &value : outer_ring)
     {
         const GeoPoint point = ParsePoint(value.as_array());
+        if (!polygon.bounds.IsValid())
+            polygon.bounds = GeoBounds(point);
+        else
+            polygon.bounds.Extend(point);
+
         polygon.points.emplace_back(point, polygon.projection);
-        polygon.projected_points.emplace_back(polygon.projection.ProjectFloat(point));
+        const FlatPoint projected = polygon.projection.ProjectFloat(point);
+        polygon.projected_points.emplace_back(projected);
+
+        if (polygon.projected_points.size() == 1)
+        {
+            polygon.min_x = polygon.max_x = projected.x;
+            polygon.min_y = polygon.max_y = projected.y;
+        }
+        else
+        {
+            polygon.min_x = std::min(polygon.min_x, projected.x);
+            polygon.max_x = std::max(polygon.max_x, projected.x);
+            polygon.min_y = std::min(polygon.min_y, projected.y);
+            polygon.max_y = std::max(polygon.max_y, projected.y);
+        }
     }
 
     if (!polygon.points.front().Equals(polygon.points.back()))
@@ -177,12 +230,11 @@ OpenAipAirspaces::ParsePolygon(const boost::json::array &rings)
 
 double
 OpenAipAirspaces::DistanceToBoundary(const Polygon &polygon,
-                                     const GeoPoint &location) noexcept
+                                     const FlatPoint &projected) noexcept
 {
     if (polygon.projected_points.size() < 2)
         return 0;
 
-    const FlatPoint projected = polygon.projection.ProjectFloat(location);
     double min_distance = std::numeric_limits<double>::max();
     for (std::size_t i = 1; i < polygon.projected_points.size(); ++i)
     {
@@ -207,6 +259,13 @@ void OpenAipAirspaces::Load(const Path &path)
     for (const auto &entry : array)
     {
         const auto &object = entry.as_object();
+
+        auto type_it = object.find("type");
+        if (type_it != object.end() && type_it->value().is_number() &&
+            (type_it->value().to_number<int>() == 10 ||
+             type_it->value().to_number<int>() == 11))
+            continue;
+
         const auto &geometry = object.at("geometry").as_object();
         const auto geometry_type = std::string(geometry.at("type").as_string());
         if (geometry_type != "Polygon" && geometry_type != "MultiPolygon")
@@ -215,13 +274,16 @@ void OpenAipAirspaces::Load(const Path &path)
         Airspace airspace;
         airspace.metadata.name = std::string(object.at("name").as_string());
 
-        auto type_it = object.find("type");
         if (type_it != object.end() && type_it->value().is_number())
             airspace.metadata.type = type_it->value().to_number<int>();
 
         auto class_it = object.find("icaoClass");
         if (class_it != object.end() && class_it->value().is_number())
+        {
             airspace.metadata.icao_class = class_it->value().to_number<int>();
+            if (const char *name = GetIcaoClassName(airspace.metadata.icao_class))
+                airspace.metadata.icao_class_name = name;
+        }
 
         airspace.lower_limit = ParseAltitudeLimit(object.at("lowerLimit").as_object());
         airspace.upper_limit = ParseAltitudeLimit(object.at("upperLimit").as_object());
@@ -257,11 +319,20 @@ OpenAipAirspaces::Query(const GeoPoint &location,
         double best_horizontal_depth = -1;
         for (const auto &polygon : airspace.polygons)
         {
-            if (!PolygonInterior(location, polygon.points.begin(), polygon.points.end()))
+            if (!polygon.bounds.IsInside(location))
+                continue;
+
+            const FlatPoint projected = polygon.projection.ProjectFloat(location);
+            if (projected.x < polygon.min_x || projected.x > polygon.max_x ||
+                projected.y < polygon.min_y || projected.y > polygon.max_y)
+                continue;
+
+            if (!PolygonInterior(polygon.projection.ProjectInteger(location),
+                                 polygon.points.begin(), polygon.points.end()))
                 continue;
 
             best_horizontal_depth = std::max(best_horizontal_depth,
-                                             DistanceToBoundary(polygon, location));
+                                             DistanceToBoundary(polygon, projected));
         }
 
         if (best_horizontal_depth < 0)

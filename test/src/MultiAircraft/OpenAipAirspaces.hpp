@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Geo/GeoPoint.hpp"
+#include "Geo/GeoBounds.hpp"
 #include "Geo/Flat/FlatPoint.hpp"
 #include "Geo/Flat/FlatProjection.hpp"
 #include "Geo/SearchPoint.hpp"
@@ -31,6 +32,7 @@ namespace MultiAircraft
             std::string name;
             int type = -1;
             int icao_class = -1;
+            std::string icao_class_name;
             std::string lower_label;
             std::string upper_label;
         };
@@ -61,9 +63,14 @@ namespace MultiAircraft
 
         struct Polygon
         {
+            GeoBounds bounds = GeoBounds::Invalid();
             FlatProjection projection;
             std::vector<SearchPoint> points;
             std::vector<FlatPoint> projected_points;
+            double min_x = 0;
+            double max_x = 0;
+            double min_y = 0;
+            double max_y = 0;
         };
 
         struct Airspace
@@ -79,7 +86,7 @@ namespace MultiAircraft
         static AltitudeLimit ParseAltitudeLimit(const boost::json::object &object);
         static Polygon ParsePolygon(const boost::json::array &rings);
         static double DistanceToBoundary(const Polygon &polygon,
-                                         const GeoPoint &location) noexcept;
+                                         const FlatPoint &projected) noexcept;
     };
 
 }

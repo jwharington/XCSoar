@@ -744,12 +744,16 @@ namespace
         ++depth_it;
       }
 
+      boost::json::object incursion = {
+          {"depth", current_depth},
+      };
+
       boost::json::object step = {
           {"t", (p.pos.time - info.time_start).count()},
           {"alt_baro", p.pos.baro_altitude},
           {"v", p.v_wind.norm},
           {"hdg", p.v_wind.bearing.Degrees()},
-          {"depth", current_depth},
+          {"incursion", std::move(incursion)},
       };
       append_raw_attitude_fields(step, p);
 

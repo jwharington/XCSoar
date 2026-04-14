@@ -178,6 +178,9 @@ void FlightCollectionEncounter::update_airspace_incursions(const TimeStamp t)
   if (!openaip_airspaces.IsEnabled())
     return;
 
+  std::unordered_set<unsigned> current_airspace_aircraft;
+  std::unordered_set<IncursionKey, IncursionKeyHash> current_incursion_hits;
+
   for (auto &[_, active] : active_incursions)
     active.seen = false;
 
@@ -185,6 +188,8 @@ void FlightCollectionEncounter::update_airspace_incursions(const TimeStamp t)
   {
     if (!a.live || !a.valid)
       continue;
+
+    current_airspace_aircraft.emplace(a.idi);
 
     auto ground_it = ground_reference_by_aircraft.find(a.idi);
     if (ground_it == ground_reference_by_aircraft.end())
@@ -200,9 +205,16 @@ void FlightCollectionEncounter::update_airspace_incursions(const TimeStamp t)
     for (const auto &hit : hits)
     {
       const IncursionKey key{(unsigned)a.idi, hit.airspace_index};
+      current_incursion_hits.emplace(key);
+
       auto it = active_incursions.find(key);
       if (it == active_incursions.end())
       {
+        const bool seen_aircraft_prev_step = previous_airspace_aircraft.contains(a.idi);
+        const bool was_incursion_prev_step = previous_incursion_hits.contains(key);
+        if (!seen_aircraft_prev_step || was_incursion_prev_step)
+          continue;
+
         ActiveIncursion active{
             hit.airspace_index,
             Vignette(a.idi, t, a.flight_date_utc_start,
@@ -240,6 +252,9 @@ void FlightCollectionEncounter::update_airspace_incursions(const TimeStamp t)
     completed_incursions[it->first.aircraft_id].push_back(std::move(it->second));
     it = active_incursions.erase(it);
   }
+
+  previous_airspace_aircraft = std::move(current_airspace_aircraft);
+  previous_incursion_hits = std::move(current_incursion_hits);
 }
 
 void FlightCollectionEncounter::update_vignettes(const TimeStamp t)
@@ -603,7 +618,7 @@ void FlightCollectionEncounter::write_incursion_files()
           {"subject", aircraft_it->id},
           {"airspace_name", metadata.name},
           {"airspace_type", metadata.type},
-          {"airspace_class", metadata.icao_class},
+          {"airspace_class", metadata.icao_class_name},
           {"lower_limit", metadata.lower_label},
           {"upper_limit", metadata.upper_label},
           {"depth_max", incursion.max_depth},

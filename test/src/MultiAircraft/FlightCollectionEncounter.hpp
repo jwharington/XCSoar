@@ -9,6 +9,7 @@
 #include "Vignette.hpp"
 
 #include <unordered_map>
+#include <unordered_set>
 
 namespace MultiAircraft
 {
@@ -107,6 +108,8 @@ namespace MultiAircraft
     std::unordered_map<unsigned, double> ground_reference_by_aircraft;
     std::unordered_map<IncursionKey, ActiveIncursion, IncursionKeyHash> active_incursions;
     std::unordered_map<unsigned, std::vector<ActiveIncursion>> completed_incursions;
+    std::unordered_set<unsigned> previous_airspace_aircraft;
+    std::unordered_set<IncursionKey, IncursionKeyHash> previous_incursion_hits;
 
     static bool skip_encounter_processing;
   };
