@@ -149,9 +149,21 @@ void TerrainEventTracker::FlushActive()
     active_terrain_events.clear();
 }
 
-void TerrainEventTracker::WriteFiles(const std::list<AircraftModel> &group)
+void TerrainEventTracker::WriteFiles(const std::list<AircraftModel> &group,
+                                     const AirfieldList &airfields,
+                                     const double airfield_filter_distance_m)
 {
     constexpr FloatDuration takeoff_landing_filter_window{120};
+
+    const auto near_airfield = [&](const GeoPoint &origin) noexcept
+    {
+        for (const auto &af : airfields.GetAirfields())
+        {
+            if (origin.Distance(af.location) <= airfield_filter_distance_m)
+                return true;
+        }
+        return false;
+    };
 
     const auto should_skip_export = [&](const AircraftModel &aircraft,
                                         const auto &event) noexcept
@@ -182,7 +194,8 @@ void TerrainEventTracker::WriteFiles(const std::list<AircraftModel> &group)
 
         for (const auto &event : events)
         {
-            if (!should_skip_export(*aircraft_it, event))
+            if (!should_skip_export(*aircraft_it, event) &&
+                !near_airfield(event.vignette.origin))
                 ++total_outputs;
         }
     }
@@ -194,6 +207,7 @@ void TerrainEventTracker::WriteFiles(const std::list<AircraftModel> &group)
     std::size_t skipped_empty = 0;
     std::size_t skipped_takeoff = 0;
     std::size_t skipped_landing = 0;
+    std::size_t skipped_airfield = 0;
     std::cout << "  [finalise] terrain files: 0/" << total_outputs << std::endl;
 
     for (auto &[idi, events] : completed_terrain_events)
@@ -224,6 +238,12 @@ void TerrainEventTracker::WriteFiles(const std::list<AircraftModel> &group)
                     ++skipped_takeoff;
                 if (within_landing_window)
                     ++skipped_landing;
+                continue;
+            }
+
+            if (near_airfield(event.vignette.origin))
+            {
+                ++skipped_airfield;
                 continue;
             }
 
@@ -270,4 +290,7 @@ void TerrainEventTracker::WriteFiles(const std::list<AircraftModel> &group)
         std::cout << "  [finalise] skipped " << skipped_takeoff << " terrain events within 120s of takeoff" << std::endl;
     if (skipped_landing > 0)
         std::cout << "  [finalise] skipped " << skipped_landing << " terrain events within 120s of landing" << std::endl;
+    if (skipped_airfield > 0)
+        std::cout << "  [finalise] skipped " << skipped_airfield << " terrain events within "
+                  << airfield_filter_distance_m << "m of an airfield" << std::endl;
 }

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "AirfieldList.hpp"
 #include "AirspaceIncursionTracker.hpp"
 #include "EventTrailBuffer.hpp"
 #include "FlightCollection.hpp"
@@ -58,6 +59,16 @@ namespace MultiAircraft
       terrain = std::make_unique<SRTMTerrain>(paths);
     }
 
+    void SetAirfieldList(AirfieldList list) noexcept
+    {
+      airfield_list = std::move(list);
+    }
+
+    const AirfieldList &GetAirfieldList() const noexcept
+    {
+      return airfield_list;
+    }
+
     const SRTMTerrain *GetTerrain() const noexcept
     {
       return terrain.get();
@@ -97,6 +108,7 @@ namespace MultiAircraft
     EventTrailBuffer event_trail_buffer;
     AirspaceIncursionTracker incursion_tracker;
     TerrainEventTracker terrain_tracker;
+    AirfieldList airfield_list;
 
     static bool skip_encounter_processing;
   };

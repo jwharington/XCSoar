@@ -402,7 +402,7 @@ void FlightCollectionEncounter::finalise()
   incursion_tracker.WriteFiles(group, openaip_airspaces);
 
   std::cout << "[finalise] writing " << terrain_tracker.completed_terrain_events.size() << " terrain sets..." << std::endl;
-  terrain_tracker.WriteFiles(group);
+  terrain_tracker.WriteFiles(group, airfield_list);
 
   FlightCollection::finalise();
 }

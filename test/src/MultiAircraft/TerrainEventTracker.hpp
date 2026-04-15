@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "AirfieldList.hpp"
 #include "EventTrailBuffer.hpp"
 #include "SRTMTerrain.hpp"
 #include "TerrainDistanceSample.hpp"
@@ -40,7 +41,9 @@ namespace MultiAircraft
 
         bool IsActive(unsigned aircraft_id) const noexcept;
 
-        void WriteFiles(const std::list<AircraftModel> &group);
+        void WriteFiles(const std::list<AircraftModel> &group,
+                        const AirfieldList &airfields = {},
+                        double airfield_filter_distance_m = 2000);
 
         std::unordered_map<unsigned, std::vector<ActiveTerrainEvent>> completed_terrain_events;
 

@@ -3,6 +3,7 @@
 
 #include "system/Args.hpp"
 #include <stdio.h>
+#include "MultiAircraft/AirfieldList.hpp"
 #include "MultiAircraft/CovarianceTuner.hpp"
 #include "MultiAircraft/FlightCollectionEncounter.hpp"
 #include "MultiAircraft/FlightReconstructionOptions.hpp"
@@ -116,6 +117,19 @@ BuildOptionsSchema()
                                                         }},
                                          {"required", boost::json::array{"files"}},
                                      }},
+                         {"airfields", boost::json::object{
+                                           {"type", "array"},
+                                           {"items", boost::json::object{
+                                                         {"type", "object"},
+                                                         {"additionalProperties", false},
+                                                         {"properties", boost::json::object{
+                                                                            {"latitude", number_object()},
+                                                                            {"longitude", number_object()},
+                                                                            {"name", boost::json::object{{"type", "string"}}},
+                                                                        }},
+                                                         {"required", boost::json::array{"latitude", "longitude"}},
+                                                     }},
+                                       }},
                          {"igc_files", boost::json::object{
                                            {"type", "array"},
                                            {"items", boost::json::object{{"type", "string"}}},
@@ -245,7 +259,8 @@ static void DecodeOptions(const boost::json::value &_j,
                           MultiAircraft::FlightCollectionEncounter &flights,
                           VignetteConfig &vignette,
                           AirspaceConfig &airspace,
-                          MultiAircraft::CovarianceTuningConfig &covariance_tuning)
+                          MultiAircraft::CovarianceTuningConfig &covariance_tuning,
+                          MultiAircraft::AirfieldList &airfield_list)
 {
   const auto &j = _j.as_object();
   auto try_apply = [&](const char *key, auto &&fn)
@@ -394,6 +409,21 @@ static void DecodeOptions(const boost::json::value &_j,
 
               flights.LoadTerrain(files); });
 
+  try_apply("airfields", [&](const boost::json::value &v)
+            {
+              for (const auto &entry : v.as_array())
+              {
+                const auto &obj = entry.as_object();
+                const double lat = obj.at("latitude").to_number<double>();
+                const double lon = obj.at("longitude").to_number<double>();
+                std::string name;
+                if (auto it = obj.find("name"); it != obj.end())
+                  name = std::string(it->value().as_string());
+                airfield_list.Add(
+                    GeoPoint(Angle::Degrees(lon), Angle::Degrees(lat)),
+                    std::move(name));
+              } });
+
   try_apply("covariance_tuning", [&](const boost::json::value &v)
             { DecodeCovarianceTuning(v.as_object(), covariance_tuning); });
 
@@ -441,6 +471,7 @@ int main(int argc, char **argv)
   VignetteConfig vignette;
   AirspaceConfig airspace;
   MultiAircraft::CovarianceTuningConfig covariance_tuning;
+  MultiAircraft::AirfieldList airfield_list;
 
   Args args(argc, argv, "options.json");
   Path path = Path("options.json");
@@ -470,7 +501,14 @@ int main(int argc, char **argv)
     throw;
   }
 
-  DecodeOptions(json_data, flights, vignette, airspace, covariance_tuning);
+  DecodeOptions(json_data, flights, vignette, airspace, covariance_tuning,
+                airfield_list);
+
+  if (!airfield_list.empty())
+  {
+    std::cout << "Loaded " << airfield_list.size() << " airfield(s)\n";
+    flights.SetAirfieldList(std::move(airfield_list));
+  }
   MultiAircraft::AircraftModel::SetWriteTraceFiles(!vignette.enabled);
   MultiAircraft::AircraftModel::SetKeepFullTrail(vignette.enabled ||
                                                  covariance_tuning.enabled);
