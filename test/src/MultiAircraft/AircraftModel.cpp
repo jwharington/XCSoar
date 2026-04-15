@@ -368,7 +368,7 @@ boost::json::object AircraftModel::write_incursion(
 
 boost::json::object AircraftModel::write_terrain(
     const Vignette &info,
-    const std::vector<std::pair<TimeStamp, double>> &distance_samples,
+    const std::vector<TerrainDistanceSample> &distance_samples,
     const std::vector<EventTrailSample> &trail_samples) const
 {
   return TraceWriter::write_terrain(*this, info, distance_samples, trail_samples);

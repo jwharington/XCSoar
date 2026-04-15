@@ -9,6 +9,7 @@
 
 #include "AircraftModel.hpp"
 #include "EncounterMapStore.hpp"
+#include "TerrainDistanceSample.hpp"
 
 namespace MultiAircraft
 {
@@ -36,7 +37,7 @@ namespace MultiAircraft
         boost::json::object write_terrain(
             const AircraftModel &aircraft,
             const Vignette &info,
-            const std::vector<std::pair<TimeStamp, double>> &distance_samples,
+            const std::vector<TerrainDistanceSample> &distance_samples,
             const std::vector<EventTrailSample> &trail_samples);
 
     } // namespace TraceWriter

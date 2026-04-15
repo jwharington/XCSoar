@@ -18,6 +18,7 @@
 #include "../DebugReplay.hpp"
 #include "Averager.hpp"
 #include "Visibility.hpp"
+#include "TerrainDistanceSample.hpp"
 
 namespace MultiAircraft
 {
@@ -70,7 +71,7 @@ namespace MultiAircraft
                                         const std::vector<std::tuple<TimeStamp, GeoPoint, double>> &boundary_samples,
                                         const std::vector<EventTrailSample> &trail_samples) const;
     boost::json::object write_terrain(const Vignette &info,
-                                      const std::vector<std::pair<TimeStamp, double>> &distance_samples,
+                                      const std::vector<TerrainDistanceSample> &distance_samples,
                                       const std::vector<EventTrailSample> &trail_samples) const;
     bool within_horizontal_distance(const AircraftModel &other,
                                     const TimeStamp t_min,

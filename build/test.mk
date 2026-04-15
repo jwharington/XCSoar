@@ -1520,6 +1520,9 @@ RUN_MULTI_AIRCRAFT_SOURCES = \
 	$(TEST_SRC_DIR)/MultiAircraft/TraceWriter.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightCollection.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightCollectionEncounter.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/EventTrailBuffer.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/AirspaceIncursionTracker.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/TerrainEventTracker.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightFlock.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/GliderAeroLoads.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightReconstruction.cpp \

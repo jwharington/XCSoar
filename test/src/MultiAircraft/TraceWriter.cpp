@@ -480,7 +480,7 @@ namespace
 
     template <typename FilterType>
     void populate_terrain_trace(const Vignette &info,
-                                const std::vector<std::pair<TimeStamp, double>> &distance_samples,
+                                const std::vector<TerrainDistanceSample> &distance_samples,
                                 const std::vector<EventTrailSample> &trail_samples,
                                 FilterType &filter,
                                 boost::json::array &trace,
@@ -494,6 +494,10 @@ namespace
         const bool filter_enabled = AircraftModel::filter_type > 0;
         auto distance_it = distance_samples.begin();
         double current_distance = 0;
+        double current_terrain_lat = 0;
+        double current_terrain_lon = 0;
+        double current_terrain_alt = 0;
+        bool has_distance = false;
 
         for (const auto &p : trail_samples)
         {
@@ -512,15 +516,29 @@ namespace
                 continue;
             }
 
-            while (distance_it != distance_samples.end() && distance_it->first <= p.time)
+            while (distance_it != distance_samples.end() && distance_it->time <= p.time)
             {
-                current_distance = distance_it->second;
+                current_distance = distance_it->distance;
+                current_terrain_lat = distance_it->terrain_latitude;
+                current_terrain_lon = distance_it->terrain_longitude;
+                current_terrain_alt = distance_it->terrain_altitude;
+                has_distance = true;
                 ++distance_it;
             }
 
-            boost::json::object terrain = {
-                {"distance", current_distance},
-            };
+            boost::json::object terrain;
+            if (has_distance)
+                terrain["distance"] = current_distance;
+
+            if (has_distance && current_distance < 0)
+            {
+                const GeoPoint terrain_loc{Angle::Degrees(current_terrain_lon),
+                                           Angle::Degrees(current_terrain_lat)};
+                const FlatPoint terrain_fp = info.project_loc_wind(terrain_loc, p.time);
+                terrain["x"] = terrain_fp.x;
+                terrain["y"] = terrain_fp.y;
+                terrain["alt"] = current_terrain_alt;
+            }
 
             boost::json::object step = {
                 {"t", (p.time - info.time_start).count()},
@@ -673,7 +691,7 @@ namespace MultiAircraft::TraceWriter
     boost::json::object write_terrain(
         const AircraftModel &aircraft,
         const Vignette &info,
-        const std::vector<std::pair<TimeStamp, double>> &distance_samples,
+        const std::vector<TerrainDistanceSample> &distance_samples,
         const std::vector<EventTrailSample> &trail_samples)
     {
         boost::json::array trace;
@@ -698,15 +716,15 @@ namespace MultiAircraft::TraceWriter
 
         double min_distance = 0;
         bool has_distance = false;
-        for (const auto &[_, distance] : distance_samples)
+        for (const auto &sample : distance_samples)
         {
             if (!has_distance)
             {
-                min_distance = distance;
+                min_distance = sample.distance;
                 has_distance = true;
             }
             else
-                min_distance = std::min(min_distance, distance);
+                min_distance = std::min(min_distance, sample.distance);
         }
 
         boost::json::object data = {

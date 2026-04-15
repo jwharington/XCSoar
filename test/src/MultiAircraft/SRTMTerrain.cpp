@@ -207,4 +207,68 @@ namespace MultiAircraft
                                    x - x0, y - y0);
     }
 
+    std::optional<SRTMTerrain::Nearest3DResult>
+    SRTMTerrain::GetNearest3D(double latitude, double longitude,
+                              double altitude,
+                              double search_radius_m) const noexcept
+    {
+        constexpr double DEG_TO_M_LAT = 111320.0;
+        const double deg_to_m_lon = DEG_TO_M_LAT * std::cos(latitude * M_PI / 180.0);
+
+        const double dlat = search_radius_m / DEG_TO_M_LAT;
+        const double dlon = (deg_to_m_lon > 1.0)
+                                ? search_radius_m / deg_to_m_lon
+                                : search_radius_m / DEG_TO_M_LAT;
+
+        // Determine the finest grid step from tiles covering the search area
+        double step_lat = dlat;
+        double step_lon = dlon;
+        for (const auto &[key, tile] : tiles)
+        {
+            const double tile_step = 1.0 / (tile.dimension - 1);
+            step_lat = std::min(step_lat, tile_step);
+            step_lon = std::min(step_lon, tile_step);
+            break; // all tiles share the same dimension
+        }
+
+        double best_dist_sq = std::numeric_limits<double>::max();
+        double best_lat = latitude;
+        double best_lon = longitude;
+        double best_alt = altitude;
+        bool found = false;
+
+        for (double lat = latitude - dlat; lat <= latitude + dlat; lat += step_lat)
+        {
+            for (double lon = longitude - dlon; lon <= longitude + dlon; lon += step_lon)
+            {
+                const auto h = GetHeight(lat, lon);
+                if (!h.has_value())
+                    continue;
+
+                const double dx = (lon - longitude) * deg_to_m_lon;
+                const double dy = (lat - latitude) * DEG_TO_M_LAT;
+                const double dz = *h - altitude;
+                const double dist_sq = dx * dx + dy * dy + dz * dz;
+
+                if (dist_sq < best_dist_sq)
+                {
+                    best_dist_sq = dist_sq;
+                    best_lat = lat;
+                    best_lon = lon;
+                    best_alt = *h;
+                    found = true;
+                }
+            }
+        }
+
+        if (!found)
+            return std::nullopt;
+
+        return Nearest3DResult{
+            std::sqrt(best_dist_sq),
+            best_lat,
+            best_lon,
+            best_alt};
+    }
+
 }

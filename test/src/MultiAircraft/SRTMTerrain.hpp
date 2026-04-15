@@ -57,6 +57,18 @@ namespace MultiAircraft
         [[nodiscard]] std::optional<double> GetHeight(const GeoPoint &location) const noexcept;
         [[nodiscard]] std::optional<double> GetHeight(double latitude,
                                                       double longitude) const noexcept;
+
+        struct Nearest3DResult
+        {
+            double distance_3d;
+            double terrain_latitude;
+            double terrain_longitude;
+            double terrain_altitude;
+        };
+
+        [[nodiscard]] std::optional<Nearest3DResult> GetNearest3D(
+            double latitude, double longitude, double altitude,
+            double search_radius_m) const noexcept;
     };
 
 }

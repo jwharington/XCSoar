@@ -3,16 +3,17 @@
 
 #pragma once
 
+#include "AirspaceIncursionTracker.hpp"
+#include "EventTrailBuffer.hpp"
 #include "FlightCollection.hpp"
 #include "FlightFlock.hpp"
 #include "OpenAipAirspaces.hpp"
 #include "SRTMTerrain.hpp"
+#include "TerrainEventTracker.hpp"
 #include "Vignette.hpp"
 
 #include <memory>
-#include <tuple>
 #include <unordered_map>
-#include <unordered_set>
 
 namespace MultiAircraft
 {
@@ -70,7 +71,6 @@ namespace MultiAircraft
     virtual boost::json::object record_summary() const override;
 
   protected:
-    double calc_effective_distance(const AuxiliaryPair &auxiliary) const;
     virtual std::string get_symbol(const AircraftModel &m) const override;
     virtual bool process(const TimeStamp t) override;
     void encounter_update(const TimeStamp t);
@@ -80,11 +80,7 @@ namespace MultiAircraft
     double get_effective_distance(const AircraftModel &a,
                                   const AircraftModel &b) const;
     void update_vignettes(const TimeStamp t);
-    void update_airspace_incursions(const TimeStamp t);
-    void update_terrain_events(const TimeStamp t);
     void write_vignette_file();
-    void write_incursion_files();
-    void write_terrain_files();
 
     EncounterMapStore encounter_store;
     std::unordered_map<unsigned, Vignette> vignette_map;
@@ -98,57 +94,9 @@ namespace MultiAircraft
     OpenAipAirspaces openaip_airspaces;
     std::unique_ptr<SRTMTerrain> terrain;
 
-    struct ActiveIncursion
-    {
-      unsigned airspace_index;
-      Vignette vignette;
-      std::vector<std::pair<TimeStamp, double>> depth_samples;
-      std::vector<std::tuple<TimeStamp, GeoPoint, double>> boundary_samples;
-      std::vector<EventTrailSample> trail_samples;
-      double max_depth = 0;
-      bool seen = false;
-      bool capped = false;
-    };
-
-    struct ActiveTerrainEvent
-    {
-      Vignette vignette;
-      std::vector<std::pair<TimeStamp, double>> distance_samples;
-      std::vector<EventTrailSample> trail_samples;
-      double min_distance = 0;
-      bool seen = false;
-      bool capped = false;
-    };
-
-    struct IncursionKey
-    {
-      unsigned aircraft_id;
-      unsigned airspace_index;
-
-      bool operator==(const IncursionKey &) const noexcept = default;
-    };
-
-    struct IncursionKeyHash
-    {
-      std::size_t operator()(const IncursionKey &key) const noexcept
-      {
-        return (std::size_t(key.aircraft_id) << 32) ^ key.airspace_index;
-      }
-    };
-
-    std::unordered_map<unsigned, double> ground_reference_by_aircraft;
-    std::unordered_map<IncursionKey, ActiveIncursion, IncursionKeyHash> active_incursions;
-    std::unordered_map<unsigned, std::vector<ActiveIncursion>> completed_incursions;
-    std::unordered_map<unsigned, ActiveTerrainEvent> active_terrain_events;
-    std::unordered_map<unsigned, std::vector<ActiveTerrainEvent>> completed_terrain_events;
-    std::unordered_map<unsigned, std::vector<EventTrailSample>> recent_event_trail_by_aircraft;
-    std::unordered_set<unsigned> previous_airspace_aircraft;
-    std::unordered_set<IncursionKey, IncursionKeyHash> previous_incursion_hits;
-    std::unordered_set<unsigned> previous_terrain_aircraft;
-    std::unordered_set<unsigned> previous_terrain_hits;
-
-    void push_event_trail_sample(const AircraftModel &aircraft, const TimeStamp t);
-    std::vector<EventTrailSample> seed_event_trail_samples(unsigned aircraft_id, const TimeStamp t) const;
+    EventTrailBuffer event_trail_buffer;
+    AirspaceIncursionTracker incursion_tracker;
+    TerrainEventTracker terrain_tracker;
 
     static bool skip_encounter_processing;
   };
