@@ -1517,6 +1517,7 @@ RUN_MULTI_AIRCRAFT_SOURCES = \
 	$(TEST_SRC_DIR)/MultiAircraft/TrailPoint.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/EncounterMapStore.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/AircraftModel.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/TraceWriter.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightCollection.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightCollectionEncounter.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightFlock.cpp \
