@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iomanip> // std::setprecision
 #include <iostream>
+#include <string_view>
 #include "FlightReconstruction.hpp"
 #include "ReconstructionUtility.hpp"
 
@@ -32,23 +33,18 @@ bool AircraftModel::init(Args &args)
     wind_settings.zig_zag_wind = false;
   }
 
-  const char *ptr = args.PeekNext();
-  const char *ptr_end = ptr + strlen(ptr) - 1;
-  char buffer[80];
-
-  while ((*ptr_end != '/') && (ptr_end > ptr))
-  {
-    ptr_end--;
-  }
-  ptr = ptr_end;
-
-  while (*ptr != '_')
-  {
-    ptr++;
-  }
-  ptr++;
-  sscanf(ptr, "%[^.]", buffer);
-  id = std::string(buffer);
+  std::string_view path = args.PeekNext();
+  const std::size_t slash = path.find_last_of('/');
+  const std::string_view basename = slash == std::string_view::npos
+                                        ? path
+                                        : path.substr(slash + 1);
+  const std::size_t underscore = basename.find('_');
+  const std::size_t start = underscore == std::string_view::npos ? 0 : underscore + 1;
+  const std::size_t dot = basename.find('.', start);
+  const std::size_t length = dot == std::string_view::npos
+                                 ? basename.size() - start
+                                 : dot - start;
+  id = std::string(basename.substr(start, length));
 
   idi = num_aircraft++;
   fr_info.clear();

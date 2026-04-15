@@ -2,10 +2,12 @@
 // Copyright The XCSoar Project
 
 #include "SRTMTerrain.hpp"
+#include "io/FileReader.hxx"
+#include "system/Path.hpp"
 
 #include <algorithm>
 #include <cmath>
-#include <fstream>
+#include <limits>
 #include <stdexcept>
 
 namespace MultiAircraft
@@ -122,23 +124,32 @@ namespace MultiAircraft
     {
         const TileKey key = ParseTileKey(path);
 
-        std::ifstream stream(path, std::ios::binary | std::ios::ate);
-        if (!stream.is_open())
-            throw std::runtime_error{"failed to open SRTM tile: " + path};
-
-        const std::streamsize size = stream.tellg();
-        if (size <= 0 || (size % 2) != 0)
+        FileReader stream(Path(path.c_str()));
+        const uint_least64_t size_u64 = stream.GetSize();
+        if (size_u64 == 0 || (size_u64 % 2) != 0 ||
+            size_u64 > std::numeric_limits<std::size_t>::max())
             throw std::runtime_error{"invalid SRTM tile size: " + path};
 
-        stream.seekg(0, std::ios::beg);
+        const std::size_t size = std::size_t(size_u64);
 
         const std::size_t sample_count = std::size_t(size / 2);
         const auto dimension = unsigned(std::lround(std::sqrt(double(sample_count))));
         if (dimension < 2 || std::size_t(dimension) * dimension != sample_count)
             throw std::runtime_error{"SRTM tile is not square: " + path};
 
-        std::vector<unsigned char> raw(std::size_t(size), 0);
-        if (!stream.read(reinterpret_cast<char *>(raw.data()), size))
+        std::vector<unsigned char> raw(size, 0);
+        auto bytes = std::as_writable_bytes(std::span{raw});
+        std::size_t n_read = 0;
+        while (n_read < bytes.size())
+        {
+            const std::size_t n = stream.Read(bytes.subspan(n_read));
+            if (n == 0)
+                break;
+
+            n_read += n;
+        }
+
+        if (n_read != bytes.size())
             throw std::runtime_error{"failed to read SRTM tile: " + path};
 
         std::vector<std::int16_t> samples(sample_count);

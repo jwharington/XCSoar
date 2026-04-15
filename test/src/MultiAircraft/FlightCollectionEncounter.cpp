@@ -642,6 +642,7 @@ void FlightCollectionEncounter::write_vignette_file()
   const bool wind_available = AverageAircraftWind(included_aircraft, t_start, t_end, wind);
 
   boost::json::object json_info = {
+      {"type", "vignette"},
       {"time_start", vignette_options.start_time},
       {"time_end", vignette_options.end_time},
       {"subject", vignette_options.subject},

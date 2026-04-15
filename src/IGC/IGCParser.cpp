@@ -35,8 +35,61 @@ ImportDeprecatedLoggerSerial(char id[4], unsigned serial)
   id[3] = 0;
 }
 
-bool
-IGCParseHeader(const char *line, IGCHeader &header)
+static bool
+ParseTwoDigits(const char *buffer, unsigned &value)
+{
+  if (!IsDigitASCII(buffer[0]) || !IsDigitASCII(buffer[1]))
+    return false;
+
+  value = unsigned(buffer[0] - '0') * 10u + unsigned(buffer[1] - '0');
+  return true;
+}
+
+static bool
+ParseNDigits(const char *buffer, std::size_t length, unsigned &value)
+{
+  value = 0;
+  for (std::size_t i = 0; i < length; ++i)
+  {
+    if (!IsDigitASCII(buffer[i]))
+      return false;
+
+    value = value * 10u + unsigned(buffer[i] - '0');
+  }
+
+  return true;
+}
+
+static bool
+ParseSignedNDigits(const char *buffer, std::size_t length, int &value)
+{
+  if (length == 0)
+    return false;
+
+  int sign = 1;
+  std::size_t index = 0;
+  if (buffer[0] == '+' || buffer[0] == '-')
+  {
+    sign = buffer[0] == '-' ? -1 : 1;
+    index = 1;
+    if (index == length)
+      return false;
+  }
+
+  unsigned magnitude = 0;
+  for (; index < length; ++index)
+  {
+    if (!IsDigitASCII(buffer[index]))
+      return false;
+
+    magnitude = magnitude * 10u + unsigned(buffer[index] - '0');
+  }
+
+  value = sign * int(magnitude);
+  return true;
+}
+
+bool IGCParseHeader(const char *line, IGCHeader &header)
 {
   /* sample from CAI302: "ACAM3OV" */
   /* sample from Colibri: "ALXN13103FLIGHT:1" */
@@ -55,11 +108,14 @@ IGCParseHeader(const char *line, IGCHeader &header)
 
   char *endptr;
   unsigned long serial = strtoul(line, &endptr, 10);
-  if (endptr == line + 5) {
+  if (endptr == line + 5)
+  {
     /* deprecated: numeric serial, 5 digits (e.g. from Colibri) */
     ImportDeprecatedLoggerSerial(header.id, serial);
     line = endptr;
-  } else {
+  }
+  else
+  {
     memcpy(header.id, line, 3);
     header.id[3] = 0;
     line += 3;
@@ -67,14 +123,13 @@ IGCParseHeader(const char *line, IGCHeader &header)
 
   const char *colon = strchr(line, ':');
   header.flight = colon != NULL
-    ? strtoul(colon + 1, NULL, 10)
-    : 0;
+                      ? strtoul(colon + 1, NULL, 10)
+                      : 0;
 
   return true;
 }
 
-bool
-IGCParseDateRecord(const char *line, BrokenDate &date)
+bool IGCParseDateRecord(const char *line, BrokenDate &date)
 {
   line = StringAfterPrefix(line, "HFDTE");
   if (line == nullptr)
@@ -83,7 +138,8 @@ IGCParseDateRecord(const char *line, BrokenDate &date)
   if (auto date = StringAfterPrefix(line, "DATE"sv))
     line = date;
 
-  if (line[0] == ':') {
+  if (line[0] == ':')
+  {
     line += 1;
   }
 
@@ -112,11 +168,10 @@ static bool
 CheckThreeAlphaNumeric(const char *src)
 {
   return IsAlphaNumericASCII(src[0]) && IsAlphaNumericASCII(src[1]) &&
-    IsAlphaNumericASCII(src[2]);
+         IsAlphaNumericASCII(src[2]);
 }
 
-bool
-IGCParseExtensions(const char *buffer, IGCExtensions &extensions)
+bool IGCParseExtensions(const char *buffer, IGCExtensions &extensions)
 {
   if (*buffer++ != 'I')
     return false;
@@ -129,7 +184,8 @@ IGCParseExtensions(const char *buffer, IGCExtensions &extensions)
 
   extensions.clear();
 
-  while (count-- > 0) {
+  while (count-- > 0)
+  {
     const int start = ParseTwoDigits(buffer);
     if (start < 8)
       return false;
@@ -173,7 +229,8 @@ ParseUnsigned(const char *p, const char *end)
 {
   unsigned value = 0;
 
-  for (; p < end; ++p) {
+  for (; p < end; ++p)
+  {
     if (!IsDigitASCII(*p))
       return -1;
 
@@ -210,8 +267,7 @@ ParseExtensionValueN(const char *p, const char *end, size_t n,
     value_r = value;
 }
 
-bool
-IGCParseFix(const char *buffer, const IGCExtensions &extensions, IGCFix &fix)
+bool IGCParseFix(const char *buffer, const IGCExtensions &extensions, IGCFix &fix)
 {
   if (*buffer != 'B')
     return false;
@@ -223,8 +279,9 @@ IGCParseFix(const char *buffer, const IGCExtensions &extensions, IGCFix &fix)
   char valid_char;
   int gps_altitude, pressure_altitude;
 
-  if (sscanf(buffer + 24, "%c%05d%05d",
-             &valid_char, &pressure_altitude, &gps_altitude) != 3)
+  valid_char = buffer[24];
+  if (!ParseSignedNDigits(buffer + 25, 5, pressure_altitude) ||
+      !ParseSignedNDigits(buffer + 30, 5, gps_altitude))
     return false;
 
   if (valid_char == 'A')
@@ -245,7 +302,8 @@ IGCParseFix(const char *buffer, const IGCExtensions &extensions, IGCFix &fix)
   fix.ClearExtensions();
 
   const size_t line_length = strlen(buffer);
-  for (auto i = extensions.begin(), end = extensions.end(); i != end; ++i) {
+  for (auto i = extensions.begin(), end = extensions.end(); i != end; ++i)
+  {
     const IGCExtension &extension = *i;
     assert(extension.start > 0);
     assert(extension.finish >= extension.start);
@@ -284,16 +342,22 @@ IGCParseFix(const char *buffer, const IGCExtensions &extensions, IGCFix &fix)
   return true;
 }
 
-bool
-IGCParseLocation(const char *buffer, GeoPoint &location)
+bool IGCParseLocation(const char *buffer, GeoPoint &location)
 {
   unsigned lat_degrees, lat_minutes, lon_degrees, lon_minutes;
   char lat_char, lon_char;
 
-  if (sscanf(buffer, "%02u%05u%c%03u%05u%c",
-             &lat_degrees, &lat_minutes, &lat_char,
-             &lon_degrees, &lon_minutes, &lon_char) != 6)
+  if (!ParseNDigits(buffer, 2, lat_degrees) ||
+      !ParseNDigits(buffer + 2, 5, lat_minutes))
     return false;
+
+  lat_char = buffer[7];
+
+  if (!ParseNDigits(buffer + 8, 3, lon_degrees) ||
+      !ParseNDigits(buffer + 11, 5, lon_minutes))
+    return false;
+
+  lon_char = buffer[16];
 
   if (lat_degrees >= 90 || lat_minutes >= 60000 ||
       (lat_char != 'N' && lat_char != 'S'))
@@ -316,12 +380,13 @@ IGCParseLocation(const char *buffer, GeoPoint &location)
   return true;
 }
 
-bool
-IGCParseTime(const char *buffer, BrokenTime &time)
+bool IGCParseTime(const char *buffer, BrokenTime &time)
 {
   unsigned hour, minute, second;
 
-  if (sscanf(buffer, "%02u%02u%02u", &hour, &minute, &second) != 3)
+  if (!ParseTwoDigits(buffer, hour) ||
+      !ParseTwoDigits(buffer + 2, minute) ||
+      !ParseTwoDigits(buffer + 4, second))
     return false;
 
   time = BrokenTime(hour, minute, second);
@@ -333,15 +398,16 @@ IGCParseDate(const char *buffer, BrokenDate &date)
 {
   unsigned day, month, year;
 
-  if (sscanf(buffer, "%02u%02u%02u", &day, &month, &year) != 3)
+  if (!ParseTwoDigits(buffer, day) ||
+      !ParseTwoDigits(buffer + 2, month) ||
+      !ParseTwoDigits(buffer + 4, year))
     return false;
 
   date = BrokenDate(year + 2000, month, day);
   return date.IsPlausible();
 }
 
-bool
-IGCParseDeclarationHeader(const char *line, IGCDeclarationHeader &header)
+bool IGCParseDeclarationHeader(const char *line, IGCDeclarationHeader &header)
 {
   if (*line != 'C' || strlen(line) < 25)
     return false;
@@ -365,8 +431,7 @@ IGCParseDeclarationHeader(const char *line, IGCDeclarationHeader &header)
   return true;
 }
 
-bool
-IGCParseDeclarationTurnpoint(const char *line, IGCDeclarationTurnpoint &tp)
+bool IGCParseDeclarationTurnpoint(const char *line, IGCDeclarationTurnpoint &tp)
 {
   if (*line != 'C' || strlen(line) < 18)
     return false;
@@ -378,9 +443,7 @@ IGCParseDeclarationTurnpoint(const char *line, IGCDeclarationTurnpoint &tp)
   return true;
 }
 
-
-bool
-IGCParseFRInfo(const char *buffer, IGCFRInfo &fr_info)
+bool IGCParseFRInfo(const char *buffer, IGCFRInfo &fr_info)
 {
   if (*buffer++ != 'H')
     return false;
@@ -388,16 +451,21 @@ IGCParseFRInfo(const char *buffer, IGCFRInfo &fr_info)
   if (strlen(buffer) < 12)
     return false;
 
-  if (buffer == StringFind(buffer, "FFTY")) {
-    buffer+= 4;
-    while (*buffer && (*buffer != ':')) {
+  if (buffer == StringFind(buffer, "FFTY"))
+  {
+    buffer += 4;
+    while (*buffer && (*buffer != ':'))
+    {
       buffer++;
     }
     CopyString(fr_info.fr_type, ARRAY_SIZE(fr_info.fr_type), buffer);
     return true;
-  } else if (buffer == StringFind(buffer, "FRFW")) {
-    buffer+= 4;
-    while (*buffer && (*buffer != ':')) {
+  }
+  else if (buffer == StringFind(buffer, "FRFW"))
+  {
+    buffer += 4;
+    while (*buffer && (*buffer != ':'))
+    {
       buffer++;
     }
     CopyString(fr_info.fw_version, ARRAY_SIZE(fr_info.fw_version), buffer);

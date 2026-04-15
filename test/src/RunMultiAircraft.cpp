@@ -216,28 +216,26 @@ ApplyCovarianceOverrides(const boost::json::object &j,
                          const char *key,
                          bool (*setter)(std::string_view, double))
 {
-  try
-  {
-    const auto &overrides = j.at(key).as_object();
-    for (const auto &entry : overrides)
-    {
-      if (!entry.value().is_number())
-      {
-        std::cout << "Ignoring non-numeric " << key
-                  << " value for '" << entry.key() << "'\n";
-        continue;
-      }
+  const auto it = j.find(key);
+  if (it == j.end() || !it->value().is_object())
+    return;
 
-      const double value = entry.value().to_number<double>();
-      if (!setter(entry.key(), value))
-      {
-        std::cout << "Ignoring unknown " << key
-                  << " name '" << entry.key() << "'\n";
-      }
-    }
-  }
-  catch (const boost::system::system_error &e)
+  const auto &overrides = it->value().as_object();
+  for (const auto &entry : overrides)
   {
+    if (!entry.value().is_number())
+    {
+      std::cout << "Ignoring non-numeric " << key
+                << " value for '" << entry.key() << "'\n";
+      continue;
+    }
+
+    const double value = entry.value().to_number<double>();
+    if (!setter(entry.key(), value))
+    {
+      std::cout << "Ignoring unknown " << key
+                << " name '" << entry.key() << "'\n";
+    }
   }
 }
 
@@ -250,9 +248,13 @@ static void DecodeOptions(const boost::json::value &_j,
   const auto &j = _j.as_object();
   auto try_apply = [&](const char *key, auto &&fn)
   {
+    const auto it = j.find(key);
+    if (it == j.end())
+      return false;
+
     try
     {
-      fn(j.at(key));
+      fn(it->value());
       return true;
     }
     catch (const boost::system::system_error &)

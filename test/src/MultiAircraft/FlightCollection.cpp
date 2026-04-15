@@ -5,6 +5,7 @@
 #include "Geo/Geoid.hpp"
 #include <iostream>
 #include <algorithm>
+#include <iomanip>
 
 using namespace MultiAircraft;
 
@@ -137,7 +138,8 @@ bool FlightCollection::run()
 
   /////////////////
   first = true;
-  const auto total_seconds = (t_end - t_start).count();
+  const auto max_elapsed_seconds = std::max(0, (int)std::ceil((t_end - t_start).count()));
+  const auto elapsed_width = std::to_string(max_elapsed_seconds).size();
   for (TimeStamp t = t_start; t <= t_end; t += FloatDuration(1))
   {
     if (!process(t))
@@ -150,13 +152,8 @@ bool FlightCollection::run()
       continue;
     }
 
-    const auto elapsed_seconds = (t - t_start).count();
-    const auto percent = total_seconds > 0
-                             ? (100 * elapsed_seconds) / total_seconds
-                             : 100;
-    std::cout << "t=" << elapsed_seconds
-              << "/" << total_seconds
-              << " (" << (int)percent << "%) ";
+    const auto elapsed_seconds = std::max(0, (int)std::ceil((t - t_start).count()));
+    std::cout << "t=" << std::setw((int)elapsed_width) << elapsed_seconds << " ";
     for (auto &&a : group)
     {
       std::cout << get_symbol(a);
