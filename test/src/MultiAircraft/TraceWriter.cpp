@@ -558,6 +558,8 @@ namespace
                 append_position_fields(step, fp, p);
 
             plausible &= p.plausible;
+            if (has_distance && current_distance < -100.0)
+                plausible = false;
             trace.emplace_back(step);
         }
     }

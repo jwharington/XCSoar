@@ -12,15 +12,17 @@ namespace FlightReconstruction
         const auto &q2 = state[QUATERNION + 2];
         const auto &q3 = state[QUATERNION + 3];
 
+        const auto u_safe = std::max(u, 1.0);
+
         const AeroLoad aero(state, parms);
 
         const Eigen::Matrix3d R =
             Eigen::Quaterniond(q0, q1, q2, q3).toRotationMatrix();
-        const Eigen::Vector3d pos_dot = R * Eigen::Vector3d(u, 0, w);
+        const Eigen::Vector3d pos_dot = R * Eigen::Vector3d(u_safe, 0, w);
 
         const auto p = 0.0;
         const auto qdot = 0;
-        const auto r = aero.env.g * R(2, 1) / u;
+        const auto r = aero.env.g * R(2, 1) / u_safe;
 
         const auto udot = -q * w + R(2, 0) * aero.env.g + aero.ax;
         const auto wdot = q * u + R(2, 2) * aero.env.g + aero.az;

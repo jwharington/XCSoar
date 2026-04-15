@@ -8,6 +8,7 @@
 
 #include <unordered_set>
 #include <algorithm>
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -143,7 +144,17 @@ namespace
 bool FlightCollectionEncounter::process(const TimeStamp t)
 {
   const bool was_first = first;
+
+  const auto step_start = std::chrono::steady_clock::now();
   const bool ok = FlightCollection::process(t);
+  const auto advance_elapsed = std::chrono::steady_clock::now() - step_start;
+
+  if (advance_elapsed > std::chrono::seconds(5))
+  {
+    std::cerr << "[watchdog] advance_to_time took "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(advance_elapsed).count()
+              << "ms at t=" << (int)t.ToDuration().count() << std::endl;
+  }
 
   if (skip_encounter_processing)
   {

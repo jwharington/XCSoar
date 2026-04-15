@@ -188,6 +188,10 @@ namespace MultiAircraft
     {
       return flight_loc_start;
     }
+    TimeStamp get_flight_time_end() const noexcept
+    {
+      return flight_time_end;
+    }
     const GeoPoint get_location() const;
 
   private:

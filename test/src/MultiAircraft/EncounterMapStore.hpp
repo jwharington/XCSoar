@@ -76,6 +76,10 @@ namespace MultiAircraft
       EncounterInfo info;
     };
 
+    void write_single_encounter(CompletedEncounter &completed,
+                                const std::list<AircraftModel> &group,
+                                const double distance_threshold);
+
     static unsigned encounter_num;
 
     EncounterMap encounters;

@@ -151,15 +151,36 @@ void TerrainEventTracker::FlushActive()
 
 void TerrainEventTracker::WriteFiles(const std::list<AircraftModel> &group)
 {
+    constexpr FloatDuration landing_filter_window{120};
+
     std::size_t total_outputs = 0;
-    for (const auto &[_, events] : completed_terrain_events)
-        total_outputs += events.size();
+    for (const auto &[idi, events] : completed_terrain_events)
+    {
+        auto aircraft_it = std::find_if(group.begin(), group.end(),
+                                        [idi](const AircraftModel &a)
+                                        {
+                                            return a.idi == (int)idi;
+                                        });
+        if (aircraft_it == group.end())
+            continue;
+
+        const TimeStamp landing_time = aircraft_it->get_flight_time_end();
+        for (const auto &event : events)
+        {
+            const bool within_landing_window = landing_time.IsDefined() &&
+                                               landing_time >= event.vignette.time_end &&
+                                               landing_time - event.vignette.time_end <= landing_filter_window;
+            if (!within_landing_window)
+                ++total_outputs;
+        }
+    }
 
     if (total_outputs == 0)
         return;
 
     std::size_t written_outputs = 0;
     std::size_t skipped_empty = 0;
+    std::size_t skipped_landing = 0;
     std::cout << "  [finalise] terrain files: 0/" << total_outputs << std::endl;
 
     for (auto &[idi, events] : completed_terrain_events)
@@ -175,6 +196,16 @@ void TerrainEventTracker::WriteFiles(const std::list<AircraftModel> &group)
         for (std::size_t index = 0; index < events.size(); ++index)
         {
             auto &event = events[index];
+
+            const TimeStamp landing_time = aircraft_it->get_flight_time_end();
+            const bool within_landing_window = landing_time.IsDefined() &&
+                                               landing_time >= event.vignette.time_end &&
+                                               landing_time - event.vignette.time_end <= landing_filter_window;
+            if (within_landing_window)
+            {
+                ++skipped_landing;
+                continue;
+            }
 
             if (event.trail_samples.empty())
             {
@@ -215,4 +246,6 @@ void TerrainEventTracker::WriteFiles(const std::list<AircraftModel> &group)
     }
     if (skipped_empty > 0)
         std::cout << "  [finalise] skipped " << skipped_empty << " terrain events with empty trails" << std::endl;
+    if (skipped_landing > 0)
+        std::cout << "  [finalise] skipped " << skipped_landing << " terrain events within 120s of landing" << std::endl;
 }

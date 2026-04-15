@@ -4,6 +4,8 @@
 #include "DOP853.h"
 
 #include <array>
+#include <cmath>
+#include <iostream>
 #include <string_view>
 
 namespace FlightReconstruction::detail
@@ -110,17 +112,40 @@ namespace FlightReconstruction::detail
         DOP853Config<DerivState> cfg;
         cfg.derivative = [system_ode](const DerivState &y, double)
         { return system_ode(y); };
+        cfg.validator = [](const DerivState &s)
+        {
+            for (const auto &v : s)
+                if (!std::isfinite(v))
+                    return false;
+            return true;
+        };
         DOP853Integrator<DerivState> integrator(cfg);
         auto result = integrator.integrate(t0, y0, dt,
                                            DOP853Tolerance::scalar(1.0e-12, 1.0e-12));
-        set_state(state, result.y);
+        if (result.status == DOP853Status::Success)
+        {
+            set_state(state, result.y);
+        }
+        // else: leave state unchanged (last known good)
         LimitState(state);
+    }
+
+    template <typename StateType>
+    bool IsStateFinite(const StateType &state)
+    {
+        // Subtract state from itself to get its DOF vector representation
+        // (all zeros if finite, NaN if any component is NaN)
+        auto diff = state - state;
+        return diff.allFinite();
     }
 
     template <typename FilterType, typename UKFType, typename StateType>
     void Update(FilterType &filter, UKFType &ukf,
                 const Measurement &meas, double dt)
     {
+        const StateType state_before = ukf.get_state();
+        const typename UKFType::N_by_N P_before = ukf.get_state_covariance();
+
         ukf.predict([&filter](StateType &state, double delta_t)
                     { filter.system_model(state, delta_t); }, dt);
         ukf.correct([&filter](const StateType &state)
@@ -128,6 +153,17 @@ namespace FlightReconstruction::detail
         ukf.smooth();
 
         StateType state = ukf.get_state();
+
+        // Check for NaN in updated state; if found, revert
+        if (!IsStateFinite(state))
+        {
+            ukf.set_state(state_before);
+            ukf.set_state_covariance(P_before);
+            state = state_before;
+            std::cerr << "[filter] NaN detected after correct(); reverted state"
+                      << std::endl;
+        }
+
         LimitState(state);
         ukf.set_state(state);
     }

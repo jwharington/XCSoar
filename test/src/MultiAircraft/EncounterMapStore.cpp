@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iomanip> // std::setprecision
 #include <fstream>
+#include <iostream>
 #include <vector>
 
 using namespace MultiAircraft;
@@ -144,6 +145,9 @@ FloatDuration EncounterMapStore::erase_expired(const TimeStamp time, std::list<A
 
       completed_encounters.push_back({i->first, std::move(info)});
 
+      // Write immediately while trail data is still available
+      write_single_encounter(completed_encounters.back(), group, distance_threshold);
+
       i = encounters.erase(i);
     }
     else
@@ -154,86 +158,94 @@ FloatDuration EncounterMapStore::erase_expired(const TimeStamp time, std::list<A
   return time_close;
 }
 
-void EncounterMapStore::write_files(const std::list<AircraftModel> &group,
-                                    const double distance_threshold)
+void EncounterMapStore::write_single_encounter(CompletedEncounter &completed,
+                                               const std::list<AircraftModel> &group,
+                                               const double distance_threshold)
 {
-  for (auto &completed : completed_encounters)
+  auto &info = completed.info;
+
+  int id1;
+  int id2;
+  index_split(completed.key, id1, id2);
+
+  boost::json::array json_aircraft;
+  std::vector<const AircraftModel *> included_aircraft;
+
+  for (const auto &a : group)
   {
-    auto &info = completed.info;
-
-    int id1;
-    int id2;
-    index_split(completed.key, id1, id2);
-
-    boost::json::array json_aircraft;
-    std::vector<const AircraftModel *> included_aircraft;
-
-    for (const auto &a : group)
+    if ((a.idi == id1) || (a.idi == id2))
     {
-      if ((a.idi == id1) || (a.idi == id2))
-      {
-        json_aircraft.emplace_back(a.write_encounter(info, a.idi == id1 ? id2 : id1, true));
-        included_aircraft.push_back(&a);
-      }
+      json_aircraft.emplace_back(a.write_encounter(info, a.idi == id1 ? id2 : id1, true));
+      included_aircraft.push_back(&a);
     }
+  }
 
-    std::set<int> others;
-    for (const auto &a : group)
+  std::set<int> others;
+  for (const auto &a : group)
+  {
+    if ((a.idi == id1) || (a.idi == id2))
     {
-      if ((a.idi == id1) || (a.idi == id2))
+      for (const auto &b : group)
       {
-        for (const auto &b : group)
+        if ((b.idi != id1) && (b.idi != id2))
         {
-          if ((b.idi != id1) && (b.idi != id2))
+          auto it = others.find(b.idi);
+          if ((it == others.end()) && a.other_visible(info, b.idi))
           {
-            auto it = others.find(b.idi);
-            if ((it == others.end()) && a.other_visible(info, b.idi))
-            {
-              others.insert(b.idi);
-            }
+            others.insert(b.idi);
           }
         }
       }
     }
-
-    for (auto id : others)
-    {
-      for (const auto &a : group)
-      {
-        if (a.idi == id)
-        {
-          json_aircraft.emplace_back(a.write_encounter(info, -1));
-          included_aircraft.push_back(&a);
-        }
-      }
-    }
-
-    std::ofstream json_encounter_file(info.get_encounter_filename());
-    const double geoid_offset = EGM96::LookupSeparation(info.origin);
-    const TimeStamp t_min = info.time_start - FloatDuration{EncounterMapStore::TYP_TRAIL};
-    const TimeStamp t_max = info.time_end + FloatDuration{EncounterMapStore::HYS_TRAIL};
-    SpeedVector wind;
-    const bool wind_available = AverageAircraftWind(included_aircraft, t_min, t_max, wind);
-    boost::json::object json_info = {
-        {"type", "encounter"},
-        {"d_threshold", distance_threshold},
-        {"time_start", (int)info.time_start.ToDuration().count()},
-        {"time_end", (int)info.time_end.ToDuration().count()},
-        {"time_close", (int)info.time_close.count()},
-        {"d_min", info.d_min},
-        {"time_pred", info.time_pred.count()},
-        {"v_max", info.v_max},
-        {"latitude", info.origin.latitude.Degrees()},
-        {"longitude", info.origin.longitude.Degrees()},
-        {"geoid_offset", geoid_offset},
-        {"wind_speed", wind_available ? boost::json::value(wind.norm) : boost::json::value(nullptr)},
-        {"wind_bearing", wind_available ? boost::json::value(wind.bearing.Degrees()) : boost::json::value(nullptr)},
-        {"v_max", info.v_max},
-        {"p_close", 1 - info.p_free},
-        {"aircraft", json_aircraft}};
-    json_encounter_file << boost::json::serialize(json_info);
   }
 
+  for (auto id : others)
+  {
+    for (const auto &a : group)
+    {
+      if (a.idi == id)
+      {
+        json_aircraft.emplace_back(a.write_encounter(info, -1));
+        included_aircraft.push_back(&a);
+      }
+    }
+  }
+
+  std::ofstream json_encounter_file(info.get_encounter_filename());
+  const double geoid_offset = EGM96::LookupSeparation(info.origin);
+  const TimeStamp t_min = info.time_start - FloatDuration{EncounterMapStore::TYP_TRAIL};
+  const TimeStamp t_max = info.time_end + FloatDuration{EncounterMapStore::HYS_TRAIL};
+  SpeedVector wind;
+  const bool wind_available = AverageAircraftWind(included_aircraft, t_min, t_max, wind);
+  boost::json::object json_info = {
+      {"type", "encounter"},
+      {"d_threshold", distance_threshold},
+      {"time_start", (int)info.time_start.ToDuration().count()},
+      {"time_end", (int)info.time_end.ToDuration().count()},
+      {"time_close", (int)info.time_close.count()},
+      {"d_min", info.d_min},
+      {"time_pred", info.time_pred.count()},
+      {"v_max", info.v_max},
+      {"latitude", info.origin.latitude.Degrees()},
+      {"longitude", info.origin.longitude.Degrees()},
+      {"geoid_offset", geoid_offset},
+      {"wind_speed", wind_available ? boost::json::value(wind.norm) : boost::json::value(nullptr)},
+      {"wind_bearing", wind_available ? boost::json::value(wind.bearing.Degrees()) : boost::json::value(nullptr)},
+      {"v_max", info.v_max},
+      {"p_close", 1 - info.p_free},
+      {"aircraft", json_aircraft}};
+  json_encounter_file << boost::json::serialize(json_info);
+}
+
+void EncounterMapStore::write_files([[maybe_unused]] const std::list<AircraftModel> &group,
+                                    [[maybe_unused]] const double distance_threshold)
+{
+  const std::size_t total_outputs = completed_encounters.size();
+  if (total_outputs == 0)
+  {
+    return;
+  }
+  std::cout << "  [finalise] encounter files: " << total_outputs << " total" << std::endl;
   completed_encounters.clear();
 }
 
