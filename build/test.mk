@@ -1534,7 +1534,8 @@ RUN_MULTI_AIRCRAFT_CPPFLAGS = \
 	-I/usr/include/eigen3 \
 	-Itest/src/MultiAircraft/Tableau/include/ \
 	-DEIGEN_MATRIX_PLUGIN=\"unscented/matrix_plugins.h\" \
-	-DEIGEN_INITIALIZE_MATRICES_BY_ZERO=1
+	-DEIGEN_INITIALIZE_MATRICES_BY_ZERO=1 \
+	-DGIT_SHA='"$(shell git -C $(topdir) rev-parse --short HEAD 2>/dev/null || echo unknown)"'
 RUN_MULTI_AIRCRAFT_LDLIBS = -static-libstdc++ -static-libgcc -static
 RUN_MULTI_AIRCRAFT_DEPENDS = DRIVER LIBNET IO OS THREAD TIME DATA JSON
 $(eval $(call link-program,RunMultiAircraft,RUN_MULTI_AIRCRAFT))

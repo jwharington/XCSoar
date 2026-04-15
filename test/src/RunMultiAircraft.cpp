@@ -433,6 +433,10 @@ static void DecodeOptions(const boost::json::value &_j,
 
 int main(int argc, char **argv)
 {
+#ifdef GIT_SHA
+  std::cout << "RunMultiAircraft [" << GIT_SHA << "]" << std::endl;
+#endif
+
   MultiAircraft::FlightCollectionEncounter flights;
   VignetteConfig vignette;
   AirspaceConfig airspace;
