@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
 using namespace MultiAircraft;
@@ -136,6 +137,34 @@ namespace
     return v.EndPoint(loc) - loc;
   }
 
+  static EventTrailSample make_event_trail_sample(const AircraftModel &aircraft)
+  {
+    const auto &p = aircraft.GetTrail().back();
+    EventTrailSample sample;
+    sample.time = p.pos.time;
+    sample.location = p.pos.location;
+    sample.gps_altitude = p.pos.gps_altitude;
+    sample.baro_altitude = p.pos.baro_altitude;
+    sample.v_wind = p.v_wind;
+    sample.v_ias = p.v_ias;
+    sample.v_tas = p.v_tas;
+    sample.bank_angle = p.bank_angle;
+    sample.pitch_angle = p.pitch_angle;
+    sample.yaw_angle = p.yaw_angle;
+    sample.load_factor = p.load_factor;
+    sample.plausible = p.plausible;
+    return sample;
+  }
+
+  static void append_unique_trail_sample(std::vector<EventTrailSample> &samples,
+                                         const EventTrailSample &sample)
+  {
+    if (!samples.empty() && samples.back().time == sample.time)
+      return;
+
+    samples.emplace_back(sample);
+  }
+
 } // namespace
 
 bool FlightCollectionEncounter::process(const TimeStamp t)
@@ -175,10 +204,54 @@ bool FlightCollectionEncounter::process(const TimeStamp t)
   return ok;
 }
 
+void FlightCollectionEncounter::push_event_trail_sample(const AircraftModel &aircraft,
+                                                        const TimeStamp t)
+{
+  if (aircraft.GetTrail().empty())
+    return;
+
+  auto &history = recent_event_trail_by_aircraft[aircraft.idi];
+  append_unique_trail_sample(history, make_event_trail_sample(aircraft));
+
+  const FloatDuration history_window = std::max(FloatDuration{EncounterMapStore::TYP_TRAIL},
+                                                AircraftModel::reconstruction_pre_buffer);
+  const TimeStamp history_min = t - history_window;
+
+  while (!history.empty() && history.front().time < history_min)
+    history.erase(history.begin());
+}
+
+std::vector<EventTrailSample>
+FlightCollectionEncounter::seed_event_trail_samples(const unsigned aircraft_id,
+                                                    const TimeStamp t) const
+{
+  auto it = recent_event_trail_by_aircraft.find(aircraft_id);
+  if (it == recent_event_trail_by_aircraft.end())
+    return {};
+
+  const FloatDuration history_window = std::max(FloatDuration{EncounterMapStore::TYP_TRAIL},
+                                                AircraftModel::reconstruction_pre_buffer);
+  const TimeStamp history_min = t - history_window;
+
+  std::vector<EventTrailSample> seeded;
+  seeded.reserve(it->second.size());
+  for (const auto &sample : it->second)
+  {
+    if (sample.time >= history_min)
+      seeded.emplace_back(sample);
+  }
+
+  return seeded;
+}
+
 void FlightCollectionEncounter::update_terrain_events(const TimeStamp t)
 {
   if (terrain == nullptr || terrain->empty())
     return;
+
+  const FloatDuration max_event_duration = FloatDuration{EncounterMapStore::MAX_TRAIL_FACTOR * EncounterMapStore::TYP_TRAIL};
+  std::unordered_set<unsigned> current_terrain_aircraft;
+  std::unordered_set<unsigned> current_terrain_hits;
 
   for (auto &[_, active] : active_terrain_events)
     active.seen = false;
@@ -187,6 +260,14 @@ void FlightCollectionEncounter::update_terrain_events(const TimeStamp t)
   {
     if (!a.live || !a.valid)
       continue;
+
+    current_terrain_aircraft.emplace(a.idi);
+
+    push_event_trail_sample(a, t);
+    if (a.GetTrail().empty())
+      continue;
+
+    const EventTrailSample current_sample = make_event_trail_sample(a);
 
     const auto terrain_height = terrain->GetHeight(a.interp_loc.location);
     if (!terrain_height.has_value())
@@ -198,32 +279,55 @@ void FlightCollectionEncounter::update_terrain_events(const TimeStamp t)
     if (terrain_distance > TERRAIN_CLEARANCE_M)
       continue;
 
+    current_terrain_hits.emplace(a.idi);
+
     const auto wind = a.Calculated().estimated_wind;
     auto it = active_terrain_events.find(a.idi);
-    if (it == active_terrain_events.end())
+
+    if (it != active_terrain_events.end())
     {
-      ActiveTerrainEvent active{
-          Vignette(a.idi, t, a.flight_date_utc_start,
-                   a.interp_loc.location,
-                   a.interp_loc.baro_altitude,
-                   wind),
-          {},
-          terrain_distance,
-          true};
-      active.distance_samples.emplace_back(t, terrain_distance);
-      active_terrain_events.emplace(a.idi, std::move(active));
+      auto &active = it->second;
+      active.seen = true;
+      if (!active.capped)
+      {
+        if (t - active.vignette.time_start > max_event_duration)
+        {
+          active.capped = true;
+        }
+        else
+        {
+          active.vignette.time_end = t;
+          active.vignette.wind_acc += Vector(wind);
+          ++active.vignette.num_wind;
+          active.vignette.wind = SpeedVector(active.vignette.wind_acc.y / active.vignette.num_wind,
+                                             active.vignette.wind_acc.x / active.vignette.num_wind);
+          active.distance_samples.emplace_back(t, terrain_distance);
+          append_unique_trail_sample(active.trail_samples, current_sample);
+          active.min_distance = std::min(active.min_distance, terrain_distance);
+        }
+      }
       continue;
     }
 
-    auto &active = it->second;
-    active.vignette.time_end = t;
-    active.vignette.wind_acc += Vector(wind);
-    ++active.vignette.num_wind;
-    active.vignette.wind = SpeedVector(active.vignette.wind_acc.y / active.vignette.num_wind,
-                                       active.vignette.wind_acc.x / active.vignette.num_wind);
-    active.distance_samples.emplace_back(t, terrain_distance);
-    active.min_distance = std::min(active.min_distance, terrain_distance);
-    active.seen = true;
+    {
+      const bool seen_aircraft_prev_step = previous_terrain_aircraft.contains(a.idi);
+      const bool was_terrain_prev_step = previous_terrain_hits.contains(a.idi);
+      if (!seen_aircraft_prev_step || was_terrain_prev_step)
+        continue;
+    }
+
+    ActiveTerrainEvent active_ev{
+        Vignette(a.idi, t, a.flight_date_utc_start,
+                 a.interp_loc.location,
+                 a.interp_loc.baro_altitude,
+                 wind),
+        {},
+        seed_event_trail_samples(a.idi, t),
+        terrain_distance,
+        true};
+    active_ev.distance_samples.emplace_back(t, terrain_distance);
+    append_unique_trail_sample(active_ev.trail_samples, current_sample);
+    active_terrain_events.emplace(a.idi, std::move(active_ev));
   }
 
   for (auto it = active_terrain_events.begin(); it != active_terrain_events.end();)
@@ -237,6 +341,9 @@ void FlightCollectionEncounter::update_terrain_events(const TimeStamp t)
     completed_terrain_events[it->first].push_back(std::move(it->second));
     it = active_terrain_events.erase(it);
   }
+
+  previous_terrain_aircraft = std::move(current_terrain_aircraft);
+  previous_terrain_hits = std::move(current_terrain_hits);
 }
 
 void FlightCollectionEncounter::update_airspace_incursions(const TimeStamp t)
@@ -244,6 +351,7 @@ void FlightCollectionEncounter::update_airspace_incursions(const TimeStamp t)
   if (!openaip_airspaces.IsEnabled())
     return;
 
+  const FloatDuration max_event_duration = FloatDuration{EncounterMapStore::MAX_TRAIL_FACTOR * EncounterMapStore::TYP_TRAIL};
   std::unordered_set<unsigned> current_airspace_aircraft;
   std::unordered_set<IncursionKey, IncursionKeyHash> current_incursion_hits;
 
@@ -254,6 +362,12 @@ void FlightCollectionEncounter::update_airspace_incursions(const TimeStamp t)
   {
     if (!a.live || !a.valid)
       continue;
+
+    push_event_trail_sample(a, t);
+    if (a.GetTrail().empty())
+      continue;
+
+    const EventTrailSample current_sample = make_event_trail_sample(a);
 
     current_airspace_aircraft.emplace(a.idi);
 
@@ -270,40 +384,62 @@ void FlightCollectionEncounter::update_airspace_incursions(const TimeStamp t)
 
     for (const auto &hit : hits)
     {
+      if (hit.depth_m < INCURSION_THRESHOLD_M)
+        continue;
+
       const IncursionKey key{(unsigned)a.idi, hit.airspace_index};
       current_incursion_hits.emplace(key);
 
       auto it = active_incursions.find(key);
-      if (it == active_incursions.end())
+
+      if (it != active_incursions.end())
+      {
+        auto &active = it->second;
+        active.seen = true;
+        if (!active.capped)
+        {
+          if (t - active.vignette.time_start > max_event_duration)
+          {
+            active.capped = true;
+          }
+          else
+          {
+            active.vignette.time_end = t;
+            active.vignette.wind_acc += Vector(wind);
+            ++active.vignette.num_wind;
+            active.vignette.wind = SpeedVector(active.vignette.wind_acc.y / active.vignette.num_wind,
+                                               active.vignette.wind_acc.x / active.vignette.num_wind);
+            active.depth_samples.emplace_back(t, hit.depth_m);
+            active.boundary_samples.emplace_back(t, hit.boundary_location, hit.boundary_altitude_m);
+            append_unique_trail_sample(active.trail_samples, current_sample);
+            active.max_depth = std::max(active.max_depth, hit.depth_m);
+          }
+        }
+        continue;
+      }
+
       {
         const bool seen_aircraft_prev_step = previous_airspace_aircraft.contains(a.idi);
         const bool was_incursion_prev_step = previous_incursion_hits.contains(key);
         if (!seen_aircraft_prev_step || was_incursion_prev_step)
           continue;
-
-        ActiveIncursion active{
-            hit.airspace_index,
-            Vignette(a.idi, t, a.flight_date_utc_start,
-                     a.interp_loc.location,
-                     a.interp_loc.baro_altitude,
-                     wind),
-            {},
-            hit.depth_m,
-            true};
-        active.depth_samples.emplace_back(t, hit.depth_m);
-        active_incursions.emplace(key, std::move(active));
-        continue;
       }
 
-      auto &active = it->second;
-      active.vignette.time_end = t;
-      active.vignette.wind_acc += Vector(wind);
-      ++active.vignette.num_wind;
-      active.vignette.wind = SpeedVector(active.vignette.wind_acc.y / active.vignette.num_wind,
-                                         active.vignette.wind_acc.x / active.vignette.num_wind);
-      active.depth_samples.emplace_back(t, hit.depth_m);
-      active.max_depth = std::max(active.max_depth, hit.depth_m);
-      active.seen = true;
+      ActiveIncursion active_inc{
+          hit.airspace_index,
+          Vignette(a.idi, t, a.flight_date_utc_start,
+                   a.interp_loc.location,
+                   a.interp_loc.baro_altitude,
+                   wind),
+          {},
+          {},
+          seed_event_trail_samples(a.idi, t),
+          hit.depth_m,
+          true};
+      active_inc.depth_samples.emplace_back(t, hit.depth_m);
+      active_inc.boundary_samples.emplace_back(t, hit.boundary_location, hit.boundary_altitude_m);
+      append_unique_trail_sample(active_inc.trail_samples, current_sample);
+      active_incursions.emplace(key, std::move(active_inc));
     }
   }
 
@@ -517,18 +653,32 @@ void FlightCollectionEncounter::encounter_update(const TimeStamp t)
 
 void FlightCollectionEncounter::finalise()
 {
+  std::cout << "[finalise] flock algorithm..." << std::endl;
   flock_algorithm.finalise();
+
+  std::cout << "[finalise] expiring encounters..." << std::endl;
   time_close += encounter_store.erase_expired(TimeStamp::Undefined(), group, DISTANCE, alt_start_av + HEIGHT_THRESHOLD_M);
+
+  std::cout << "[finalise] writing encounter files..." << std::endl;
   encounter_store.write_files(group, DISTANCE);
+
+  std::cout << "[finalise] writing vignette file..." << std::endl;
   write_vignette_file();
+
   for (auto &[key, active] : active_incursions)
     completed_incursions[key.aircraft_id].push_back(std::move(active));
   active_incursions.clear();
+
   for (auto &[idi, active] : active_terrain_events)
     completed_terrain_events[idi].push_back(std::move(active));
   active_terrain_events.clear();
+
+  std::cout << "[finalise] writing " << completed_incursions.size() << " incursion sets..." << std::endl;
   write_incursion_files();
+
+  std::cout << "[finalise] writing " << completed_terrain_events.size() << " terrain sets..." << std::endl;
   write_terrain_files();
+
   FlightCollection::finalise();
 }
 
@@ -663,6 +813,17 @@ void FlightCollectionEncounter::write_incursion_files()
   if (!openaip_airspaces.IsEnabled())
     return;
 
+  std::size_t total_outputs = 0;
+  for (const auto &[_, incursions] : completed_incursions)
+    total_outputs += incursions.size();
+
+  if (total_outputs == 0)
+    return;
+
+  std::size_t written_outputs = 0;
+  std::size_t skipped_empty = 0;
+  std::cout << "  [finalise] incursion files: 0/" << total_outputs << std::endl;
+
   for (auto &[idi, incursions] : completed_incursions)
   {
     auto aircraft_it = std::find_if(group.begin(), group.end(),
@@ -676,13 +837,22 @@ void FlightCollectionEncounter::write_incursion_files()
     for (std::size_t index = 0; index < incursions.size(); ++index)
     {
       auto &incursion = incursions[index];
+
+      if (incursion.trail_samples.empty())
+      {
+        ++skipped_empty;
+        continue;
+      }
+
       incursion.vignette.finalise();
       const auto &metadata = openaip_airspaces.GetMetadata(incursion.airspace_index);
       const double geoid_offset = EGM96::LookupSeparation(incursion.vignette.origin);
 
       boost::json::array aircraft_json;
       aircraft_json.emplace_back(aircraft_it->write_incursion(incursion.vignette,
-                                                              incursion.depth_samples));
+                                                              incursion.depth_samples,
+                                                              incursion.boundary_samples,
+                                                              incursion.trail_samples));
 
       boost::json::object json_info = {
           {"type", "incursion"},
@@ -706,14 +876,31 @@ void FlightCollectionEncounter::write_incursion_files()
       filename << "incursion-" << aircraft_it->id << "-" << index << ".json";
       std::ofstream file(filename.str());
       file << boost::json::serialize(json_info);
+
+      ++written_outputs;
+      if (written_outputs == total_outputs || written_outputs % 25 == 0)
+        std::cout << "  [finalise] incursion files: " << written_outputs << "/" << total_outputs << std::endl;
     }
   }
+  if (skipped_empty > 0)
+    std::cout << "  [finalise] skipped " << skipped_empty << " incursion events with empty trails" << std::endl;
 }
 
 void FlightCollectionEncounter::write_terrain_files()
 {
   if (terrain == nullptr || terrain->empty())
     return;
+
+  std::size_t total_outputs = 0;
+  for (const auto &[_, events] : completed_terrain_events)
+    total_outputs += events.size();
+
+  if (total_outputs == 0)
+    return;
+
+  std::size_t written_outputs = 0;
+  std::size_t skipped_empty = 0;
+  std::cout << "  [finalise] terrain files: 0/" << total_outputs << std::endl;
 
   for (auto &[idi, events] : completed_terrain_events)
   {
@@ -728,12 +915,20 @@ void FlightCollectionEncounter::write_terrain_files()
     for (std::size_t index = 0; index < events.size(); ++index)
     {
       auto &event = events[index];
+
+      if (event.trail_samples.empty())
+      {
+        ++skipped_empty;
+        continue;
+      }
+
       event.vignette.finalise();
       const double geoid_offset = EGM96::LookupSeparation(event.vignette.origin);
 
       boost::json::array aircraft_json;
       aircraft_json.emplace_back(aircraft_it->write_terrain(event.vignette,
-                                                            event.distance_samples));
+                                                            event.distance_samples,
+                                                            event.trail_samples));
 
       boost::json::object json_info = {
           {"type", "terrain"},
@@ -752,8 +947,14 @@ void FlightCollectionEncounter::write_terrain_files()
       filename << "terrain-" << aircraft_it->id << "-" << index << ".json";
       std::ofstream file(filename.str());
       file << boost::json::serialize(json_info);
+
+      ++written_outputs;
+      if (written_outputs == total_outputs || written_outputs % 25 == 0)
+        std::cout << "  [finalise] terrain files: " << written_outputs << "/" << total_outputs << std::endl;
     }
   }
+  if (skipped_empty > 0)
+    std::cout << "  [finalise] skipped " << skipped_empty << " terrain events with empty trails" << std::endl;
 }
 
 double FlightCollectionEncounter::get_effective_distance(const AircraftModel &a,

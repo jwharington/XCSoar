@@ -78,18 +78,25 @@ namespace
                         Angle::Degrees(point[1].to_number<double>()));
     }
 
-    static double
-    DistanceToSegment(const FlatPoint p,
-                      const FlatPoint a,
-                      const FlatPoint b) noexcept
+    struct SegmentDistance
+    {
+        double distance_m;
+        FlatPoint point;
+    };
+
+    static SegmentDistance
+    DistanceToSegmentWithPoint(const FlatPoint p,
+                               const FlatPoint a,
+                               const FlatPoint b) noexcept
     {
         const FlatPoint ab = b - a;
         const double length_squared = ab.DotProduct(ab);
         if (length_squared <= 0)
-            return p.Distance(a);
+            return {p.Distance(a), a};
 
         const double t = std::clamp((p - a).DotProduct(ab) / length_squared, 0.0, 1.0);
-        return p.Distance(a + ab * t);
+        const FlatPoint nearest = a + ab * t;
+        return {p.Distance(nearest), nearest};
     }
 
 }
@@ -228,23 +235,28 @@ OpenAipAirspaces::ParsePolygon(const boost::json::array &rings)
     return polygon;
 }
 
-double
+OpenAipAirspaces::BoundaryDistance
 OpenAipAirspaces::DistanceToBoundary(const Polygon &polygon,
                                      const FlatPoint &projected) noexcept
 {
     if (polygon.projected_points.size() < 2)
-        return 0;
+        return {};
 
-    double min_distance = std::numeric_limits<double>::max();
+    BoundaryDistance best;
+    best.distance_m = std::numeric_limits<double>::max();
     for (std::size_t i = 1; i < polygon.projected_points.size(); ++i)
     {
-        min_distance = std::min(min_distance,
-                                DistanceToSegment(projected,
-                                                  polygon.projected_points[i - 1],
-                                                  polygon.projected_points[i]));
+        const auto distance = DistanceToSegmentWithPoint(projected,
+                                                         polygon.projected_points[i - 1],
+                                                         polygon.projected_points[i]);
+        if (distance.distance_m < best.distance_m)
+        {
+            best.distance_m = distance.distance_m;
+            best.point = distance.point;
+        }
     }
 
-    return min_distance;
+    return best;
 }
 
 void OpenAipAirspaces::Load(const Path &path)
@@ -317,6 +329,7 @@ OpenAipAirspaces::Query(const GeoPoint &location,
             continue;
 
         double best_horizontal_depth = -1;
+        GeoPoint best_horizontal_boundary_location = location;
         for (const auto &polygon : airspace.polygons)
         {
             if (!polygon.bounds.IsInside(location))
@@ -331,8 +344,12 @@ OpenAipAirspaces::Query(const GeoPoint &location,
                                  polygon.points.begin(), polygon.points.end()))
                 continue;
 
-            best_horizontal_depth = std::max(best_horizontal_depth,
-                                             DistanceToBoundary(polygon, projected));
+            const auto boundary = DistanceToBoundary(polygon, projected);
+            if (boundary.distance_m > best_horizontal_depth)
+            {
+                best_horizontal_depth = boundary.distance_m;
+                best_horizontal_boundary_location = polygon.projection.Unproject(boundary.point);
+            }
         }
 
         if (best_horizontal_depth < 0)
@@ -340,7 +357,21 @@ OpenAipAirspaces::Query(const GeoPoint &location,
 
         const double vertical_depth = std::min(altitude_m - lower_limit_m,
                                                upper_limit_m - altitude_m);
-        hits.push_back(Hit{index, std::min(best_horizontal_depth, vertical_depth)});
+        const double depth = std::min(best_horizontal_depth, vertical_depth);
+
+        GeoPoint boundary_location = best_horizontal_boundary_location;
+        double boundary_altitude_m = altitude_m;
+        if (vertical_depth <= best_horizontal_depth)
+        {
+            const double lower_depth = altitude_m - lower_limit_m;
+            const double upper_depth = upper_limit_m - altitude_m;
+            boundary_location = location;
+            boundary_altitude_m = lower_depth <= upper_depth
+                                      ? lower_limit_m
+                                      : upper_limit_m;
+        }
+
+        hits.push_back(Hit{index, depth, boundary_location, boundary_altitude_m});
     }
 
     return hits;

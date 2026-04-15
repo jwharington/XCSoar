@@ -101,6 +101,7 @@ BuildOptionsSchema()
                                           {"additionalProperties", false},
                                           {"properties", boost::json::object{
                                                              {"openaip", boost::json::object{{"type", "string"}}},
+                                                             {"incursion_threshold", boost::json::object{{"type", "number"}}},
                                                          }},
                                           {"required", boost::json::array{"openaip"}},
                                       }},
@@ -144,6 +145,7 @@ struct VignetteConfig
 struct AirspaceConfig
 {
   std::string openaip_path;
+  double incursion_threshold = 50;
 
   bool enabled() const noexcept
   {
@@ -377,7 +379,9 @@ static void DecodeOptions(const boost::json::value &_j,
   try_apply("airspace", [&](const boost::json::value &v)
             {
               const auto &obj = v.as_object();
-              airspace.openaip_path = std::string(obj.at("openaip").as_string()); });
+              airspace.openaip_path = std::string(obj.at("openaip").as_string());
+              if (auto it = obj.find("incursion_threshold"); it != obj.end())
+                airspace.incursion_threshold = it->value().to_number<double>(); });
 
   try_apply("terrain", [&](const boost::json::value &v)
             {
@@ -464,11 +468,15 @@ int main(int argc, char **argv)
 
   DecodeOptions(json_data, flights, vignette, airspace, covariance_tuning);
   MultiAircraft::AircraftModel::SetWriteTraceFiles(!vignette.enabled);
-  MultiAircraft::AircraftModel::SetKeepFullTrail(vignette.enabled || covariance_tuning.enabled);
+  MultiAircraft::AircraftModel::SetKeepFullTrail(vignette.enabled ||
+                                                 covariance_tuning.enabled);
   MultiAircraft::FlightCollectionEncounter::SetSkipEncounterProcessing(covariance_tuning.enabled);
   MultiAircraft::FlightFlock::SetWriteJsonFile(!vignette.enabled);
   if (airspace.enabled())
+  {
     flights.LoadOpenAipAirspaces(Path(airspace.openaip_path.c_str()));
+    flights.INCURSION_THRESHOLD_M = airspace.incursion_threshold;
+  }
   if (vignette.enabled)
   {
     MultiAircraft::FlightCollectionEncounter::VignetteOptions options;

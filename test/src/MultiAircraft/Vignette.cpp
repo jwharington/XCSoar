@@ -22,6 +22,12 @@ void Vignette::finalise()
 
 const FlatPoint Vignette::project_loc_wind(const TrailPoint &p) const
 {
-  const GeoPoint loc_drift = p.pos.location.Parametric(traildrift, ToFloatSeconds(p.pos.time - origin_time));
+  return project_loc_wind(p.pos.location, p.pos.time);
+}
+
+const FlatPoint Vignette::project_loc_wind(const GeoPoint &location,
+                                           const TimeStamp time) const
+{
+  const GeoPoint loc_drift = location.Parametric(traildrift, ToFloatSeconds(time - origin_time));
   return proj.ProjectFloat(loc_drift) * scale;
 }

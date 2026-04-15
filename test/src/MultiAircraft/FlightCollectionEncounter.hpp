@@ -10,6 +10,7 @@
 #include "Vignette.hpp"
 
 #include <memory>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -38,6 +39,7 @@ namespace MultiAircraft
     double P_THRESHOLD = 0.2;
     double HEIGHT_THRESHOLD_M = 100;
     double TERRAIN_CLEARANCE_M = 100;
+    double INCURSION_THRESHOLD_M = 50;
 
     void SetVignetteOptions(const VignetteOptions &options)
     {
@@ -101,16 +103,21 @@ namespace MultiAircraft
       unsigned airspace_index;
       Vignette vignette;
       std::vector<std::pair<TimeStamp, double>> depth_samples;
+      std::vector<std::tuple<TimeStamp, GeoPoint, double>> boundary_samples;
+      std::vector<EventTrailSample> trail_samples;
       double max_depth = 0;
       bool seen = false;
+      bool capped = false;
     };
 
     struct ActiveTerrainEvent
     {
       Vignette vignette;
       std::vector<std::pair<TimeStamp, double>> distance_samples;
+      std::vector<EventTrailSample> trail_samples;
       double min_distance = 0;
       bool seen = false;
+      bool capped = false;
     };
 
     struct IncursionKey
@@ -134,8 +141,14 @@ namespace MultiAircraft
     std::unordered_map<unsigned, std::vector<ActiveIncursion>> completed_incursions;
     std::unordered_map<unsigned, ActiveTerrainEvent> active_terrain_events;
     std::unordered_map<unsigned, std::vector<ActiveTerrainEvent>> completed_terrain_events;
+    std::unordered_map<unsigned, std::vector<EventTrailSample>> recent_event_trail_by_aircraft;
     std::unordered_set<unsigned> previous_airspace_aircraft;
     std::unordered_set<IncursionKey, IncursionKeyHash> previous_incursion_hits;
+    std::unordered_set<unsigned> previous_terrain_aircraft;
+    std::unordered_set<unsigned> previous_terrain_hits;
+
+    void push_event_trail_sample(const AircraftModel &aircraft, const TimeStamp t);
+    std::vector<EventTrailSample> seed_event_trail_samples(unsigned aircraft_id, const TimeStamp t) const;
 
     static bool skip_encounter_processing;
   };

@@ -383,7 +383,22 @@ namespace
     step.emplace("yaw", p.yaw_angle.AsBearing().Degrees());
   }
 
+  void append_raw_attitude_fields(boost::json::object &step, const EventTrailSample &p)
+  {
+    step.emplace("bank", p.bank_angle.Degrees());
+    step.emplace("pitch", p.pitch_angle.Degrees());
+    step.emplace("yaw", p.yaw_angle.AsBearing().Degrees());
+  }
+
   void append_raw_flight_fields(boost::json::object &step, const TrailPoint &p)
+  {
+    step.emplace("v_tas", p.v_tas);
+    step.emplace("v_ias", p.v_ias);
+    append_raw_attitude_fields(step, p);
+    step.emplace("load_factor", p.load_factor);
+  }
+
+  void append_raw_flight_fields(boost::json::object &step, const EventTrailSample &p)
   {
     step.emplace("v_tas", p.v_tas);
     step.emplace("v_ias", p.v_ias);
@@ -397,6 +412,14 @@ namespace
     step.emplace("x", fp.x);
     step.emplace("y", fp.y);
     step.emplace("alt_gps", p.pos.gps_altitude);
+  }
+
+  void append_position_fields(boost::json::object &step, const FlatPoint &fp,
+                              const EventTrailSample &p)
+  {
+    step.emplace("x", fp.x);
+    step.emplace("y", fp.y);
+    step.emplace("alt_gps", p.gps_altitude);
   }
 
   void append_common_detailed_fields(boost::json::object &step,
@@ -467,6 +490,63 @@ namespace
     x.value = fp.x;
     y.value = fp.y;
     z.value = -p.pos.gps_altitude;
+    U.value = p.v_tas;
+
+    try
+    {
+      filter.update(measurement, 1.0);
+      return true;
+    }
+    catch (const std::exception &e)
+    {
+      // std::cerr << "Filter update failed: " << e.what() << "\n";
+      return false;
+    }
+  }
+
+  inline void initialise_filter_state(FlightReconstruction::Filter &filter,
+                                      const FlatPoint &fp,
+                                      const EventTrailSample &p)
+  {
+    auto state = FlightReconstruction::get_initial_state_estimate(fp.y, fp.x,
+                                                                  -p.gps_altitude,
+                                                                  p.v_tas,
+                                                                  p.bank_angle.Radians(),
+                                                                  p.pitch_angle.Radians(),
+                                                                  p.yaw_angle.AsBearing().Radians());
+    filter.initialise(state, 1.0);
+  }
+
+  inline void initialise_filter_state(FlightReconstruction::FilterWithUpdraftGust &filter,
+                                      const FlatPoint &fp,
+                                      const EventTrailSample &p)
+  {
+    auto state = FlightReconstruction::get_initial_state_estimate_with_updraft_gust(
+        fp.y, fp.x,
+        -p.gps_altitude,
+        p.v_tas,
+        p.bank_angle.Radians(),
+        p.pitch_angle.Radians(),
+        p.yaw_angle.AsBearing().Radians());
+    filter.initialise(state, 1.0);
+  }
+
+  template <typename FilterType>
+  bool update_encounter_filter(FilterType &filter,
+                               const bool initialise,
+                               const FlatPoint &fp,
+                               const EventTrailSample &p)
+  {
+    if (initialise)
+    {
+      initialise_filter_state(filter, fp, p);
+    }
+
+    FlightReconstruction::Measurement measurement;
+    auto &[y, x, z, U] = measurement.data;
+    x.value = fp.x;
+    y.value = fp.y;
+    z.value = -p.gps_altitude;
     U.value = p.v_tas;
 
     try
@@ -706,9 +786,10 @@ namespace
   }
 
   template <typename FilterType>
-  void populate_incursion_trace(const AircraftModel &aircraft,
-                                const Vignette &info,
+  void populate_incursion_trace(const Vignette &info,
                                 const std::vector<std::pair<TimeStamp, double>> &depth_samples,
+                                const std::vector<std::tuple<TimeStamp, GeoPoint, double>> &boundary_samples,
+                                const std::vector<EventTrailSample> &trail_samples,
                                 FilterType &filter,
                                 boost::json::array &trace,
                                 bool &plausible,
@@ -720,40 +801,58 @@ namespace
     const TimeStamp t_reconstruction_min = info.time_start - AircraftModel::reconstruction_pre_buffer;
     const bool filter_enabled = AircraftModel::filter_type > 0;
     auto depth_it = depth_samples.begin();
+    auto boundary_it = boundary_samples.begin();
     double current_depth = 0;
+    GeoPoint current_boundary_location = info.origin;
+    double current_boundary_altitude = info.alt;
 
-    for (auto &&p : aircraft.GetTrail())
+    for (const auto &p : trail_samples)
     {
-      if (!p.within_time(t_reconstruction_min, t_max))
+      if (p.time < t_reconstruction_min || p.time > t_max)
         continue;
 
-      const FlatPoint fp = info.project_loc_wind(p);
+      const FlatPoint fp = info.project_loc_wind(p.location, p.time);
 
       if (filter_enabled)
         kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
 
-      if (p.pos.time < t_min)
+      if (p.time < t_min)
       {
         if (filter_enabled)
           ++reconstruction_warmup_samples;
         continue;
       }
 
-      while (depth_it != depth_samples.end() && depth_it->first <= p.pos.time)
+      while (depth_it != depth_samples.end() && depth_it->first <= p.time)
       {
         current_depth = depth_it->second;
         ++depth_it;
       }
 
-      const bool within_event = p.pos.time >= info.time_start && p.pos.time <= info.time_end;
+      while (boundary_it != boundary_samples.end() && std::get<0>(*boundary_it) <= p.time)
+      {
+        current_boundary_location = std::get<1>(*boundary_it);
+        current_boundary_altitude = std::get<2>(*boundary_it);
+        ++boundary_it;
+      }
+
+      const bool within_event = p.time >= info.time_start && p.time <= info.time_end;
+      const bool has_positive_depth = within_event && current_depth > 0;
 
       boost::json::object incursion = {
           {"depth", within_event ? current_depth : 0.0},
       };
+      if (has_positive_depth)
+      {
+        const FlatPoint boundary_fp = info.project_loc_wind(current_boundary_location, p.time);
+        incursion.emplace("x", boundary_fp.x);
+        incursion.emplace("y", boundary_fp.y);
+        incursion.emplace("alt", current_boundary_altitude);
+      }
 
       boost::json::object step = {
-          {"t", (p.pos.time - info.time_start).count()},
-          {"alt_baro", p.pos.baro_altitude},
+          {"t", (p.time - info.time_start).count()},
+          {"alt_baro", p.baro_altitude},
           {"v", p.v_wind.norm},
           {"hdg", p.v_wind.bearing.Degrees()},
           {"incursion", std::move(incursion)},
@@ -774,9 +873,9 @@ namespace
   }
 
   template <typename FilterType>
-  void populate_terrain_trace(const AircraftModel &aircraft,
-                              const Vignette &info,
+  void populate_terrain_trace(const Vignette &info,
                               const std::vector<std::pair<TimeStamp, double>> &distance_samples,
+                              const std::vector<EventTrailSample> &trail_samples,
                               FilterType &filter,
                               boost::json::array &trace,
                               bool &plausible,
@@ -790,24 +889,24 @@ namespace
     auto distance_it = distance_samples.begin();
     double current_distance = 0;
 
-    for (auto &&p : aircraft.GetTrail())
+    for (const auto &p : trail_samples)
     {
-      if (!p.within_time(t_reconstruction_min, t_max))
+      if (p.time < t_reconstruction_min || p.time > t_max)
         continue;
 
-      const FlatPoint fp = info.project_loc_wind(p);
+      const FlatPoint fp = info.project_loc_wind(p.location, p.time);
 
       if (filter_enabled)
         kf_valid &= update_encounter_filter(filter, trace.empty(), fp, p);
 
-      if (p.pos.time < t_min)
+      if (p.time < t_min)
       {
         if (filter_enabled)
           ++reconstruction_warmup_samples;
         continue;
       }
 
-      while (distance_it != distance_samples.end() && distance_it->first <= p.pos.time)
+      while (distance_it != distance_samples.end() && distance_it->first <= p.time)
       {
         current_distance = distance_it->second;
         ++distance_it;
@@ -818,8 +917,8 @@ namespace
       };
 
       boost::json::object step = {
-          {"t", (p.pos.time - info.time_start).count()},
-          {"alt_baro", p.pos.baro_altitude},
+          {"t", (p.time - info.time_start).count()},
+          {"alt_baro", p.baro_altitude},
           {"v", p.v_wind.norm},
           {"hdg", p.v_wind.bearing.Degrees()},
           {"terrain", std::move(terrain)},
@@ -945,7 +1044,9 @@ boost::json::object AircraftModel::write_vignette(const Vignette &info) const
 
 boost::json::object AircraftModel::write_incursion(
     const Vignette &info,
-    const std::vector<std::pair<TimeStamp, double>> &depth_samples) const
+    const std::vector<std::pair<TimeStamp, double>> &depth_samples,
+    const std::vector<std::tuple<TimeStamp, GeoPoint, double>> &boundary_samples,
+    const std::vector<EventTrailSample> &trail_samples) const
 {
   boost::json::array trace;
 
@@ -960,7 +1061,8 @@ boost::json::object AircraftModel::write_incursion(
   if (use_updraft_filter)
   {
     FlightReconstruction::FilterWithUpdraftGust filter;
-    populate_incursion_trace(*this, info, depth_samples, filter, trace, plausible,
+    populate_incursion_trace(info, depth_samples, boundary_samples, trail_samples,
+                             filter, trace, plausible,
                              kf_valid, reconstruction_warmup_samples);
 
     if (kf_valid)
@@ -970,7 +1072,8 @@ boost::json::object AircraftModel::write_incursion(
   else
   {
     FlightReconstruction::Filter filter;
-    populate_incursion_trace(*this, info, depth_samples, filter, trace, plausible,
+    populate_incursion_trace(info, depth_samples, boundary_samples, trail_samples,
+                             filter, trace, plausible,
                              kf_valid, reconstruction_warmup_samples);
 
     if (kf_valid)
@@ -1000,7 +1103,8 @@ boost::json::object AircraftModel::write_incursion(
 
 boost::json::object AircraftModel::write_terrain(
     const Vignette &info,
-    const std::vector<std::pair<TimeStamp, double>> &distance_samples) const
+    const std::vector<std::pair<TimeStamp, double>> &distance_samples,
+    const std::vector<EventTrailSample> &trail_samples) const
 {
   boost::json::array trace;
 
@@ -1015,7 +1119,8 @@ boost::json::object AircraftModel::write_terrain(
   if (use_updraft_filter)
   {
     FlightReconstruction::FilterWithUpdraftGust filter;
-    populate_terrain_trace(*this, info, distance_samples, filter, trace, plausible,
+    populate_terrain_trace(info, distance_samples, trail_samples,
+                           filter, trace, plausible,
                            kf_valid, reconstruction_warmup_samples);
 
     if (kf_valid)
@@ -1025,7 +1130,8 @@ boost::json::object AircraftModel::write_terrain(
   else
   {
     FlightReconstruction::Filter filter;
-    populate_terrain_trace(*this, info, distance_samples, filter, trace, plausible,
+    populate_terrain_trace(info, distance_samples, trail_samples,
+                           filter, trace, plausible,
                            kf_valid, reconstruction_warmup_samples);
 
     if (kf_valid)

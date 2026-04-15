@@ -35,6 +35,8 @@ namespace MultiAircraft
     void finalise();
 
     const FlatPoint project_loc_wind(const TrailPoint &p) const;
+    const FlatPoint project_loc_wind(const GeoPoint &location,
+                                     const TimeStamp time) const;
     unsigned id;
     TimeStamp time_start;
     TimeStamp time_end;

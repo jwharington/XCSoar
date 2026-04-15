@@ -29,10 +29,13 @@ bool FlightCollection::advance_to_start()
   overall_wind_y = 0;
   overall_wind_samples = 0;
 
-  for (auto &&a : group)
+  size_t i = 0;
+  for (auto &a : group)
   {
     a.reset();
     a.advance_to_start(t_start, t_end);
+    std::cout << "  aircraft " << (++i) << "/" << group.size()
+              << " [" << a.id << "] ready" << std::endl;
   }
   return (t_start.IsDefined());
 }
@@ -88,9 +91,18 @@ void FlightCollection::advance_to_time(const TimeStamp t)
 void FlightCollection::finalise()
 {
   Averager alt_start;
+  const std::size_t total_aircraft = group.size();
+  std::size_t processed_aircraft = 0;
+
+  if (total_aircraft > 0)
+    std::cout << "  [finalise] aircraft traces: 0/" << total_aircraft << "\n";
+
   for (auto &&a : group)
   {
     a.finalise(alt_start);
+    ++processed_aircraft;
+    if (processed_aircraft == total_aircraft || processed_aircraft % 10 == 0)
+      std::cout << "  [finalise] aircraft traces: " << processed_aircraft << "/" << total_aircraft << "\n";
   }
   alt_start.calculate();
   alt_start_av = alt_start.get_avg();
@@ -127,11 +139,15 @@ bool FlightCollection::run()
 
   write_header(group);
 
+  std::cout << "Initialising " << group.size() << " aircraft..." << std::endl;
   if (!advance_to_start())
   {
     printf("Error! advance to start\n");
     return false;
   }
+  std::cout << "Start t=" << (int)t_start.ToDuration().count()
+            << " end t=" << (int)t_end.ToDuration().count()
+            << " (" << (int)std::ceil((t_end - t_start).count()) << "s)" << std::endl;
 
   loc_general = calc_av_flight_loc_start();
   proj = FlatProjection(loc_general);
@@ -159,11 +175,11 @@ bool FlightCollection::run()
       std::cout << get_symbol(a);
       a.mark = false;
     }
-    std::cout << "\n";
+    std::cout << std::endl;
   }
-  std::cout << "Finalising outputs...\n";
+  std::cout << "Finalising outputs..." << std::endl;
   finalise();
-  std::cout << "Done.\n";
+  std::cout << "Done." << std::endl;
   /////////////////
 
   return true;

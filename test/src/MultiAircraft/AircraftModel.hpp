@@ -5,6 +5,7 @@
 
 #include <string>
 #include <fstream>
+#include <tuple>
 
 #include <boost/json.hpp>
 
@@ -20,6 +21,22 @@
 
 namespace MultiAircraft
 {
+
+  struct EventTrailSample
+  {
+    TimeStamp time = TimeStamp::Undefined();
+    GeoPoint location;
+    double gps_altitude = 0;
+    double baro_altitude = 0;
+    SpeedVector v_wind = SpeedVector(0, 0);
+    double v_ias = 0;
+    double v_tas = 0;
+    Angle bank_angle = Angle::Native(0);
+    Angle pitch_angle = Angle::Native(0);
+    Angle yaw_angle = Angle::Native(0);
+    double load_factor = 0;
+    bool plausible = true;
+  };
 
   class AircraftModel
   {
@@ -49,9 +66,12 @@ namespace MultiAircraft
                                         const bool detailed = false) const;
     boost::json::object write_vignette(const Vignette &info) const;
     boost::json::object write_incursion(const Vignette &info,
-                                        const std::vector<std::pair<TimeStamp, double>> &depth_samples) const;
+                                        const std::vector<std::pair<TimeStamp, double>> &depth_samples,
+                                        const std::vector<std::tuple<TimeStamp, GeoPoint, double>> &boundary_samples,
+                                        const std::vector<EventTrailSample> &trail_samples) const;
     boost::json::object write_terrain(const Vignette &info,
-                                      const std::vector<std::pair<TimeStamp, double>> &distance_samples) const;
+                                      const std::vector<std::pair<TimeStamp, double>> &distance_samples,
+                                      const std::vector<EventTrailSample> &trail_samples) const;
     bool within_horizontal_distance(const AircraftModel &other,
                                     const TimeStamp t_min,
                                     const TimeStamp t_max,

@@ -25,6 +25,8 @@ namespace MultiAircraft
         {
             unsigned airspace_index;
             double depth_m;
+            GeoPoint boundary_location;
+            double boundary_altitude_m;
         };
 
         struct Metadata
@@ -85,8 +87,14 @@ namespace MultiAircraft
 
         static AltitudeLimit ParseAltitudeLimit(const boost::json::object &object);
         static Polygon ParsePolygon(const boost::json::array &rings);
-        static double DistanceToBoundary(const Polygon &polygon,
-                                         const FlatPoint &projected) noexcept;
+        struct BoundaryDistance
+        {
+            double distance_m = 0;
+            FlatPoint point;
+        };
+
+        static BoundaryDistance DistanceToBoundary(const Polygon &polygon,
+                                                   const FlatPoint &projected) noexcept;
     };
 
 }
