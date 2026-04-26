@@ -1530,6 +1530,8 @@ RUN_MULTI_AIRCRAFT_SOURCES = \
 	$(TEST_SRC_DIR)/MultiAircraft/FlightReconstructionFilterWithUpdraftGust.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/CovarianceTuner.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/ReconstructionUtility.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/TrajectoryTokenizerQTC3D.cpp \
+	$(TEST_SRC_DIR)/MultiAircraft/TrajectoryTokenizerTokenOps.cpp \
 	$(TEST_SRC_DIR)/MultiAircraft/Flock.cpp \
 	$(TEST_SRC_DIR)/RunMultiAircraft.cpp
 RUN_MULTI_AIRCRAFT_LDADD = $(RUN_WIND_COMPUTER_LDADD)
