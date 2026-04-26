@@ -169,7 +169,7 @@ bool FlightCollection::run()
     }
 
     const auto elapsed_seconds = std::max(0, (int)std::ceil((t - t_start).count()));
-    std::cout << "t=" << std::setw((int)elapsed_width) << elapsed_seconds << " ";
+    std::cout << "t=" << std::setw((int)elapsed_width + 1) << elapsed_seconds << " ";
     for (auto &&a : group)
     {
       std::cout << get_symbol(a);
