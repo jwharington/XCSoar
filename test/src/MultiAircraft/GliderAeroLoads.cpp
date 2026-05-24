@@ -4,7 +4,6 @@
 namespace FlightReconstruction
 {
     // Standard Constants
-    static constexpr double P0 = 101325.0; // Sea level pressure (Pa)
     static constexpr double T0 = 288.15;   // Sea level temperature (K)
     static constexpr double g0 = 9.80665;  // Gravity (m/s^2)
     static constexpr double L = 0.0065;    // Temperature lapse rate (K/m)

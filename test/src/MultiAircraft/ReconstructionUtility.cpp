@@ -131,14 +131,12 @@ namespace FlightReconstruction
 
         Filter filter;
         filter.initialise(initial_state_estimate, DT);
-        double t = 0.0;
 
         for (auto &meas : measurements)
         {
             filter.update(meas, DT);
             const auto &est_state = filter.get_state();
             write(est_state);
-            t += DT;
         }
         return 0;
     }

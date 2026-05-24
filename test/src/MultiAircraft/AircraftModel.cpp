@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iomanip> // std::setprecision
 #include <iostream>
+#include <sstream>
 #include <string_view>
 
 using namespace MultiAircraft;

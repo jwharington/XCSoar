@@ -1131,14 +1131,14 @@ static void DecodeOptions(const boost::json::value &_j,
         return;
       }
 
-      throw std::invalid_argument{"Can't load igc files"};
+      throw std::invalid_argument{"Can't load flight files"};
     }
   }
   catch (const boost::system::system_error &)
   {
   }
 
-  throw std::invalid_argument{"insufficient igc files"};
+  throw std::invalid_argument{"insufficient flight files"};
 }
 
 int main(int argc, char **argv)

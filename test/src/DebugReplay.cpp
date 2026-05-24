@@ -3,6 +3,7 @@
 
 #include "DebugReplay.hpp"
 #include "DebugReplayIGC.hpp"
+#include "DebugReplayKML.hpp"
 #include "DebugReplayNMEA.hpp"
 #include "system/Args.hpp"
 #include "system/PathName.hpp"
@@ -56,6 +57,8 @@ CreateDebugReplay(Args &args)
 
   if (!args.IsEmpty() && StringEndsWithIgnoreCase(args.PeekNext(), ".igc")) {
     replay = DebugReplayIGC::Create(args.ExpectNextPath());
+  } else if (!args.IsEmpty() && StringEndsWithIgnoreCase(args.PeekNext(), ".kml")) {
+    replay = DebugReplayKML::Create(args.ExpectNextPath());
   } else {
     const auto driver_name = args.ExpectNextT();
     const auto input_file = args.ExpectNextPath();

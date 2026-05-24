@@ -867,6 +867,7 @@ DEBUG_REPLAY_SOURCES = \
 	$(TEST_SRC_DIR)/FakeMessage.cpp \
 	$(TEST_SRC_DIR)/FakeLanguage.cpp \
 	$(TEST_SRC_DIR)/DebugReplayIGC.cpp \
+	$(TEST_SRC_DIR)/DebugReplayKML.cpp \
 	$(TEST_SRC_DIR)/DebugReplayNMEA.cpp \
 	$(TEST_SRC_DIR)/DebugReplay.cpp
 DEBUG_REPLAY_DEPENDS = DRIVER ASYNC LIBNET IO OS THREAD TIME DATA
@@ -1537,12 +1538,16 @@ RUN_MULTI_AIRCRAFT_SOURCES = \
 RUN_MULTI_AIRCRAFT_LDADD = $(RUN_WIND_COMPUTER_LDADD)
 RUN_MULTI_AIRCRAFT_CPPFLAGS = \
 	-Itest/src/MultiAircraft/unscented/include \
-	-I/usr/include/eigen3 \
+	-isystem /usr/include/eigen3 \
 	-Itest/src/MultiAircraft/Tableau/include/ \
 	-DEIGEN_MATRIX_PLUGIN=\"unscented/matrix_plugins.h\" \
 	-DEIGEN_INITIALIZE_MATRICES_BY_ZERO=1 \
 	-DGIT_SHA='"$(shell git -C $(topdir) rev-parse --short HEAD 2>/dev/null || echo unknown)"'
+ifeq ($(CLANG),y)
+RUN_MULTI_AIRCRAFT_LDLIBS =
+else
 RUN_MULTI_AIRCRAFT_LDLIBS = -static-libstdc++ -static-libgcc -static
+endif
 RUN_MULTI_AIRCRAFT_DEPENDS = DRIVER LIBNET IO OS THREAD TIME DATA JSON
 $(eval $(call link-program,RunMultiAircraft,RUN_MULTI_AIRCRAFT))
 

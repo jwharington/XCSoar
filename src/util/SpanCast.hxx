@@ -44,13 +44,7 @@ FromBytesStrict(std::span<CopyConst<std::byte, T>> other) noexcept
 constexpr std::span<const char>
 ToSpan(std::string_view sv) noexcept
 {
-#if defined(__clang__) && __clang_major__ < 15
-	/* workaround for old clang/libc++ versions which can't cast
-	   std::string_view to std::span */
 	return {sv.data(), sv.size()};
-#else
-	return std::span{sv};
-#endif
 }
 
 inline std::span<const std::byte>
