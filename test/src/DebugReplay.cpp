@@ -57,7 +57,9 @@ CreateDebugReplay(Args &args)
 
   if (!args.IsEmpty() && StringEndsWithIgnoreCase(args.PeekNext(), ".igc")) {
     replay = DebugReplayIGC::Create(args.ExpectNextPath());
-  } else if (!args.IsEmpty() && StringEndsWithIgnoreCase(args.PeekNext(), ".kml")) {
+  } else if (!args.IsEmpty() &&
+             (StringEndsWithIgnoreCase(args.PeekNext(), ".kml") ||
+              StringEndsWithIgnoreCase(args.PeekNext(), ".kmz"))) {
     replay = DebugReplayKML::Create(args.ExpectNextPath());
   } else {
     const auto driver_name = args.ExpectNextT();

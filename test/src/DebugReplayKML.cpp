@@ -5,7 +5,10 @@
 
 #include "Geo/GeoPoint.hpp"
 #include "io/FileLineReader.hpp"
+#include "io/ZipArchive.hpp"
+#include "io/ZipLineReader.hpp"
 #include "system/Path.hpp"
+#include "util/StringCompare.hxx"
 #include "util/StringStrip.hxx"
 
 #include <cstdlib>
@@ -179,10 +182,10 @@ DebugReplayKML::DebugReplayKML(std::vector<Fix> &&_fixes) noexcept
 {
 }
 
-DebugReplay *
-DebugReplayKML::Create(Path input_file)
+static std::string
+ReadTextFile(Path path)
 {
-  FileLineReaderA reader(input_file);
+  FileLineReaderA reader(path);
   std::string content;
 
   while (const char *line = reader.ReadLine())
@@ -191,14 +194,71 @@ DebugReplayKML::Create(Path input_file)
     content.push_back('\n');
   }
 
+  if (content.empty())
+    throw std::runtime_error("empty KML input");
+
+  return content;
+}
+
+static std::string
+ReadTextFromKmz(Path path)
+{
+  ZipArchive archive(path);
+
+  std::string kml_entry;
+  if (archive.Exists("doc.kml"))
+  {
+    kml_entry = "doc.kml";
+  }
+  else
+  {
+    while (true)
+    {
+      const std::string name = archive.NextName();
+      if (name.empty())
+        break;
+
+      if (StringEndsWithIgnoreCase(name.c_str(), ".kml"))
+      {
+        kml_entry = name;
+        break;
+      }
+    }
+  }
+
+  if (kml_entry.empty())
+    throw std::runtime_error("KMZ contains no .kml entry");
+
+  ZipLineReaderA reader(archive.get(), kml_entry.c_str());
+  std::string content;
+
+  while (const char *line = reader.ReadLine())
+  {
+    content.append(line);
+    content.push_back('\n');
+  }
+
+  if (content.empty())
+    throw std::runtime_error("selected KML entry in KMZ is empty");
+
+  return content;
+}
+
+DebugReplay *
+DebugReplayKML::Create(Path input_file)
+{
   try
   {
+    const std::string content = input_file.EndsWithIgnoreCase(".kmz")
+                                    ? ReadTextFromKmz(input_file)
+                                    : ReadTextFile(input_file);
+
     auto fixes = ParseKmlGxTrack(content);
     return new DebugReplayKML(std::move(fixes));
   }
   catch (const std::exception &e)
   {
-    std::cerr << "Failed to parse KML track: " << e.what() << "\n";
+    std::cerr << "Failed to parse KML/KMZ track: " << e.what() << "\n";
     return nullptr;
   }
 }
