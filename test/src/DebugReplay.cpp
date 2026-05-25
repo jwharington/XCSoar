@@ -10,6 +10,9 @@
 #include "Computer/Settings.hpp"
 #include "util/StringCompare.hxx"
 
+#include <string>
+#include <string_view>
+
 DebugReplay::DebugReplay()
   :glide_polar(1)
 {
@@ -50,16 +53,28 @@ DebugReplay::Compute()
                           calculated.flight);
 }
 
+static bool
+HasSuffixBeforeSelector(const char *spec, const char *suffix)
+{
+  std::string_view view(spec);
+  const std::size_t hash = view.find('#');
+  if (hash != std::string_view::npos)
+    view = view.substr(0, hash);
+
+  const std::string base(view);
+  return StringEndsWithIgnoreCase(base.c_str(), suffix);
+}
+
 DebugReplay *
 CreateDebugReplay(Args &args)
 {
   DebugReplay *replay;
 
-  if (!args.IsEmpty() && StringEndsWithIgnoreCase(args.PeekNext(), ".igc")) {
+  if (!args.IsEmpty() && HasSuffixBeforeSelector(args.PeekNext(), ".igc")) {
     replay = DebugReplayIGC::Create(args.ExpectNextPath());
   } else if (!args.IsEmpty() &&
-             (StringEndsWithIgnoreCase(args.PeekNext(), ".kml") ||
-              StringEndsWithIgnoreCase(args.PeekNext(), ".kmz"))) {
+             (HasSuffixBeforeSelector(args.PeekNext(), ".kml") ||
+              HasSuffixBeforeSelector(args.PeekNext(), ".kmz"))) {
     replay = DebugReplayKML::Create(args.ExpectNextPath());
   } else {
     const auto driver_name = args.ExpectNextT();

@@ -3,6 +3,7 @@
 
 #include "system/Args.hpp"
 #include <stdio.h>
+#include "DebugReplayKML.hpp"
 #include "MultiAircraft/AirfieldList.hpp"
 #include "MultiAircraft/CovarianceTuner.hpp"
 #include "MultiAircraft/FlightCollectionEncounter.hpp"
@@ -1113,19 +1114,57 @@ static void DecodeOptions(const boost::json::value &_j,
     const size_t n = igc_file_array.size();
     if (n > 0)
     {
-      std::vector<std::string> file_storage;
-      file_storage.reserve(n);
-      std::vector<const char *> files;
-      files.reserve(n + 1);
-      files.push_back("ignored");
+      auto has_selector = [](const std::string &spec)
+      { return spec.find('#') != std::string::npos; };
 
+      auto is_kml_or_kmz = [](const std::string &spec)
+      {
+        const std::size_t hash = spec.find('#');
+        const std::string base = hash == std::string::npos
+                                     ? spec
+                                     : spec.substr(0, hash);
+        return StringEndsWithIgnoreCase(base.c_str(), ".kml") ||
+               StringEndsWithIgnoreCase(base.c_str(), ".kmz");
+      };
+
+      std::vector<std::string> expanded_files;
+      expanded_files.reserve(n);
       for (const auto &entry : igc_file_array)
       {
-        file_storage.emplace_back(entry.as_string());
-        files.push_back(file_storage.back().c_str());
+        const std::string spec = std::string(entry.as_string());
+        if (!has_selector(spec) && is_kml_or_kmz(spec))
+        {
+          try
+          {
+            const auto sources = DebugReplayKML::ListPointTimelineSources(Path(spec.c_str()));
+            if (sources.size() > 1)
+            {
+              std::cout << "Expanding " << spec << " into "
+                        << sources.size() << " timeline sources\n";
+              for (const auto &source : sources)
+              {
+                expanded_files.emplace_back(spec + "#" + source);
+              }
+              continue;
+            }
+          }
+          catch (const std::exception &e)
+          {
+            std::cout << "Warning: source enumeration failed for "
+                      << spec << ": " << e.what() << "\n";
+          }
+        }
+
+        expanded_files.emplace_back(spec);
       }
 
-      Args file_args(n + 1, const_cast<char **>(files.data()), "igc_files");
+      std::vector<const char *> files;
+      files.reserve(expanded_files.size() + 1);
+      files.push_back("ignored");
+      for (const auto &f : expanded_files)
+        files.push_back(f.c_str());
+
+      Args file_args(files.size(), const_cast<char **>(files.data()), "igc_files");
       if (flights.load_files(file_args))
       {
         return;

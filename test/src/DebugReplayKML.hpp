@@ -31,6 +31,7 @@ public:
   bool Rewind() override;
 
   static DebugReplay *Create(Path input_file);
+  static std::vector<std::string> ListPointTimelineSources(Path input_file);
 
   std::string GetTypeInfo() const override;
   std::string GetIdentifier() const override;

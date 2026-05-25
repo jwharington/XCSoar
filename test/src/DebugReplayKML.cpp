@@ -11,12 +11,20 @@
 #include "util/StringCompare.hxx"
 #include "util/StringStrip.hxx"
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <map>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
+
+struct InputSpec {
+  std::string path;
+  std::string selector;
+};
 
 static std::string_view
 Trim(std::string_view s) noexcept
@@ -99,6 +107,34 @@ ParseGxCoord(std::string_view text, GeoPoint &location, double &altitude) noexce
   return true;
 }
 
+static bool
+ParsePointCoordinates(std::string_view text, GeoPoint &location, double &altitude) noexcept
+{
+  std::string buffer(Trim(text));
+
+  char *end = nullptr;
+  const double lon = std::strtod(buffer.c_str(), &end);
+  if (end == buffer.c_str() || *end != ',')
+    return false;
+
+  const char *p = end + 1;
+  const double lat = std::strtod(p, &end);
+  if (end == p)
+    return false;
+
+  altitude = 0;
+  if (*end == ',')
+  {
+    p = end + 1;
+    altitude = std::strtod(p, &end);
+    if (end == p)
+      return false;
+  }
+
+  location = GeoPoint(Angle::Degrees(lon), Angle::Degrees(lat));
+  return true;
+}
+
 static std::vector<std::string_view>
 ExtractTagValues(std::string_view text, const std::string_view open_tag,
                  const std::string_view close_tag)
@@ -122,6 +158,32 @@ ExtractTagValues(std::string_view text, const std::string_view open_tag,
   }
 
   return values;
+}
+
+static std::string_view
+ExtractFirstTagValue(std::string_view text, std::string_view open_tag,
+                     std::string_view close_tag) noexcept
+{
+  const std::size_t open = text.find(open_tag);
+  if (open == std::string_view::npos)
+    return {};
+
+  const std::size_t value_begin = open + open_tag.size();
+  const std::size_t close = text.find(close_tag, value_begin);
+  if (close == std::string_view::npos)
+    return {};
+
+  return text.substr(value_begin, close - value_begin);
+}
+
+static std::string
+NormalizeSelector(const std::string &selector)
+{
+  std::string s = std::string(Trim(selector));
+  if (StringEndsWithIgnoreCase(s.c_str(), " points"))
+    s.resize(s.size() - 7);
+
+  return s;
 }
 
 static std::vector<DebugReplayKML::Fix>
@@ -177,9 +239,102 @@ ParseKmlGxTrack(const std::string &kml_text)
   return fixes;
 }
 
-DebugReplayKML::DebugReplayKML(std::vector<Fix> &&_fixes) noexcept
-  : fixes(std::move(_fixes))
+static std::string
+ExtractSourceKey(std::string_view body, std::string_view fallback_name)
 {
+  const std::string_view description = ExtractFirstTagValue(body, "<description>", "</description>");
+  const std::string_view marker = "<b>Source:</b>";
+  const std::size_t marker_pos = description.find(marker);
+  if (marker_pos != std::string_view::npos)
+  {
+    std::string_view src = description.substr(marker_pos + marker.size());
+    const std::size_t br = src.find("<br");
+    if (br != std::string_view::npos)
+      src = src.substr(0, br);
+
+    src = Trim(src);
+    if (!src.empty())
+      return std::string(src);
+  }
+
+  std::string name = std::string(Trim(fallback_name));
+  if (name.empty())
+    return "Unnamed";
+
+  const std::size_t space = name.find(' ');
+  if (space != std::string::npos)
+    name = name.substr(0, space);
+
+  return name;
+}
+
+static std::map<std::string, std::vector<DebugReplayKML::Fix>>
+ParsePointTimelines(const std::string &kml_text)
+{
+  std::map<std::string, std::vector<DebugReplayKML::Fix>> by_name;
+
+  std::size_t pos = 0;
+  while (true)
+  {
+    const std::size_t pm_start = kml_text.find("<Placemark", pos);
+    if (pm_start == std::string::npos)
+      break;
+
+    const std::size_t pm_open_end = kml_text.find('>', pm_start);
+    if (pm_open_end == std::string::npos)
+      break;
+
+    const std::size_t pm_end = kml_text.find("</Placemark>", pm_open_end + 1);
+    if (pm_end == std::string::npos)
+      break;
+
+    const std::string_view body(kml_text.data() + pm_open_end + 1,
+                                pm_end - pm_open_end - 1);
+
+    const std::string_view when = ExtractFirstTagValue(body, "<when>", "</when>");
+    const std::string_view coords = ExtractFirstTagValue(body, "<coordinates>", "</coordinates>");
+    const std::string_view placemark_name = Trim(ExtractFirstTagValue(body, "<name>", "</name>"));
+
+    if (!when.empty() && !coords.empty())
+    {
+      DebugReplayKML::Fix fix;
+      if (ParseKmlWhenUTC(when, fix.date_time_utc) &&
+          ParsePointCoordinates(coords, fix.location, fix.gps_altitude))
+      {
+        const std::string key = ExtractSourceKey(body, placemark_name);
+        by_name[key].push_back(fix);
+      }
+    }
+
+    pos = pm_end + 12;
+  }
+
+  for (auto it = by_name.begin(); it != by_name.end();)
+  {
+    auto &v = it->second;
+    if (v.size() < 2)
+    {
+      it = by_name.erase(it);
+      continue;
+    }
+
+    std::sort(v.begin(), v.end(), [](const auto &a, const auto &b)
+              { return a.date_time_utc < b.date_time_utc; });
+    ++it;
+  }
+
+  return by_name;
+}
+
+static InputSpec
+ParseInputSpec(Path input_file)
+{
+  const std::string spec(input_file.c_str());
+  const std::size_t hash = spec.find('#');
+  if (hash == std::string::npos)
+    return {spec, ""};
+
+  return {spec.substr(0, hash), spec.substr(hash + 1)};
 }
 
 static std::string
@@ -244,17 +399,83 @@ ReadTextFromKmz(Path path)
   return content;
 }
 
+static std::string
+ReadKmlOrKmzText(Path input_file)
+{
+  return input_file.EndsWithIgnoreCase(".kmz")
+             ? ReadTextFromKmz(input_file)
+             : ReadTextFile(input_file);
+}
+
+DebugReplayKML::DebugReplayKML(std::vector<Fix> &&_fixes) noexcept
+  : fixes(std::move(_fixes))
+{
+}
+
+std::vector<std::string>
+DebugReplayKML::ListPointTimelineSources(Path input_file)
+{
+  const InputSpec spec = ParseInputSpec(input_file);
+  const std::string content = ReadKmlOrKmzText(Path(spec.path.c_str()));
+
+  const auto by_name = ParsePointTimelines(content);
+  std::vector<std::string> names;
+  names.reserve(by_name.size());
+  for (const auto &kv : by_name)
+    names.push_back(kv.first);
+
+  return names;
+}
+
 DebugReplay *
 DebugReplayKML::Create(Path input_file)
 {
   try
   {
-    const std::string content = input_file.EndsWithIgnoreCase(".kmz")
-                                    ? ReadTextFromKmz(input_file)
-                                    : ReadTextFile(input_file);
+    const InputSpec spec = ParseInputSpec(input_file);
+    const std::string content = ReadKmlOrKmzText(Path(spec.path.c_str()));
 
-    auto fixes = ParseKmlGxTrack(content);
-    return new DebugReplayKML(std::move(fixes));
+    if (spec.selector.empty())
+    {
+      try
+      {
+        auto fixes = ParseKmlGxTrack(content);
+        return new DebugReplayKML(std::move(fixes));
+      }
+      catch (const std::exception &)
+      {
+      }
+
+      auto by_name = ParsePointTimelines(content);
+      if (by_name.empty())
+        throw std::runtime_error("no supported timeline found (expected gx:Track or TimeStamp+Point placemarks)");
+
+      if (by_name.size() > 1)
+      {
+        std::ostringstream oss;
+        bool first = true;
+        for (const auto &kv : by_name)
+        {
+          if (!first)
+            oss << ", ";
+          first = false;
+          oss << kv.first;
+        }
+
+        throw std::runtime_error("multiple timeline sources found; specify selector as <file>#<source> (sources: " + oss.str() + ")");
+      }
+
+      return new DebugReplayKML(std::move(by_name.begin()->second));
+    }
+
+    const std::string selector = NormalizeSelector(spec.selector);
+
+    auto by_name = ParsePointTimelines(content);
+    auto it = by_name.find(selector);
+    if (it != by_name.end())
+      return new DebugReplayKML(std::move(it->second));
+
+    throw std::runtime_error("selector not found in KML/KMZ point timelines: " + selector);
   }
   catch (const std::exception &e)
   {
@@ -314,7 +535,7 @@ DebugReplayKML::CopyFromFix(const Fix &fix)
 std::string
 DebugReplayKML::GetTypeInfo() const
 {
-  return std::string("KML gx:Track");
+  return std::string("KML/KMZ timeline");
 }
 
 std::string
