@@ -467,9 +467,18 @@ void FlightCollectionEncounter::write_vignette_file()
 
   std::sort(selected_ids.begin() + 1, selected_ids.end());
 
+  GeoPoint subject_origin = subject_vignette_it->second.origin;
+  TimeStamp subject_origin_time = subject_vignette_it->second.origin_time;
+  GeoPoint subject_clipped_origin;
+  TimeStamp subject_clipped_origin_time;
+  if (subject_it->get_first_location(t_start, t_end, subject_clipped_origin, subject_clipped_origin_time))
+  {
+    subject_origin = subject_clipped_origin;
+    subject_origin_time = subject_clipped_origin_time;
+  }
+
   boost::json::array json_aircraft;
   std::vector<const AircraftModel *> included_aircraft;
-  GeoPoint subject_origin = subject_vignette_it->second.origin;
   for (const auto idi : selected_ids)
   {
     auto aircraft_it = std::find_if(group.begin(), group.end(),
@@ -494,8 +503,11 @@ void FlightCollectionEncounter::write_vignette_file()
     }
     clipped.finalise();
 
-    if (idi == (unsigned)subject_it->idi)
-      subject_origin = clipped.origin;
+    // Use subject origin/time for all traces so non-subject aircraft remain
+    // in the subject-relative frame instead of being independently re-zeroed.
+    clipped.origin = subject_origin;
+    clipped.origin_time = subject_origin_time;
+    clipped.finalise();
 
     json_aircraft.emplace_back(aircraft_it->write_vignette(clipped));
     included_aircraft.push_back(&*aircraft_it);
