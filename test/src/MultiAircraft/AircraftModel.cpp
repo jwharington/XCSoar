@@ -6,6 +6,7 @@
 #include "Formatter/TimeFormatter.hpp"
 #include "Math/Vector.hpp"
 #include "TraceWriter.hpp"
+#include <cctype>
 #include <fstream>
 #include <iomanip> // std::setprecision
 #include <iostream>
@@ -25,6 +26,33 @@ GlidePolar AircraftModel::glide_polar(0);
 WindSettings AircraftModel::wind_settings;
 CirclingSettings AircraftModel::circling_settings;
 
+static std::string
+MakeSelectorSlug(std::string_view selector)
+{
+  std::string slug;
+  slug.reserve(selector.size());
+
+  bool prev_underscore = false;
+  for (unsigned char ch : selector)
+  {
+    if (std::isalnum(ch))
+    {
+      slug.push_back((char)std::tolower(ch));
+      prev_underscore = false;
+    }
+    else if (!prev_underscore)
+    {
+      slug.push_back('_');
+      prev_underscore = true;
+    }
+  }
+
+  while (!slug.empty() && slug.back() == '_')
+    slug.pop_back();
+
+  return slug;
+}
+
 bool AircraftModel::init(Args &args)
 {
   if (num_aircraft == 0)
@@ -33,7 +61,15 @@ bool AircraftModel::init(Args &args)
     wind_settings.zig_zag_wind = false;
   }
 
-  std::string_view path = args.PeekNext();
+  std::string_view path_spec = args.PeekNext();
+  const std::size_t hash = path_spec.find('#');
+  const std::string_view path = hash == std::string_view::npos
+                                    ? path_spec
+                                    : path_spec.substr(0, hash);
+  const std::string_view selector = hash == std::string_view::npos
+                                        ? std::string_view{}
+                                        : path_spec.substr(hash + 1);
+
   const std::size_t slash = path.find_last_of('/');
   const std::string_view basename = slash == std::string_view::npos
                                         ? path
@@ -45,6 +81,16 @@ bool AircraftModel::init(Args &args)
                                  ? basename.size() - start
                                  : dot - start;
   id = std::string(basename.substr(start, length));
+
+  if (!selector.empty())
+  {
+    const std::string selector_slug = MakeSelectorSlug(selector);
+    if (!selector_slug.empty())
+    {
+      id += "_";
+      id += selector_slug;
+    }
+  }
 
   idi = num_aircraft++;
   fr_info.clear();

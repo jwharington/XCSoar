@@ -48,7 +48,7 @@ namespace MultiAircraft
     double load_factor = 0;
     double nturn = 0;
     bool plausible = true;
-    double vel[3];
+    double vel[3] = {0.0, 0.0, 0.0};
     typedef std::unordered_map<unsigned, AuxiliaryPair> AuxiliaryList;
     bool present(const unsigned id_target) const;
     const AuxiliaryPair &get_auxiliary(const unsigned id_target) const;

@@ -6,6 +6,25 @@
 #include "NMEA/Derived.hpp"
 #include "Engine/Navigation/Aircraft.hpp"
 
+std::chrono::seconds FlyingComputer::takeoff_detection_seconds{10};
+
+void
+FlyingComputer::SetTakeoffDetectionSeconds(unsigned seconds) noexcept
+{
+  if (seconds < 1)
+    seconds = 1;
+  else if (seconds > 30)
+    seconds = 30;
+
+  takeoff_detection_seconds = std::chrono::seconds{seconds};
+}
+
+unsigned
+FlyingComputer::GetTakeoffDetectionSeconds() noexcept
+{
+  return takeoff_detection_seconds.count();
+}
+
 void
 FlyingComputer::Reset()
 {
@@ -60,14 +79,14 @@ void
 FlyingComputer::Check(FlyingState &state, TimeStamp time) noexcept
 {
   // Logic to detect takeoff and landing is as follows:
-  //   detect takeoff when above threshold speed for 10 seconds
+  //   detect takeoff when above threshold speed for a configurable duration
   //
   //   detect landing when below threshold speed for 30 seconds
 
   if (!state.flying) {
-    // We are moving for 10sec now
-    if (moving_clock >= std::chrono::seconds{10}) {
-      // We certainly must be flying after 10sec movement
+    // We are moving for the configured takeoff threshold now
+    if (moving_clock >= takeoff_detection_seconds) {
+      // We certainly must be flying after sustained movement
       assert(moving_since.IsDefined());
 
       state.flying = true;

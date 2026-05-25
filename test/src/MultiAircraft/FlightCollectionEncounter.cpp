@@ -185,6 +185,7 @@ bool FlightCollectionEncounter::process(const TimeStamp t)
   incursion_tracker.Update(t, group, openaip_airspaces, INCURSION_THRESHOLD_M, event_trail_buffer);
   terrain_tracker.Update(t, group, terrain.get(), TERRAIN_CLEARANCE_M, event_trail_buffer);
   time_close += encounter_store.erase_expired(t, group, DISTANCE, alt_start_av + HEIGHT_THRESHOLD_M);
+
   return ok;
 }
 

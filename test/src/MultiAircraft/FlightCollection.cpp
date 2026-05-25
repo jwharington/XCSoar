@@ -145,7 +145,7 @@ bool FlightCollection::run()
     printf("Error! advance to start\n");
     return false;
   }
-  std::cout << "Start t=" << (int)t_start.ToDuration().count()
+  std::cout << "Initial window t=" << (int)t_start.ToDuration().count()
             << " end t=" << (int)t_end.ToDuration().count()
             << " (" << (int)std::ceil((t_end - t_start).count()) << "s)" << std::endl;
 
@@ -177,6 +177,9 @@ bool FlightCollection::run()
     }
     std::cout << std::endl;
   }
+  std::cout << "Final window t=" << (int)t_start.ToDuration().count()
+            << " end t=" << (int)t_end.ToDuration().count()
+            << " (" << (int)std::ceil((t_end - t_start).count()) << "s)" << std::endl;
   std::cout << "Finalising outputs..." << std::endl;
   finalise();
   std::cout << "Done." << std::endl;

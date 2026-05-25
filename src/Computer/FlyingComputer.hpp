@@ -8,6 +8,8 @@
 #include "time/DeltaTime.hpp"
 #include "time/Stamp.hpp"
 
+#include <chrono>
+
 struct NMEAInfo;
 struct DerivedInfo;
 struct AircraftState;
@@ -96,7 +98,12 @@ class FlyingComputer {
    */
   double last_ground_altitude;
 
+  static std::chrono::seconds takeoff_detection_seconds;
+
 public:
+  static void SetTakeoffDetectionSeconds(unsigned seconds) noexcept;
+  static unsigned GetTakeoffDetectionSeconds() noexcept;
+
   void Reset();
 
   void Compute(double takeoff_speed,

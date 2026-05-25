@@ -4,6 +4,7 @@
 #include "system/Args.hpp"
 #include <stdio.h>
 #include "DebugReplayKML.hpp"
+#include "Computer/FlyingComputer.hpp"
 #include "MultiAircraft/AirfieldList.hpp"
 #include "MultiAircraft/CovarianceTuner.hpp"
 #include "MultiAircraft/FlightCollectionEncounter.hpp"
@@ -13,6 +14,7 @@
 #include "IGC/IGCFRInfo.hpp"
 #include "io/FileReader.hxx"
 #include "json/Parse.hxx"
+#include "Computer/FlyingComputer.hpp"
 #include "util/StringCompare.hxx"
 
 #include <algorithm>
@@ -68,7 +70,9 @@ BuildOptionsSchema()
                          {"typical_trail", boost::json::object{{"type", "integer"}}},
                          {"mix_baro", number_object()},
                          {"filter_type", boost::json::object{{"type", "integer"}}},
+                         {"takeoff_detection_seconds", boost::json::object{{"type", "integer"}}},
                          {"reconstruction_pre_buffer", number_object()},
+                         {"takeoff_detection_seconds", boost::json::object{{"type", "integer"}}},
                          {"rts_window_size", boost::json::object{{"type", "integer"}}},
                          {"process_covariance", covariance_schema()},
                          {"measurement_covariance", covariance_schema()},
@@ -907,9 +911,18 @@ static void DecodeOptions(const boost::json::value &_j,
                    { MultiAircraft::AircraftModel::filter_type =
                          v.to_number<unsigned>(); });
 
+  try_apply_report("takeoff_detection_seconds", [&](const boost::json::value &v)
+                   { FlyingComputer::SetTakeoffDetectionSeconds(v.to_number<unsigned>()); });
+
   try_apply("reconstruction_pre_buffer", [&](const boost::json::value &v)
             { MultiAircraft::AircraftModel::SetReconstructionPreBuffer(
                   v.to_number<double>()); });
+
+  try_apply_report("takeoff_detection_seconds", [&](const boost::json::value &v)
+                   {
+                     const unsigned seconds = v.to_number<unsigned>();
+                     FlyingComputer::SetTakeoffDetectionSeconds(seconds);
+                   });
 
   ApplyCovarianceOverrides(
       j, "process_covariance",

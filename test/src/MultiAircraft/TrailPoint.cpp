@@ -5,6 +5,8 @@
 #include "Math/Vector.hpp"
 #include "Atmosphere/AirDensity.hpp"
 
+#include <algorithm>
+
 using namespace MultiAircraft;
 
 static const double LIFT_CURVE_SLOPE = 2 * M_PI;
@@ -78,16 +80,16 @@ void TrailPoint::update_reconstruction(const TrailPoint &prev, const SpeedVector
   {
     load_factor = 1.0;
   }
+  else
+  {
+    load_factor = std::clamp(load_factor, 0.0, 12.0);
+  }
 
   if (v_tas > 10.0)
   {
-    Angle load_angle = Angle::Native(0);
-    if (fabs(nv) < 1.0)
-    {
-      load_angle = Angle::asin(-nv);
-    }
-    load_angle = Angle::Radians((load_factor - 1.0) / 6.0) * bank_angle.cos();
-    pitch_angle = (Angle::Radians(atan(roc / v_tas)) + load_angle).Fraction(prev.pitch_angle, 0.5);
+    const Angle load_angle = Angle::Radians((load_factor - 1.0) / 6.0) * bank_angle.cos();
+    const Angle base_pitch = Angle::Radians(atan(roc / v_tas));
+    pitch_angle = (base_pitch + load_angle).Fraction(prev.pitch_angle, 0.5);
   }
   else
   {
