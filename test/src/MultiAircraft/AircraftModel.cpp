@@ -6,6 +6,7 @@
 #include "Formatter/TimeFormatter.hpp"
 #include "Math/Vector.hpp"
 #include "TraceWriter.hpp"
+#include <array>
 #include <cctype>
 #include <fstream>
 #include <iomanip> // std::setprecision
@@ -27,30 +28,57 @@ WindSettings AircraftModel::wind_settings;
 CirclingSettings AircraftModel::circling_settings;
 
 static std::string
-MakeSelectorSlug(std::string_view selector)
+AbbreviateSelectorId(std::string_view selector)
 {
-  std::string slug;
-  slug.reserve(selector.size());
+  std::array<std::string, 8> words;
+  std::size_t word_count = 0;
 
-  bool prev_underscore = false;
+  std::string current;
   for (unsigned char ch : selector)
   {
     if (std::isalnum(ch))
     {
-      slug.push_back((char)std::tolower(ch));
-      prev_underscore = false;
+      current.push_back((char)std::tolower(ch));
     }
-    else if (!prev_underscore)
+    else if (!current.empty())
     {
-      slug.push_back('_');
-      prev_underscore = true;
+      if (word_count < words.size())
+        words[word_count++] = current;
+      current.clear();
     }
   }
+  if (!current.empty() && word_count < words.size())
+    words[word_count++] = current;
 
-  while (!slug.empty() && slug.back() == '_')
-    slug.pop_back();
+  if (word_count == 0)
+    return "ac";
 
-  return slug;
+  std::string id;
+  if (word_count >= 3)
+  {
+    id.push_back(words[0][0]);
+    id.push_back(words[1][0]);
+    id.push_back(words[2][0]);
+  }
+  else if (word_count == 2)
+  {
+    id.push_back(words[0][0]);
+    id.push_back(words[1][0]);
+    if (words[1].size() > 1)
+      id.push_back(words[1][1]);
+  }
+  else
+  {
+    id = words[0].substr(0, std::min<std::size_t>(3, words[0].size()));
+  }
+
+  if (id.empty())
+    return "ac";
+
+  if (id.size() > 3)
+    id.resize(3);
+
+  return id;
 }
 
 bool AircraftModel::init(Args &args)
@@ -84,12 +112,7 @@ bool AircraftModel::init(Args &args)
 
   if (!selector.empty())
   {
-    const std::string selector_slug = MakeSelectorSlug(selector);
-    if (!selector_slug.empty())
-    {
-      id += "_";
-      id += selector_slug;
-    }
+    id = AbbreviateSelectorId(selector);
   }
 
   idi = num_aircraft++;
