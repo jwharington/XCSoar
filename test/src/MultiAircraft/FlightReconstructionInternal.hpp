@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ReconstructionUtility.hpp"
+#include "FlightReconstructionOptions.hpp"
 #include "DOP853.h"
 
 #include <algorithm>
@@ -180,7 +181,8 @@ namespace FlightReconstruction::detail
                     const std::array<std::pair<std::string_view, double>, StateCount> &state_defaults)
     {
         ukf.set_max_smoothing_points(rts_window_size);
-        ukf.set_weight_coefficients(1.0, 2.0, 0.0);
+        const auto ukf_weights = GetUKFWeightCoefficients();
+        ukf.set_weight_coefficients(ukf_weights[0], ukf_weights[1], ukf_weights[2]);
 
         typename UKFType::N_by_N Q;
         SetDiagonalFromNamedDefaults(Q, process_defaults);

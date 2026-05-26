@@ -7,15 +7,15 @@ namespace FlightReconstruction
   namespace
   {
     detail::NamedDefaults9 PROCESS_COVARIANCE_DEFAULTS{{
-        {"x", 10.052597062015902},
-        {"y", 10.052597062015902},
-        {"z", 10.975253850744147},
-        {"u", 1.5527694552714049},
-        {"w", 0.46489285919931596},
-        {"q", 0.00016329692067816702},
-        {"attitude_x", 0.0048374875779941988},
-        {"attitude_y", 0.0048374875779941988},
-        {"attitude_z", 0.0048374875779941988},
+        {"x", 8.129376762766714},
+        {"y", 8.129376762766714},
+        {"z", 8.402678735062864},
+        {"u", 1.112799331346204},
+        {"w", 0.2877732710606822},
+        {"q", 9.072163277698478e-05},
+        {"attitude_x", 0.003095822118628868},
+        {"attitude_y", 0.003095822118628868},
+        {"attitude_z", 0.003095822118628868},
     }};
 
     detail::NamedDefaults10 PROCESS_COVARIANCE_DEFAULTS_WITH_UPDRAFT_GUST{{
@@ -32,22 +32,22 @@ namespace FlightReconstruction
     }};
 
     detail::MeasurementDefaults MEASUREMENT_COVARIANCE_DEFAULTS{{
-        {"x", 37.83580017991135},
-        {"y", 37.83580017991135},
-        {"z", 38.67570798631411},
-        {"v_tas", 7.141561460562895},
+        {"x", 26.907857595261536},
+        {"y", 26.907857595261536},
+        {"z", 26.57975010971075},
+        {"v_tas", 4.942145400204616},
     }};
 
     detail::NamedDefaults9 STATE_COVARIANCE_DEFAULTS{{
-        {"x", 380.81186001478410},
-        {"y", 380.81186001478410},
-        {"z", 2.3803373717706506},
-        {"u", 0.019631490095117325},
-        {"w", 0.12451191238925761},
-        {"q", 0.00024300000000000024},
-        {"attitude_x", 0.0024300000000000016},
-        {"attitude_y", 0.0024300000000000016},
-        {"attitude_z", 0.0024300000000000016},
+        {"x", 194.46028610717067},
+        {"y", 194.46028610717067},
+        {"z", 1.2715498533675316},
+        {"u", 0.010950140327450394},
+        {"w", 0.07711954113735603},
+        {"q", 0.0001215006964818211},
+        {"attitude_x", 0.0012151160922442286},
+        {"attitude_y", 0.0012151160922442286},
+        {"attitude_z", 0.0012151160922442286},
     }};
 
     detail::NamedDefaults10 STATE_COVARIANCE_DEFAULTS_WITH_UPDRAFT_GUST{{
@@ -62,6 +62,11 @@ namespace FlightReconstruction
         {"attitude_y", 0.0007290000000000006},
         {"attitude_z", 0.0007290000000000006},
     }};
+
+    // Robust default from joint sigma + covariance tuning.
+    double UKF_ALPHA = 0.3;
+    double UKF_BETA = 4.0;
+    double UKF_KAPPA = -3.0;
   }
 
   detail::NamedDefaults9 &detail::ProcessCovarianceDefaultsStorage()
@@ -126,6 +131,20 @@ namespace FlightReconstruction
                                                 const double value)
   {
     return SetNamedDefault(detail::StateCovarianceDefaultsWithUpdraftGustStorage(), name, value);
+  }
+
+  void SetUKFWeightCoefficients(const double alpha,
+                                const double beta,
+                                const double kappa)
+  {
+    UKF_ALPHA = alpha;
+    UKF_BETA = beta;
+    UKF_KAPPA = kappa;
+  }
+
+  std::array<double, 3> GetUKFWeightCoefficients()
+  {
+    return {UKF_ALPHA, UKF_BETA, UKF_KAPPA};
   }
 
   std::array<std::pair<std::string_view, double>, 9> GetProcessCovarianceDefaults()

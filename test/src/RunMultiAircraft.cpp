@@ -70,6 +70,9 @@ BuildOptionsSchema()
                          {"typical_trail", boost::json::object{{"type", "integer"}}},
                          {"mix_baro", number_object()},
                          {"filter_type", boost::json::object{{"type", "integer"}}},
+                         {"ukf_alpha", number_object()},
+                         {"ukf_beta", number_object()},
+                         {"ukf_kappa", number_object()},
                          {"takeoff_detection_seconds", boost::json::object{{"type", "integer"}}},
                          {"reconstruction_pre_buffer", number_object()},
                          {"takeoff_detection_seconds", boost::json::object{{"type", "integer"}}},
@@ -910,6 +913,15 @@ static void DecodeOptions(const boost::json::value &_j,
   try_apply_report("filter_type", [&](const boost::json::value &v)
                    { MultiAircraft::AircraftModel::filter_type =
                          v.to_number<unsigned>(); });
+
+  auto ukf_weights = FlightReconstruction::GetUKFWeightCoefficients();
+  try_apply_report("ukf_alpha", [&](const boost::json::value &v)
+                   { ukf_weights[0] = v.to_number<double>(); });
+  try_apply_report("ukf_beta", [&](const boost::json::value &v)
+                   { ukf_weights[1] = v.to_number<double>(); });
+  try_apply_report("ukf_kappa", [&](const boost::json::value &v)
+                   { ukf_weights[2] = v.to_number<double>(); });
+  FlightReconstruction::SetUKFWeightCoefficients(ukf_weights[0], ukf_weights[1], ukf_weights[2]);
 
   try_apply_report("takeoff_detection_seconds", [&](const boost::json::value &v)
                    { FlyingComputer::SetTakeoffDetectionSeconds(v.to_number<unsigned>()); });

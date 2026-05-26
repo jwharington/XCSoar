@@ -13,6 +13,9 @@ namespace FlightReconstruction
     bool SetStateCovarianceDefault(std::string_view name, double value);
     bool SetStateCovarianceDefaultWithUpdraftGust(std::string_view name, double value);
 
+    void SetUKFWeightCoefficients(double alpha, double beta, double kappa);
+    std::array<double, 3> GetUKFWeightCoefficients();
+
     std::array<std::pair<std::string_view, double>, 9> GetProcessCovarianceDefaults();
     std::array<std::pair<std::string_view, double>, 10> GetProcessCovarianceDefaultsWithUpdraftGust();
     std::array<std::pair<std::string_view, double>, 4> GetMeasurementCovarianceDefaults();
