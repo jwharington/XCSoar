@@ -7,6 +7,8 @@
 #include "Formatter/TimeFormatter.hpp"
 #include "FlightReconstruction.hpp"
 #include "ReconstructionUtility.hpp"
+#include <algorithm>
+#include <cmath>
 #include <type_traits>
 
 namespace
@@ -157,10 +159,15 @@ namespace
     {
         auto &[states, quaternion] = state.data;
         (void)states;
+
+        // Robust ZYX Euler extraction from quaternion rotation matrix.
+        // Using atan2 for yaw/roll avoids quadrant ambiguity from acos-based formulas.
         const Eigen::Matrix3d R = quaternion.get_q().toRotationMatrix();
-        double theta = asin(-R(2, 0));
-        double psi = acos(R(0, 0) / cos(theta)) * FlightReconstruction::sign(R(1, 0));
-        double phi = acos(R(2, 2) / cos(theta)) * FlightReconstruction::sign(R(2, 1));
+
+        const double theta = asin(std::clamp(-R(2, 0), -1.0, 1.0));
+        double psi = atan2(R(1, 0), R(0, 0));
+        const double phi = atan2(R(2, 1), R(2, 2));
+
         if (psi < 0)
             psi += 2 * M_PI;
 

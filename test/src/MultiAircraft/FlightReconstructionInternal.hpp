@@ -3,6 +3,7 @@
 #include "ReconstructionUtility.hpp"
 #include "DOP853.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <iostream>
@@ -64,10 +65,11 @@ namespace FlightReconstruction::detail
     {
         auto &[y, quaternion] = state.data;
         (void)y;
+
         const Eigen::Matrix3d R = quaternion.get_q().toRotationMatrix();
-        double theta = asin(-R(2, 0));
-        double psi = acos(R(0, 0) / cos(theta)) * sign(R(1, 0));
-        double phi = acos(R(2, 2) / cos(theta)) * sign(R(2, 1));
+        const double theta = asin(std::clamp(-R(2, 0), -1.0, 1.0));
+        double psi = atan2(R(1, 0), R(0, 0));
+        const double phi = atan2(R(2, 1), R(2, 2));
         if (psi < 0)
         {
             psi += 2 * M_PI;
