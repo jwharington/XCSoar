@@ -205,7 +205,9 @@ void EncounterMapStore::write_single_encounter(CompletedEncounter &completed,
     {
       if (a.idi == id)
       {
-        json_aircraft.emplace_back(a.write_encounter(info, -1));
+        auto contextual_aircraft = a.write_encounter(info, -1);
+        contextual_aircraft.erase("visibility_avg");
+        json_aircraft.emplace_back(std::move(contextual_aircraft));
         included_aircraft.push_back(&a);
       }
     }
